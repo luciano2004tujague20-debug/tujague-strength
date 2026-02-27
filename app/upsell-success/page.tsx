@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase"; // Asegurate de que la ruta a supabase sea correcta
 
-export default function UpsellSuccessPage() {
+// 1. Movemos la lógica original a un componente interno
+function UpsellContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
@@ -64,5 +65,18 @@ export default function UpsellSuccessPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+// 2. El componente principal envuelve todo con <Suspense>
+export default function UpsellSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center text-emerald-500 font-black animate-pulse tracking-widest uppercase text-sm">
+        Verificando credenciales seguras...
+      </div>
+    }>
+      <UpsellContent />
+    </Suspense>
   );
 }
