@@ -14,9 +14,10 @@ const supabaseAdmin = createClient(
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export async function GET(req: Request, { params }: { params: { orderId: string } }) {
+// ✅ CORRECCIÓN NEXT.JS 15: params es una Promesa
+export async function GET(req: Request, { params }: { params: Promise<{ orderId: string }> }) {
   try {
-    const { orderId } = params;
+    const { orderId } = await params;
     const { data: order, error } = await supabaseAdmin
       .from("orders")
       .select("*, plans(*)")
@@ -32,9 +33,10 @@ export async function GET(req: Request, { params }: { params: { orderId: string 
   }
 }
 
-export async function PATCH(req: Request, { params }: { params: { orderId: string } }) {
+// ✅ CORRECCIÓN NEXT.JS 15: params es una Promesa
+export async function PATCH(req: Request, { params }: { params: Promise<{ orderId: string }> }) {
   try {
-    const { orderId } = params;
+    const { orderId } = await params;
     const { status } = await req.json();
     let query = supabaseAdmin.from("orders").update({ status });
 
@@ -58,14 +60,18 @@ export async function PATCH(req: Request, { params }: { params: { orderId: strin
   } catch (error: any) { return NextResponse.json({ error: error.message }, { status: 500 }); }
 }
 
-export async function DELETE(req: Request, { params }: { params: { orderId: string } }) {
+// ✅ CORRECCIÓN NEXT.JS 15: params es una Promesa
+export async function DELETE(req: Request, { params }: { params: Promise<{ orderId: string }> }) {
   try {
-    const { orderId } = params;
+    const { orderId } = await params;
     let query = supabaseAdmin.from("orders").delete();
+    
     if (orderId.startsWith("TS-")) query = query.eq("order_id", orderId);
     else query = query.eq("id", orderId);
+    
     const { error } = await query;
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    
     return NextResponse.json({ ok: true });
   } catch (error: any) { return NextResponse.json({ error: error.message }, { status: 500 }); }
 }
