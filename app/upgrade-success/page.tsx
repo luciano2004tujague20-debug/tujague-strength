@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase"; 
 
-export default function UpgradeSuccessPage() {
+// 1. Envolvemos tu lógica original en un componente interno
+function UpgradeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
@@ -97,5 +98,18 @@ export default function UpgradeSuccessPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+// 2. Exportamos el componente Padre que protege la ruta con Suspense
+export default function UpgradeSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center text-blue-500 font-black animate-pulse tracking-widest uppercase text-sm">
+        Preparando actualización segura...
+      </div>
+    }>
+      <UpgradeContent />
+    </Suspense>
   );
 }
