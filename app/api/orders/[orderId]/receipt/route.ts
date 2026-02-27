@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
+// ✅ CORRECCIÓN NEXT.JS 15: params declarado como Promise
 export async function POST(
   req: Request,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
-    const { orderId } = params;
+    // ✅ CORRECCIÓN NEXT.JS 15: Leemos params con await
+    const { orderId } = await params;
+    
     const formData = await req.formData();
     const file = formData.get("file") as File;
     const email = formData.get("email") as string;
