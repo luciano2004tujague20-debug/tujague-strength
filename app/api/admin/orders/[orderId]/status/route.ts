@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
+// ✅ CORRECCIÓN NEXT.JS 15: params declarado como Promise
 export async function PATCH(
   req: Request,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
-    const { orderId } = params; // Este es el UUID de la orden (ej: "a1b2c3...")
+    // ✅ CORRECCIÓN NEXT.JS 15: Leemos params con await
+    const { orderId } = await params; 
     const { status } = await req.json();
 
     // Validar que el status sea válido
