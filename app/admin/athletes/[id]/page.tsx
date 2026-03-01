@@ -1,4 +1,3 @@
-// app/admin/athletes/[id]/page.tsx
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -61,6 +60,7 @@ export default function TrainerDashboard() {
   const [saving, setSaving] = useState(false);
   
   const [activeTab, setActiveTab] = useState<'rutina' | 'videos' | 'datos'>('rutina');
+  // Por defecto iniciamos en micro para que veas los 7 días rápido
   const [routineView, setRoutineView] = useState<'macro' | 'micro'>('micro');
   const [activeDay, setActiveDay] = useState('d1');
 
@@ -75,7 +75,6 @@ export default function TrainerDashboard() {
   const [feedback, setFeedback] = useState<any>({});
   const [rms, setRms] = useState<any>({ squat: "", bench: "", deadlift: "", dips: "", military: "" });
   
-  // ✅ MACROS ACTUALIZADOS CON CARBOS Y GRASAS
   const [macros, setMacros] = useState({ calories: "", protein: "", carbs: "", fats: "", water: "" });
   
   const [cycles, setCycles] = useState({ macro: "", meso: "", micro: "" });
@@ -87,6 +86,9 @@ export default function TrainerDashboard() {
   const [annualPlan, setAnnualPlan] = useState<Record<number, any>>({});
   const [templates, setTemplates] = useState<any[]>([]);
 
+  // 🔥 ESTADO DEL BUZÓN IA 🔥
+  const [aiDraftText, setAiDraftText] = useState("");
+
   const [daysLeftCalculated, setDaysLeftCalculated] = useState<number | null>(null);
 
   const [aiNotes, setAiNotes] = useState({ squat: "", bench: "", deadlift: "", dips: "", military: "", extra1: "", extra2: "" });
@@ -95,7 +97,6 @@ export default function TrainerDashboard() {
   
   const [generatingCopilot, setGeneratingCopilot] = useState(false);
   const [generatingWeek, setGeneratingWeek] = useState(false);
-  const [aiMode, setAiMode] = useState<'auto' | 'manual'>('manual');
   const [aiParams, setAiParams] = useState({
       methodology: "Top Set + Backoffs",
       focus: "Tensión Mecánica (Hipertrofia)",
@@ -110,9 +111,12 @@ export default function TrainerDashboard() {
   const [isRecording, setIsRecording] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
 
+  // ✅ BLINDAJE CONTRA PANTALLA DE CARGA INFINITA
   useEffect(() => {
-    fetchData();
-    fetchTemplates();
+    if (orderId) {
+        fetchData();
+        fetchTemplates();
+    }
     
     if (typeof window !== "undefined") {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -123,7 +127,7 @@ export default function TrainerDashboard() {
         recognitionRef.current.lang = 'es-AR';
       }
     }
-  }, []);
+  }, [orderId]);
 
   useEffect(() => {
       if (expiresAt) {
@@ -177,73 +181,85 @@ export default function TrainerDashboard() {
     }
   };
 
+  // ✅ FETCH BLINDADO PARA QUE NO QUEDE EN "CARGANDO"
   async function fetchData() {
-    if (!orderId) return;
+    try {
+        const { data, error } = await supabase
+          .from("orders")
+          .select("*, plans(name)")
+          .eq("order_id", orderId)
+          .single();
 
-    const { data, error } = await supabase
-      .from("orders")
-      .select("*, plans(name)")
-      .eq("order_id", orderId)
-      .single();
+        if (error) throw error;
 
-    if (data) {
-      setOrder(data);
-      setRoutine({
-        d1: data.routine_d1 || "", d2: data.routine_d2 || "", d3: data.routine_d3 || "",
-        d4: data.routine_d4 || "", d5: data.routine_d5 || "", d6: data.routine_d6 || "",
-        d7: data.routine_d7 || ""
-      });
-      
-      setLogs({
-        d1: data.log_d1 || "", d2: data.log_d2 || "", d3: data.log_d3 || "",
-        d4: data.log_d4 || "", d5: data.log_d5 || "", d6: data.log_d6 || "",
-        d7: data.log_d7 || ""
-      });
-      
-      setFeedback({
-        squat: data.feedback_squat || "", bench: data.feedback_bench || "", 
-        deadlift: data.feedback_deadlift || "", dips: data.feedback_dips || "",
-        military: data.feedback_military || "", extra1: data.feedback_extra1 || "", extra2: data.feedback_extra2 || ""
-      });
-      setRms({
-        squat: data.rm_squat || "", bench: data.rm_bench || "", 
-        deadlift: data.rm_deadlift || "", dips: data.rm_dips || "", military: data.rm_military || ""
-      });
-      
-      // ✅ ACTUALIZAMOS CON TODOS LOS MACROS
-      setMacros({
-        calories: data.macro_calories || "", 
-        protein: data.macro_protein || "", 
-        carbs: data.macro_carbs || "", 
-        fats: data.macro_fats || "", 
-        water: data.macro_water || ""
-      });
-      
-      setCycles({
-        macro: data.macrocycle || "", meso: data.mesocycle || "", micro: data.microcycle || ""
-      });
-      setAnnualPlan(data.annual_plan || {});
-      
-      setSubStatus(data.sub_status || "active");
-      setExpiresAt(data.expires_at ? new Date(data.expires_at).toISOString().split('T')[0] : "");
-      setCustomerPhone(data.customer_phone || "");
+        if (data) {
+          setOrder(data);
+          setRoutine({
+            d1: data.routine_d1 || "", d2: data.routine_d2 || "", d3: data.routine_d3 || "",
+            d4: data.routine_d4 || "", d5: data.routine_d5 || "", d6: data.routine_d6 || "",
+            d7: data.routine_d7 || ""
+          });
+          
+          setLogs({
+            d1: data.log_d1 || "", d2: data.log_d2 || "", d3: data.log_d3 || "",
+            d4: data.log_d4 || "", d5: data.log_d5 || "", d6: data.log_d6 || "",
+            d7: data.log_d7 || ""
+          });
+          
+          setFeedback({
+            squat: data.feedback_squat || "", bench: data.feedback_bench || "", 
+            deadlift: data.feedback_deadlift || "", dips: data.feedback_dips || "",
+            military: data.feedback_military || "", extra1: data.feedback_extra1 || "", extra2: data.feedback_extra2 || ""
+          });
+          setRms({
+            squat: data.rm_squat || "", bench: data.rm_bench || "", 
+            deadlift: data.rm_deadlift || "", dips: data.rm_dips || "", military: data.rm_military || ""
+          });
+          
+          setMacros({
+            calories: data.macro_calories || "", 
+            protein: data.macro_protein || "", 
+            carbs: data.macro_carbs || "", 
+            fats: data.macro_fats || "", 
+            water: data.macro_water || ""
+          });
+          
+          setCycles({
+            macro: data.macrocycle || "", meso: data.mesocycle || "", micro: data.microcycle || ""
+          });
+          setAnnualPlan(data.annual_plan || {});
+          
+          // CARGAMOS EL TEXTO DEL BUZÓN IA
+          setAiDraftText(data.ai_draft_text || "");
+          
+          setSubStatus(data.sub_status || "active");
+          setExpiresAt(data.expires_at ? new Date(data.expires_at).toISOString().split('T')[0] : "");
+          setCustomerPhone(data.customer_phone || "");
 
-      const weekMatch = data.microcycle?.match(/\d+/);
-      if (weekMatch) {
-          setCurrentDesignWeek(parseInt(weekMatch[0]));
-      }
+          const weekMatch = data.microcycle?.match(/\d+/);
+          if (weekMatch) {
+             setCurrentDesignWeek(parseInt(weekMatch[0]));
+          }
+        }
+    } catch (err: any) {
+        console.error("Error cargando datos:", err.message);
+    } finally {
+        setLoading(false); // ESTO APAGA EL CARGANDO SIEMPRE
     }
-    setLoading(false);
   }
 
   async function fetchTemplates() {
-    const { data, error } = await supabase
-      .from("templates")
-      .select("id, title, content")
-      .order("created_at", { ascending: false });
-    
-    if (!error && data) {
-      setTemplates(data);
+    try {
+        const { data, error } = await supabase
+          .from("templates")
+          .select("id, title, content")
+          .order("created_at", { ascending: false });
+        
+        if (!error && data) {
+          setTemplates(data);
+        }
+    } catch (e) {
+        console.error(e);
     }
   }
 
@@ -290,7 +306,7 @@ export default function TrainerDashboard() {
 
   const pushToMicrocycle = async (weekNum: number) => {
       const weekData = annualPlan[weekNum] || {};
-      if(!confirm(`¿Seguro que quieres publicar la Semana ${weekNum} como el entrenamiento actual del atleta? Esto se guardará en vivo.`)) return;
+      if(!confirm(`¿Seguro que quieres extraer la Semana ${weekNum} del Macro-Planificador y PUBLICARLA oficialmente en las cajas del Día 1 al 7 para el atleta?`)) return;
 
       const newRoutine = {
           d1: weekData.d1 || "", d2: weekData.d2 || "", d3: weekData.d3 || "",
@@ -316,7 +332,7 @@ export default function TrainerDashboard() {
               .eq('order_id', orderId);
 
           if (error) throw error;
-          alert(`✅ Semana ${weekNum} publicada oficialmente en el Dashboard del atleta.`);
+          alert(`✅ Semana ${weekNum} extraída y publicada oficialmente en el Dashboard del atleta.`);
       } catch (e: any) {
           alert("❌ Error al publicar: " + e.message);
       } finally {
@@ -504,7 +520,6 @@ export default function TrainerDashboard() {
       });
   };
 
-  // ✅ REPARADO: BOTÓN DE LUPA CONECTADO AL COPILOT CORRECTAMENTE
   const handleLupaAnalysis = async () => {
       setLoadingLupa(true);
       setLupaReport(null);
@@ -563,6 +578,7 @@ export default function TrainerDashboard() {
       }
   };
 
+  // 🔥 GUARDAR TODO (Borrador, Rutina y Macroplanificador) 🔥
   async function handleSave() {
     setSaving(true);
     try {
@@ -578,6 +594,7 @@ export default function TrainerDashboard() {
                 macro_calories: macros.calories, macro_protein: macros.protein, macro_carbs: macros.carbs, macro_fats: macros.fats, macro_water: macros.water,
                 macrocycle: cycles.macro, mesocycle: cycles.meso, microcycle: cycles.micro,
                 annual_plan: annualPlan,
+                ai_draft_text: aiDraftText, // ✅ GUARDA EL CONTENIDO DEL BUZÓN DE LA IA
                 sub_status: subStatus,
                 expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
                 customer_phone: customerPhone
@@ -585,7 +602,7 @@ export default function TrainerDashboard() {
             .eq('order_id', orderId);
 
         if (error) throw error;
-        alert("💾 Historia Clínica Actualizada Correctamente.");
+        alert("💾 ¡Cambios Guardados y Publicados Oficialmente!");
     } catch (e: any) {
         alert("❌ Error al guardar: " + e.message);
     } finally {
@@ -642,7 +659,7 @@ export default function TrainerDashboard() {
                 disabled={saving}
                 className="w-full md:w-auto bg-emerald-500 hover:bg-emerald-400 text-black font-black px-8 py-3 rounded-xl uppercase tracking-widest shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all disabled:opacity-50 text-xs flex items-center justify-center gap-2"
             >
-                {saving ? "Registrando Datos..." : "💾 Confirmar Modificaciones"}
+                {saving ? "Registrando Datos..." : "💾 Guardar Modificaciones y Publicar"}
             </button>
          </div>
       </div>
@@ -696,223 +713,239 @@ export default function TrainerDashboard() {
                     </div>
                 )}
 
-                {routineView === 'macro' && (
-                   <div className="bg-[#09090b] border border-zinc-800 rounded-[2rem] p-6 shadow-2xl relative overflow-hidden">
-                       <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none -mr-20 -mt-20"></div>
-                       <div className="mb-8 relative z-10 flex justify-between items-center">
-                           <div>
-                               <h2 className="text-2xl font-black italic text-white mb-2 uppercase">Planificador Anual BII</h2>
-                               <p className="text-zinc-400 text-xs font-medium">Arquitectura estructural de largo plazo. Expanda el bloque semanal para editar la dosificación.</p>
-                           </div>
-                           <div className="bg-emerald-950/50 border border-emerald-500/30 px-4 py-2 rounded-xl text-center">
-                               <p className="text-[8px] font-black uppercase tracking-widest text-emerald-500">Diseño Actual</p>
-                               <p className="font-mono font-bold text-white">Semana {currentDesignWeek}</p>
-                           </div>
-                       </div>
-                       <div className="grid lg:grid-cols-2 gap-6 h-[70vh] overflow-y-auto pr-4 custom-scrollbar relative z-10 items-start">
-                           {MONTHS_STRUCTURE.map((month, idx) => (
-                               <div key={idx} className="bg-black/50 border border-zinc-800 rounded-3xl p-6">
-                                   <h3 className="text-emerald-500 font-black italic uppercase text-xl border-b border-zinc-800/50 pb-3 mb-4">{month.name}</h3>
-                                   <div className="space-y-4">
-                                       {month.weeks.map(weekNum => (
-                                           <div key={weekNum} className={`bg-[#050505] rounded-2xl border transition-all overflow-hidden ${expandedWeek === weekNum ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/30' : 'border-zinc-800/50 hover:border-zinc-700'}`}>
-                                               <div 
-                                                  className="p-4 cursor-pointer flex justify-between items-center bg-zinc-900/40 hover:bg-zinc-800 transition-colors"
-                                                  onClick={() => {
-                                                    setExpandedWeek(expandedWeek === weekNum ? null : weekNum);
-                                                    setActiveMacroDay('d1'); 
-                                                  }}
-                                               >
-                                                   <span className={`text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition-colors ${expandedWeek === weekNum ? 'bg-emerald-500 text-black' : 'bg-zinc-800 text-white'}`}>
-                                                       Semana {weekNum}
-                                                   </span>
-                                                   <div className="flex items-center gap-3">
-                                                      {annualPlan[weekNum]?.phase && <span className="text-[10px] text-emerald-400 font-bold uppercase">{annualPlan[weekNum].phase}</span>}
-                                                      <span className="text-zinc-500 text-xs">{expandedWeek === weekNum ? '▲' : '▼'}</span>
-                                                   </div>
-                                               </div>
-
-                                               {expandedWeek === weekNum && (
-                                                   <div className="p-5 border-t border-zinc-800 bg-[#09090b] space-y-5 animate-in slide-in-from-top-2 duration-200">
-                                                       <div className="flex flex-col sm:flex-row gap-3">
-                                                           <select 
-                                                               value={annualPlan[weekNum]?.phase || ""}
-                                                               onChange={(e) => updateAnnualWeek(weekNum, 'phase', e.target.value)}
-                                                               className="flex-1 bg-black border border-zinc-700 text-zinc-300 text-xs font-bold uppercase rounded-xl px-4 py-3 outline-none focus:border-emerald-500"
-                                                           >
-                                                               <option value="">-- Fase Fisiológica --</option>
-                                                               <option value="Adaptacion">Adaptación Anatómica</option>
-                                                               <option value="Hipertrofia">Hipertrofia (Acumulación)</option>
-                                                               <option value="Fuerza Base">Fuerza Base</option>
-                                                               <option value="Intensificacion">Fuerza Máxima (Intensificación)</option>
-                                                               <option value="Peaking">Pico de Rendimiento (Peaking)</option>
-                                                               <option value="Descarga">Descarga del SNC (Deload)</option>
-                                                           </select>
-                                                           <input 
-                                                              type="text"
-                                                              placeholder="Énfasis Biomecánico"
-                                                              value={annualPlan[weekNum]?.focus || ""}
-                                                              onChange={(e) => updateAnnualWeek(weekNum, 'focus', e.target.value)}
-                                                              className="flex-1 bg-black border border-zinc-700 text-zinc-300 text-xs font-bold rounded-xl px-4 py-3 outline-none focus:border-emerald-500 placeholder:text-zinc-700"
-                                                           />
-                                                       </div>
-
-                                                       <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar border-b border-zinc-800">
-                                                          {['d1','d2','d3','d4','d5','d6','d7'].map(d => (
-                                                              <button 
-                                                                 key={d}
-                                                                 onClick={() => setActiveMacroDay(d)}
-                                                                 className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-t-xl transition-colors whitespace-nowrap ${activeMacroDay === d ? 'bg-zinc-800 text-emerald-400 border-b-2 border-emerald-500' : 'text-zinc-500 hover:text-white hover:bg-zinc-900'}`}
-                                                              >
-                                                                 {d.replace('d', 'Día ')}
-                                                                 {annualPlan[weekNum]?.[d] && <span className="ml-1.5 w-1.5 h-1.5 inline-block bg-emerald-500 rounded-full"></span>}
-                                                              </button>
-                                                          ))}
-                                                       </div>
-
-                                                       <div className="bg-black border border-zinc-800 rounded-2xl p-4 relative">
-                                                          <div className="flex justify-between items-center mb-3">
-                                                              <span className="text-xs font-black text-white uppercase tracking-widest">{activeMacroDay.replace('d', 'Día ')}</span>
-                                                              <select 
-                                                                 onChange={(e) => handleApplyTemplateToMacro(e, weekNum, activeMacroDay)}
-                                                                 className="bg-zinc-900 border border-zinc-700 hover:border-emerald-500 text-zinc-400 text-[9px] font-bold uppercase rounded-lg px-2 py-1 outline-none transition-colors w-32"
-                                                                 defaultValue=""
-                                                              >
-                                                                 <option value="" disabled>Seleccionar Template</option>
-                                                                 {templates.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
-                                                              </select>
-                                                          </div>
-                                                          <textarea 
-                                                             className="w-full h-40 bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-zinc-300 font-mono text-xs leading-relaxed resize-none outline-none focus:border-emerald-500/50 custom-scrollbar placeholder:text-zinc-700"
-                                                             placeholder={`Desarrollo de parámetros de carga para el ${activeMacroDay.replace('d', 'Día ')}...`}
-                                                             value={annualPlan[weekNum]?.[activeMacroDay] || ""}
-                                                             onChange={(e) => updateAnnualWeek(weekNum, activeMacroDay, e.target.value)}
-                                                             spellCheck={false}
-                                                          />
-                                                       </div>
-
-                                                       <button 
-                                                          onClick={() => pushToMicrocycle(weekNum)}
-                                                          className="w-full bg-emerald-500 hover:bg-emerald-400 text-black py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)] flex justify-center items-center gap-2"
-                                                       >
-                                                          ⚡ Transferir al Dashboard del Atleta
-                                                       </button>
-                                                   </div>
-                                               )}
-                                           </div>
-                                       ))}
+                {/* 🔥 NUEVO DISEÑO DIVIDIDO (SIEMPRE MUESTRA EL BUZÓN IA A LA DERECHA) 🔥 */}
+                <div className="grid lg:grid-cols-3 gap-6 relative items-start h-[75vh]">
+                    
+                    {/* COLUMNA IZQUIERDA (El Área de Trabajo: Macro o Micro) */}
+                    <div className="lg:col-span-2 h-full flex flex-col">
+                        
+                        {/* 1. MODO MACRO-PLANIFICADOR (La Grilla de Meses) */}
+                        {routineView === 'macro' && (
+                           <div className="bg-[#09090b] border border-zinc-800 rounded-[2rem] p-6 shadow-2xl relative overflow-hidden flex-1 flex flex-col">
+                               <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none -mr-20 -mt-20"></div>
+                               <div className="mb-6 relative z-10 flex justify-between items-center">
+                                   <div>
+                                       <h2 className="text-2xl font-black italic text-white mb-2 uppercase">Planificador Anual BII</h2>
+                                       <p className="text-zinc-400 text-xs font-medium">Arquitectura estructural. Copia el texto del Buzón IA (Derecha) a la semana correspondiente.</p>
+                                   </div>
+                                   <div className="bg-emerald-950/50 border border-emerald-500/30 px-4 py-2 rounded-xl text-center">
+                                       <p className="text-[8px] font-black uppercase tracking-widest text-emerald-500">Diseño Actual</p>
+                                       <p className="font-mono font-bold text-white">Semana {currentDesignWeek}</p>
                                    </div>
                                </div>
-                           ))}
-                       </div>
-                   </div>
-                )}
+                               <div className="grid sm:grid-cols-2 gap-6 overflow-y-auto pr-4 custom-scrollbar relative z-10 flex-1">
+                                   {MONTHS_STRUCTURE.map((month, idx) => (
+                                       <div key={idx} className="bg-black/50 border border-zinc-800 rounded-3xl p-6 h-fit">
+                                           <h3 className="text-emerald-500 font-black italic uppercase text-xl border-b border-zinc-800/50 pb-3 mb-4">{month.name}</h3>
+                                           <div className="space-y-4">
+                                               {month.weeks.map(weekNum => (
+                                                   <div key={weekNum} className={`bg-[#050505] rounded-2xl border transition-all overflow-hidden ${expandedWeek === weekNum ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/30' : 'border-zinc-800/50 hover:border-zinc-700'}`}>
+                                                       <div 
+                                                          className="p-4 cursor-pointer flex justify-between items-center bg-zinc-900/40 hover:bg-zinc-800 transition-colors"
+                                                          onClick={() => {
+                                                            setExpandedWeek(expandedWeek === weekNum ? null : weekNum);
+                                                            setActiveMacroDay('d1'); 
+                                                          }}
+                                                       >
+                                                           <span className={`text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition-colors ${expandedWeek === weekNum ? 'bg-emerald-500 text-black' : 'bg-zinc-800 text-white'}`}>
+                                                               Semana {weekNum}
+                                                           </span>
+                                                           <div className="flex items-center gap-3">
+                                                              {annualPlan[weekNum]?.phase && <span className="text-[10px] text-emerald-400 font-bold uppercase">{annualPlan[weekNum].phase}</span>}
+                                                              <span className="text-zinc-500 text-xs">{expandedWeek === weekNum ? '▲' : '▼'}</span>
+                                                           </div>
+                                                       </div>
 
-                {routineView === 'micro' && (
-                  <>
-                    <div className="mb-6 bg-zinc-900/50 border border-zinc-800 rounded-[2rem] p-6">
-                       <h3 className="text-xs font-black italic text-emerald-500 uppercase tracking-widest mb-4">Etiquetado Estructural (Vista del Atleta)</h3>
-                       <div className="grid md:grid-cols-3 gap-4">
-                          <div className="bg-black/50 p-4 rounded-xl border border-zinc-800 focus-within:border-emerald-500/50 transition-colors">
-                             <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-2">Macrociclo</p>
-                             <input type="text" className="bg-transparent text-sm font-bold text-white w-full outline-none placeholder:text-zinc-700" value={cycles.macro} placeholder="Ej: Temporada Pre-Competitiva" onChange={(e) => setCycles({...cycles, macro: e.target.value})} />
-                          </div>
-                          <div className="bg-black/50 p-4 rounded-xl border border-zinc-800 focus-within:border-emerald-500/50 transition-colors">
-                             <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-2">Mesociclo</p>
-                             <input type="text" className="bg-transparent text-sm font-bold text-white w-full outline-none placeholder:text-zinc-700" value={cycles.meso} placeholder="Ej: Bloque 1 - Fuerza Base" onChange={(e) => setCycles({...cycles, meso: e.target.value})} />
-                          </div>
-                          <div className="bg-emerald-950/20 p-4 rounded-xl border border-emerald-500/30 focus-within:border-emerald-500 transition-colors shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-                             <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-2 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Microciclo</p>
-                             <input type="text" className="bg-transparent text-sm font-black text-emerald-400 w-full outline-none placeholder:text-emerald-900" value={cycles.micro} placeholder="Ej: Semana 3 - Descarga" onChange={(e) => setCycles({...cycles, micro: e.target.value})} />
-                          </div>
-                       </div>
-                    </div>
+                                                       {expandedWeek === weekNum && (
+                                                           <div className="p-5 border-t border-zinc-800 bg-[#09090b] space-y-5 animate-in slide-in-from-top-2 duration-200">
+                                                               <div className="flex flex-col gap-3">
+                                                                   <select 
+                                                                       value={annualPlan[weekNum]?.phase || ""}
+                                                                       onChange={(e) => updateAnnualWeek(weekNum, 'phase', e.target.value)}
+                                                                       className="w-full bg-black border border-zinc-700 text-zinc-300 text-xs font-bold uppercase rounded-xl px-4 py-3 outline-none focus:border-emerald-500"
+                                                                   >
+                                                                       <option value="">-- Fase Fisiológica --</option>
+                                                                       <option value="Adaptacion">Adaptación Anatómica</option>
+                                                                       <option value="Hipertrofia">Hipertrofia (Acumulación)</option>
+                                                                       <option value="Fuerza Base">Fuerza Base</option>
+                                                                       <option value="Intensificacion">Fuerza Máxima (Intensificación)</option>
+                                                                       <option value="Peaking">Pico de Rendimiento (Peaking)</option>
+                                                                       <option value="Descarga">Descarga del SNC (Deload)</option>
+                                                                   </select>
+                                                                   <input 
+                                                                      type="text"
+                                                                      placeholder="Énfasis Biomecánico"
+                                                                      value={annualPlan[weekNum]?.focus || ""}
+                                                                      onChange={(e) => updateAnnualWeek(weekNum, 'focus', e.target.value)}
+                                                                      className="w-full bg-black border border-zinc-700 text-zinc-300 text-xs font-bold rounded-xl px-4 py-3 outline-none focus:border-emerald-500 placeholder:text-zinc-700"
+                                                                   />
+                                                               </div>
 
-                    <div className="grid lg:grid-cols-4 gap-6 h-[calc(100vh-350px)] min-h-[700px]">
-                        <div className="lg:col-span-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
-                            {['d1','d2','d3','d4','d5','d6','d7'].map(day => (
-                                <button key={day} onClick={() => setActiveDay(day)} className={`w-full text-left px-5 py-4 rounded-xl border font-black uppercase text-xs tracking-widest transition-all flex justify-between items-center ${activeDay === day ? 'bg-emerald-500 text-black border-emerald-500' : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-zinc-700'}`}>
-                                    {day.replace('d', 'Día ')}
-                                    <div className="flex items-center gap-2">
-                                       {logs[day] && <span title="Bitácora registrada" className="text-sm">📓</span>}
-                                       {routine[day] && <span className={`text-[8px] px-2 py-0.5 rounded-full ${activeDay === day ? 'bg-black/20 text-black' : 'bg-emerald-500/20 text-emerald-500'}`}>OK</span>}
+                                                               <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar border-b border-zinc-800">
+                                                                  {['d1','d2','d3','d4','d5','d6','d7'].map(d => (
+                                                                      <button 
+                                                                         key={d}
+                                                                         onClick={() => setActiveMacroDay(d)}
+                                                                         className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-t-xl transition-colors whitespace-nowrap ${activeMacroDay === d ? 'bg-zinc-800 text-emerald-400 border-b-2 border-emerald-500' : 'text-zinc-500 hover:text-white hover:bg-zinc-900'}`}
+                                                                      >
+                                                                         {d.replace('d', 'Día ')}
+                                                                         {annualPlan[weekNum]?.[d] && <span className="ml-1.5 w-1.5 h-1.5 inline-block bg-emerald-500 rounded-full"></span>}
+                                                                      </button>
+                                                                  ))}
+                                                               </div>
+
+                                                               <div className="bg-black border border-zinc-800 rounded-2xl p-4 relative">
+                                                                  <div className="flex justify-between items-center mb-3">
+                                                                      <span className="text-xs font-black text-white uppercase tracking-widest">{activeMacroDay.replace('d', 'Día ')}</span>
+                                                                  </div>
+                                                                  <textarea 
+                                                                      className="w-full h-40 bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-zinc-300 font-mono text-xs leading-relaxed resize-none outline-none focus:border-emerald-500/50 custom-scrollbar placeholder:text-zinc-700"
+                                                                      placeholder={`Pegue o escriba aquí la rutina del ${activeMacroDay.replace('d', 'Día ')}...`}
+                                                                      value={annualPlan[weekNum]?.[activeMacroDay] || ""}
+                                                                      onChange={(e) => updateAnnualWeek(weekNum, activeMacroDay, e.target.value)}
+                                                                      spellCheck={false}
+                                                                  />
+                                                               </div>
+
+                                                               <button 
+                                                                  onClick={() => pushToMicrocycle(weekNum)}
+                                                                  className="w-full bg-emerald-500 hover:bg-emerald-400 text-black py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)] flex justify-center items-center gap-2"
+                                                               >
+                                                                  ⚡ Transferir al Dashboard del Atleta
+                                                               </button>
+                                                           </div>
+                                                       )}
+                                                   </div>
+                                               ))}
+                                           </div>
+                                       </div>
+                                   ))}
+                               </div>
+                           </div>
+                        )}
+
+                        {/* 2. MODO MICROCICLO (Los 7 Días Actuales) */}
+                        {routineView === 'micro' && (
+                           <div className="flex-1 flex flex-col h-full gap-4">
+                              <div className="bg-zinc-900/50 border border-zinc-800 rounded-[2rem] p-6 shrink-0">
+                                 <h3 className="text-xs font-black italic text-emerald-500 uppercase tracking-widest mb-4">Etiquetado Estructural (Vista del Atleta)</h3>
+                                 <div className="grid md:grid-cols-3 gap-4">
+                                    <div className="bg-black/50 p-4 rounded-xl border border-zinc-800 focus-within:border-emerald-500/50 transition-colors">
+                                       <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-2">Macrociclo</p>
+                                       <input type="text" className="bg-transparent text-sm font-bold text-white w-full outline-none placeholder:text-zinc-700" value={cycles.macro} placeholder="Ej: Temporada Pre-Competitiva" onChange={(e) => setCycles({...cycles, macro: e.target.value})} />
                                     </div>
-                                </button>
-                            ))}
-                        </div>
+                                    <div className="bg-black/50 p-4 rounded-xl border border-zinc-800 focus-within:border-emerald-500/50 transition-colors">
+                                       <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-2">Mesociclo</p>
+                                       <input type="text" className="bg-transparent text-sm font-bold text-white w-full outline-none placeholder:text-zinc-700" value={cycles.meso} placeholder="Ej: Bloque 1 - Fuerza Base" onChange={(e) => setCycles({...cycles, meso: e.target.value})} />
+                                    </div>
+                                    <div className="bg-emerald-950/20 p-4 rounded-xl border border-emerald-500/30 focus-within:border-emerald-500 transition-colors shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                                       <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-2 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Microciclo</p>
+                                       <input type="text" className="bg-transparent text-sm font-black text-emerald-400 w-full outline-none placeholder:text-emerald-900" value={cycles.micro} placeholder="Ej: Semana 3 - Descarga" onChange={(e) => setCycles({...cycles, micro: e.target.value})} />
+                                    </div>
+                                 </div>
+                              </div>
 
-                        <div className="lg:col-span-3 h-full flex flex-col gap-4">
-                            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex-1 flex flex-col shadow-2xl relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-full h-40 bg-gradient-to-b from-indigo-900/10 to-transparent pointer-events-none"></div>
-                                
-                                {/* ✅ CONSOLA DE DISEÑO CLÍNICA (IA MASTER) */}
-                                <div className="bg-zinc-950 border border-indigo-500/40 rounded-2xl p-5 mb-6 relative z-10 shadow-lg">
-                                   <div className="flex justify-between items-center mb-4 border-b border-zinc-800 pb-3">
-                                      <span className="text-xs font-black uppercase tracking-widest text-indigo-400 flex items-center gap-2">
-                                         <span className="text-xl">🧬</span> Consola de Prescripción BII-Vintage
-                                      </span>
-                                   </div>
-                                   
-                                   <div className="grid md:grid-cols-3 gap-4 mb-5">
-                                      <div>
-                                         <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest mb-1 block">Metodología Principal</label>
-                                         <select value={aiParams.methodology} onChange={(e) => setAiParams({...aiParams, methodology: e.target.value})} className="w-full bg-black border border-zinc-800 text-white text-xs font-bold rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
-                                            <option>Top Set + Backoffs</option>
-                                            <option>Progresión Lineal Clásica</option>
-                                            <option>Heavy Duty (1 Serie Efectiva)</option>
-                                            <option>DUP (Ondulante Diaria)</option>
-                                         </select>
+                              <div className="grid lg:grid-cols-3 gap-4 flex-1 min-h-0">
+                                  <div className="lg:col-span-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
+                                      {['d1','d2','d3','d4','d5','d6','d7'].map(day => (
+                                          <button key={day} onClick={() => setActiveDay(day)} className={`w-full text-left px-5 py-4 rounded-xl border font-black uppercase text-xs tracking-widest transition-all flex justify-between items-center ${activeDay === day ? 'bg-emerald-500 text-black border-emerald-500' : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-zinc-700'}`}>
+                                              {day.replace('d', 'Día ')}
+                                              <div className="flex items-center gap-2">
+                                                 {logs[day] && <span title="Bitácora registrada" className="text-sm">📓</span>}
+                                                 {routine[day] && <span className={`text-[8px] px-2 py-0.5 rounded-full ${activeDay === day ? 'bg-black/20 text-black' : 'bg-emerald-500/20 text-emerald-500'}`}>OK</span>}
+                                              </div>
+                                          </button>
+                                      ))}
+                                  </div>
+
+                                  <div className="lg:col-span-2 h-full flex flex-col gap-4">
+                                      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex-1 flex flex-col shadow-2xl relative overflow-hidden">
+                                          <div className="absolute top-0 right-0 w-full h-40 bg-gradient-to-b from-indigo-900/10 to-transparent pointer-events-none"></div>
+                                          
+                                          {/* CONSOLA DE DISEÑO CLÍNICA (IA MASTER) */}
+                                          <div className="bg-zinc-950 border border-indigo-500/40 rounded-2xl p-5 mb-6 relative z-10 shadow-lg">
+                                             <div className="flex justify-between items-center mb-4 border-b border-zinc-800 pb-3">
+                                                <span className="text-xs font-black uppercase tracking-widest text-indigo-400 flex items-center gap-2">
+                                                   <span className="text-xl">🧬</span> Consola IA BII-Vintage
+                                                </span>
+                                             </div>
+                                             
+                                             <div className="grid md:grid-cols-3 gap-4 mb-5">
+                                                <div>
+                                                   <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest mb-1 block">Metodología</label>
+                                                   <select value={aiParams.methodology} onChange={(e) => setAiParams({...aiParams, methodology: e.target.value})} className="w-full bg-black border border-zinc-800 text-white text-[10px] font-bold rounded-lg px-2 py-2 outline-none focus:border-indigo-500">
+                                                      <option>Top Set + Backoffs</option>
+                                                      <option>Progresión Lineal</option>
+                                                      <option>Heavy Duty</option>
+                                                   </select>
+                                                </div>
+                                                <div>
+                                                   <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest mb-1 block">Foco</label>
+                                                   <select value={aiParams.focus} onChange={(e) => setAiParams({...aiParams, focus: e.target.value})} className="w-full bg-black border border-zinc-800 text-white text-[10px] font-bold rounded-lg px-2 py-2 outline-none focus:border-indigo-500">
+                                                      <option>Hipertrofia</option>
+                                                      <option>Fuerza Max</option>
+                                                      <option>Bombeo</option>
+                                                   </select>
+                                                </div>
+                                                <div>
+                                                   <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest mb-1 block">RPE</label>
+                                                   <select value={aiParams.rpe} onChange={(e) => setAiParams({...aiParams, rpe: e.target.value})} className="w-full bg-black border border-zinc-800 text-white text-[10px] font-bold rounded-lg px-2 py-2 outline-none focus:border-indigo-500">
+                                                      <option>RPE 8-9</option>
+                                                      <option>RPE 10</option>
+                                                      <option>RPE 6 (Descarga)</option>
+                                                   </select>
+                                                </div>
+                                             </div>
+                                             
+                                             <div className="flex flex-col md:flex-row gap-3">
+                                                <button onClick={handleCopilot} disabled={generatingCopilot || generatingWeek} className={`flex-1 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg border ${generatingCopilot ? 'bg-zinc-900 border-zinc-800 text-zinc-600' : 'bg-zinc-950 border-indigo-500/50 text-indigo-400 hover:bg-indigo-900/30'}`}>
+                                                   {generatingCopilot ? "Procesando..." : "⚡ Sintetizar Día"}
+                                                </button>
+                                                <button onClick={handleGenerateFullWeek} disabled={generatingCopilot || generatingWeek} className={`flex-1 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${generatingWeek ? 'bg-zinc-900 text-zinc-600' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}`}>
+                                                   {generatingWeek ? "Construyendo..." : "📅 Auto-Llenar Semana"}
+                                                </button>
+                                             </div>
+                                          </div>
+
+                                          <div className="flex flex-col md:flex-row justify-between mb-4 items-start md:items-center gap-4 relative z-10 border-b border-zinc-800/50 pb-4">
+                                               <div><h3 className="text-sm font-black italic uppercase text-white">Bloque Operativo: {activeDay.replace('d', 'Día ')}</h3></div>
+                                               <div className="flex items-center gap-3 w-full md:w-auto">
+                                                  <select onChange={handleApplyTemplate} className="bg-black border border-zinc-700 hover:border-emerald-500 text-zinc-300 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 outline-none transition-all cursor-pointer shadow-lg w-full md:w-48 appearance-none" defaultValue="">
+                                                     <option value="" disabled>Inyectar Plantilla...</option>
+                                                     {templates.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+                                                  </select>
+                                               </div>
+                                          </div>
+
+                                          <textarea className="w-full flex-1 bg-black border border-zinc-800 rounded-xl p-4 text-zinc-300 font-mono text-sm leading-relaxed focus:border-emerald-500 outline-none resize-none transition-all placeholder:text-zinc-800 relative z-10 custom-scrollbar" placeholder={`Espacio de diseño estructural...`} value={routine[activeDay]} onChange={(e) => setRoutine({...routine, [activeDay]: e.target.value})} spellCheck={false}></textarea>
                                       </div>
-                                      <div>
-                                         <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest mb-1 block">Vía Energética / Foco</label>
-                                         <select value={aiParams.focus} onChange={(e) => setAiParams({...aiParams, focus: e.target.value})} className="w-full bg-black border border-zinc-800 text-white text-xs font-bold rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
-                                            <option>Tensión Mecánica (Hipertrofia)</option>
-                                            <option>Reclutamiento Neural (Fuerza Max)</option>
-                                            <option>Estrés Metabólico / Bombeo</option>
-                                         </select>
-                                      </div>
-                                      <div>
-                                         <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest mb-1 block">Exigencia (RIR / RPE)</label>
-                                         <select value={aiParams.rpe} onChange={(e) => setAiParams({...aiParams, rpe: e.target.value})} className="w-full bg-black border border-zinc-800 text-white text-xs font-bold rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
-                                            <option>RPE 8-9 (Cerca del fallo)</option>
-                                            <option>RPE 10 (Fallo muscular absoluto)</option>
-                                            <option>Descarga del SNC (RPE 6)</option>
-                                         </select>
-                                      </div>
-                                   </div>
-                                   
-                                   <div className="flex flex-col md:flex-row gap-3">
-                                      <button onClick={handleCopilot} disabled={generatingCopilot || generatingWeek} className={`flex-1 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg border ${generatingCopilot ? 'bg-zinc-900 border-zinc-800 text-zinc-600' : 'bg-zinc-950 border-indigo-500/50 text-indigo-400 hover:bg-indigo-900/30'}`}>
-                                         {generatingCopilot ? <span className="flex items-center gap-2">Procesando Patrones... <span className="animate-spin">🌀</span></span> : <span>⚡ Sintetizar Día Actual</span>}
-                                      </button>
-                                      
-                                      <button onClick={handleGenerateFullWeek} disabled={generatingCopilot || generatingWeek} className={`flex-1 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] flex items-center justify-center gap-2 ${generatingWeek ? 'bg-zinc-900 text-zinc-600' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}`}>
-                                         {generatingWeek ? <span className="flex items-center gap-2">Construyendo Mesociclo... <span className="animate-spin">🌀</span></span> : <span>📅 Diseñar Estructura Semanal</span>}
-                                      </button>
-                                   </div>
-                                </div>
+                                  </div>
+                              </div>
+                           </div>
+                        )}
+                    </div>
 
-                                <div className="flex flex-col md:flex-row justify-between mb-4 items-start md:items-center gap-4 relative z-10 border-b border-zinc-800/50 pb-4">
-                                     <div><h3 className="text-lg font-black italic uppercase text-white">Bloque Operativo: {activeDay.replace('d', 'Día ')}</h3></div>
-                                     <div className="flex items-center gap-3 w-full md:w-auto">
-                                        <select onChange={handleApplyTemplate} className="bg-black border border-zinc-700 hover:border-emerald-500 text-zinc-300 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-3 outline-none transition-all cursor-pointer shadow-lg w-full md:w-48 appearance-none" defaultValue="">
-                                           <option value="" disabled>Inyectar Plantilla Base...</option>
-                                           {templates.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
-                                        </select>
-                                     </div>
-                                </div>
-
-                                <textarea className="w-full flex-1 bg-black border border-zinc-800 rounded-xl p-6 text-zinc-300 font-mono text-sm leading-relaxed focus:border-emerald-500 outline-none resize-none transition-all placeholder:text-zinc-800 relative z-10 custom-scrollbar" placeholder={`Espacio de diseño estructural...`} value={routine[activeDay]} onChange={(e) => setRoutine({...routine, [activeDay]: e.target.value})} spellCheck={false}></textarea>
-                            </div>
-
-                            <div className="bg-black/80 border border-emerald-900/30 rounded-2xl p-5 shadow-[0_0_20px_rgba(16,185,129,0.05)] relative overflow-hidden shrink-0">
-                                <p className="text-[10px] text-emerald-500 font-black uppercase tracking-widest mb-3 flex items-center gap-2"><span className="text-lg">📓</span> Bitácora Subjetiva del Atleta</p>
-                                {logs[activeDay] ? <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-xl"><p className="text-zinc-300 font-mono text-sm leading-relaxed whitespace-pre-wrap">{logs[activeDay]}</p></div> : <p className="text-zinc-600 text-xs italic">A la espera de reporte de rendimiento post-sesión.</p>}
-                            </div>
+                    {/* COLUMNA DERECHA: 🔥 EL BUZÓN IA (SIEMPRE VISIBLE) 🔥 */}
+                    <div className="lg:col-span-1 h-full flex flex-col">
+                        <div className="bg-indigo-950/10 border border-indigo-500/30 rounded-[2rem] p-6 shadow-2xl flex-1 flex flex-col relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none -mr-10 -mt-10"></div>
+                            <h3 className="text-indigo-400 text-sm font-black uppercase tracking-widest mb-2 flex items-center gap-2 border-b border-indigo-500/30 pb-4">
+                                <span className="text-xl">📥</span> Buzón de IA
+                            </h3>
+                            <p className="text-[10px] text-zinc-400 font-medium mb-4 leading-relaxed">
+                                Textos generados en la pantalla de Órdenes. Copia de aquí y pega en las cajas de la izquierda. Este texto es PRIVADO y el atleta NO lo ve.
+                            </p>
+                            <textarea 
+                                className="w-full flex-1 bg-black/60 border border-indigo-500/20 rounded-xl p-4 text-zinc-300 font-mono text-[10px] md:text-xs leading-relaxed resize-none outline-none focus:border-indigo-500 custom-scrollbar"
+                                placeholder="Las rutinas de 4 semanas generadas por la IA aparecerán aquí..."
+                                value={aiDraftText}
+                                onChange={(e) => setAiDraftText(e.target.value)}
+                                spellCheck={false}
+                            />
                         </div>
                     </div>
-                  </>
-                )}
+
+                </div>
             </div>
         )}
 
@@ -1025,7 +1058,7 @@ export default function TrainerDashboard() {
                                <div className="coach-insight-anim bg-indigo-950/20 border border-indigo-500/20 rounded-2xl p-5 relative">
                                   <button onClick={() => setAiInsights({...aiInsights, [lift.id]: ""})} className="absolute top-4 right-4 text-indigo-500 hover:text-white font-bold">✕</button>
                                   <p className="text-[9px] font-black uppercase tracking-widest text-indigo-400 mb-2 flex items-center gap-2">
-                                     <span>🛡️</span> Insight Privado para Head Coach
+                                      <span>🛡️</span> Insight Privado para Head Coach
                                   </p>
                                   <p className="text-xs text-indigo-100/70 italic leading-relaxed">
                                      {aiInsights[lift.id as keyof typeof aiInsights]}
@@ -1154,7 +1187,6 @@ export default function TrainerDashboard() {
         )}
       </div>
 
-      {/* ✅ SE AÑADIÓ whitespace: pre-wrap !important PARA RESPETAR SALTOS DE LÍNEA */}
       <style dangerouslySetInnerHTML={{__html: `
         .custom-scrollbar::-webkit-scrollbar { width: 3px; height: 3px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }

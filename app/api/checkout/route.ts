@@ -1,4 +1,3 @@
-// app/api/checkout/route.ts
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { MercadoPagoConfig, Preference } from "mercadopago";
@@ -75,7 +74,7 @@ export async function POST(req: Request) {
         status: "pending",
         has_video_review: extraVideo || false,
         referred_by: validReferralCode, // Quién lo trajo (para pagar comisión luego)
-        referral_code: newPersonalCode, // Su código propio para el futuro (Soluciona el "SIN ASIGNAR")
+        referral_code: newPersonalCode, // Su código propio para el futuro
         wallet_balance: 0
       });
 
@@ -101,6 +100,10 @@ export async function POST(req: Request) {
           },
         ],
         external_reference: orderId,
+        
+        // ✅ LA PIEZA CLAVE: Le decimos a MP dónde mandar el Webhook
+        notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/webhooks/mercadopago`,
+        
         payer: { email: email, name: name },
         back_urls: {
           success: `${process.env.NEXT_PUBLIC_SITE_URL}/login?checkout=success`,

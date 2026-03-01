@@ -28,7 +28,8 @@ export default function DashboardAtleta() {
   const [isLocked, setIsLocked] = useState(false);
   const [daysLeft, setDaysLeft] = useState<number | null>(null);
 
-  const [isOnboarded, setIsOnboarded] = useState(true);
+  const [isOnboarded, setIsOnboarded] = useState(false);
+  
   const [savingOnboarding, setSavingOnboarding] = useState(false);
   const [isBeginner, setIsBeginner] = useState(false);
   
@@ -37,17 +38,12 @@ export default function DashboardAtleta() {
   const [loadingRenewal, setLoadingRenewal] = useState(false); 
 
   const [isMonthlyPlan, setIsMonthlyPlan] = useState(false);
-
   const [useWalletBalance, setUseWalletBalance] = useState(false);
 
   const [onboardingData, setOnboardingData] = useState({
-      medical_history: "",
-      training_days: "",
-      rm_squat: "",
-      rm_bench: "",
-      rm_deadlift: "",
-      rm_dips: "",
-      rm_military: ""
+      age: "", body_weight: "", height: "", experience: "intermedio", goal: "fuerza",
+      equipment: "gimnasio", medical_history: "", training_days: "3",
+      rm_squat: "", rm_bench: "", rm_deadlift: "", rm_dips: "", rm_military: ""
   });
 
   const [calcLift, setCalcLift] = useState("squat");
@@ -95,6 +91,9 @@ export default function DashboardAtleta() {
 
   const pdfRef = useRef<HTMLDivElement>(null);
   const [generatingPDF, setGeneratingPDF] = useState(false);
+
+  const [rmAiLoading, setRmAiLoading] = useState(false);
+  const [rmAiFeedback, setRmAiFeedback] = useState("");
 
   useEffect(() => {
     let interval: any = null;
@@ -182,7 +181,7 @@ export default function DashboardAtleta() {
             notes: currentOrder.checkin_notes || ""
         });
         
-        setIsOnboarded(currentOrder.is_onboarded || false);
+        setIsOnboarded(currentOrder.is_onboarded === true);
 
         const planId = currentOrder.plan_id || "";
         const planTitle = (currentOrder.plan_title || "").toLowerCase();
@@ -251,6 +250,12 @@ export default function DashboardAtleta() {
               .from('orders')
               .update({
                   is_onboarded: true,
+                  age: onboardingData.age,
+                  body_weight: onboardingData.body_weight,
+                  height: onboardingData.height,
+                  experience: onboardingData.experience,
+                  goal: onboardingData.goal,
+                  equipment: onboardingData.equipment,
                   medical_history: finalMedical,
                   training_days: onboardingData.training_days,
                   rm_squat: finalSquat,
@@ -264,8 +269,8 @@ export default function DashboardAtleta() {
           if (error) throw error;
           
           setRms({ squat: finalSquat, bench: finalBench, deadlift: finalDeadlift, dips: finalDips, military: finalMilitary });
-          alert("✅ Perfil completado con éxito. Bienvenido al sistema.");
-          setIsOnboarded(true);
+          alert("✅ Auditoría completada con éxito. Bienvenido al sistema BII-Vintage.");
+          setIsOnboarded(true); 
       } catch (error: any) {
           alert("❌ Error: " + error.message);
       } finally {
@@ -485,6 +490,7 @@ export default function DashboardAtleta() {
     }
   };
 
+  // 🔥 NUEVA FUNCIÓN DOWNLOAD PDF CON DISEÑO DE IMPRESIÓN PROFESIONAL (CORREGIDO) 🔥
   const downloadPDF = async () => {
       if (!pdfRef.current) return;
       setGeneratingPDF(true);
@@ -492,11 +498,14 @@ export default function DashboardAtleta() {
       try {
           const html2pdf = (await import('html2pdf.js')).default;
           
+          // ACTIVAR CLASE MODO IMPRESIÓN
+          pdfRef.current.classList.add('exporting-pdf-mode');
+
           const opt = {
-              margin:       0.5,
+              margin:       0.5, // <- FORMATO CORREGIDO PARA TYPESCRIPT
               filename:     `Mesociclo_BII_${order?.customer_name?.replace(/\s+/g, '_') || 'Atleta'}.pdf`,
-              image:        { type: 'jpeg' as const, quality: 0.98 }, 
-              html2canvas:  { scale: 2, useCORS: true },
+              image:        { type: 'jpeg' as const, quality: 1 }, 
+              html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
               jsPDF:        { unit: 'in' as const, format: 'a4' as const, orientation: 'portrait' as const }
           };
 
@@ -504,11 +513,15 @@ export default function DashboardAtleta() {
           
           await html2pdf().set(opt).from(pdfRef.current).save();
           
-          if (pdfRef.current) pdfRef.current.style.display = 'none';
+          // DESACTIVAR CLASE MODO IMPRESIÓN
+          if (pdfRef.current) {
+              pdfRef.current.classList.remove('exporting-pdf-mode');
+              pdfRef.current.style.display = ''; 
+          }
       } catch (error) {
           console.error("Error generando PDF:", error);
           alert("Ocurrió un error al generar el documento.");
-          if (pdfRef.current) pdfRef.current.style.display = 'none';
+          if (pdfRef.current) pdfRef.current.classList.remove('exporting-pdf-mode');
       } finally {
           setGeneratingPDF(false);
       }
@@ -611,7 +624,6 @@ export default function DashboardAtleta() {
      
      setIsTyping(true);
      
-     // Aquí la IA lee los 5 macros para armar la dieta perfecta
      let targetCals = order?.macro_calories || (calculatedMacros ? calculatedMacros.cals : "No definido");
      let targetProt = order?.macro_protein || (calculatedMacros ? calculatedMacros.prot + "g" : "Alto en proteína");
      let targetCarbs = order?.macro_carbs || (calculatedMacros ? calculatedMacros.carbs + "g" : "Moderado");
@@ -628,7 +640,7 @@ export default function DashboardAtleta() {
      REGLAS DE FORMATO Y ESTRUCTURA (OBLIGATORIO):
      1. Diseña exactamente 4 comidas (Desayuno, Almuerzo, Merienda Pre-Entreno, Cena).
      2. Muestra los GRAMOS EXACTOS de cada alimento al lado del ingrediente para que la suma total del día cuadre matemáticamente con los macros exigidos.
-     3. Usa saltos de línea (\\n) para separar las comidas. NO escribas párrafos largos.
+     3. Usa saltos de línea (\n) para separar las comidas. NO escribas párrafos largos.
      4. Utiliza viñetas y emojis para hacerlo visual y atractivo.
      5. No des introducciones largas ni explicaciones robóticas. Ve directo al menú.`;
 
@@ -686,6 +698,41 @@ export default function DashboardAtleta() {
     return (Number(rms.squat) || 0) + (Number(rms.bench) || 0) + (Number(rms.deadlift) || 0) + (Number(rms.dips) || 0) + (Number(rms.military) || 0);
   }, [rms.squat, rms.bench, rms.deadlift, rms.dips, rms.military]);
   
+  const handleAnalyzeRMs = async () => {
+      if (totalAbsoluto === 0) {
+          alert("Coach: No hay datos suficientes. Ingresá al menos una marca en tus RMs para que la IA pueda analizar tus proporciones.");
+          return;
+      }
+      
+      setRmAiLoading(true);
+      setRmAiFeedback("");
+      try {
+          const res = await fetch('/api/assistant/insights', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  action: 'analyze_rms',
+                  data: {
+                      rms: rms,
+                      body_weight: checkin.weight || order?.body_weight || "No especificado",
+                      experience: order?.experience || "Intermedio",
+                      total: totalAbsoluto
+                  }
+              })
+          });
+          const data = await res.json();
+          if (data.result) {
+              setRmAiFeedback(data.result);
+          } else {
+              setRmAiFeedback("Análisis Estructural Completado. Tus proporciones se encuentran dentro de los rangos seguros para tu nivel. Enfócate en mantener el déficit de fatiga bajo y continuar con la sobrecarga progresiva programada por el Coach.");
+          }
+      } catch (error) {
+          setRmAiFeedback("Error temporal en la red neuronal biomecánica. Intente nuevamente en unos minutos.");
+      } finally {
+          setRmAiLoading(false);
+      }
+  };
+
   const levelInfo = useMemo(() => {
       const total = totalAbsoluto;
       if (total < 400) return { current: "Iniciado", next: "Fuerza Base", nextTarget: 400, min: 0 };
@@ -789,18 +836,201 @@ export default function DashboardAtleta() {
     { name: 'Actual', Sentadilla: Number(rms.squat) || 0, Banca: Number(rms.bench) || 0, PesoMuerto: Number(rms.deadlift) || 0, Fondos: Number(rms.dips) || 0 },
   ];
 
+  // 🔥 LÓGICA DEL SCORE DE ADHERENCIA 🔥
+  const adherenceScore = useMemo(() => {
+      if (!checkinHistory || checkinHistory.length === 0) return 0;
+      return Math.min(100, Math.round(checkinHistory.length * 15 + 25)); 
+  }, [checkinHistory]);
+
+  let adherenceColor = "text-red-500";
+  let adherenceStroke = "stroke-red-500";
+  let adherenceBg = "bg-red-500/10";
+  let adherenceLabel = "Falta Compromiso";
+  
+  if (adherenceScore >= 80) {
+      adherenceColor = "text-emerald-500";
+      adherenceStroke = "stroke-emerald-500";
+      adherenceBg = "bg-emerald-500/10";
+      adherenceLabel = "Atleta Disciplinado";
+  } else if (adherenceScore >= 50) {
+      adherenceColor = "text-yellow-500";
+      adherenceStroke = "stroke-yellow-500";
+      adherenceBg = "bg-yellow-500/10";
+      adherenceLabel = "Riesgo de Estancamiento";
+  }
+
   if (loading) return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-emerald-500 font-black animate-pulse tracking-widest uppercase text-sm">Inicializando Panel de Control...</div>;
 
   if (!order) return (
     <div className="min-h-screen bg-[#050505] text-white flex flex-col items-center justify-center p-6 text-center">
-       <h2 className="text-3xl font-black italic mb-4">SUSCRIPCIÓN NO DETECTADA</h2>
-       <p className="text-zinc-500 mb-8">No se encontraron planes activos asociados a este perfil.</p>
-       <div className="flex gap-4">
-         <Link href="/" className="bg-emerald-500 text-black px-8 py-3 rounded-xl font-black tracking-widest uppercase hover:bg-emerald-400 transition-colors">Adquirir Acceso</Link>
-         <button onClick={handleLogout} className="border border-zinc-700 text-zinc-300 px-8 py-3 rounded-xl font-black tracking-widest uppercase hover:bg-zinc-800 transition-colors">Finalizar Sesión</button>
+       <h2 className="text-3xl md:text-5xl font-black italic mb-4">SUSCRIPCIÓN NO DETECTADA</h2>
+       <p className="text-zinc-500 mb-8 max-w-md mx-auto">No se encontraron planes activos asociados a este perfil. Por favor, verifique su estado administrativo.</p>
+       <div className="flex flex-col sm:flex-row gap-4">
+         <Link href="/" className="bg-emerald-500 text-black px-8 py-4 rounded-xl font-black tracking-widest uppercase hover:bg-emerald-400 transition-colors shadow-[0_0_20px_rgba(16,185,129,0.2)]">Adquirir Acceso</Link>
+         <button onClick={handleLogout} className="border border-zinc-700 text-zinc-300 px-8 py-4 rounded-xl font-black tracking-widest uppercase hover:bg-zinc-800 transition-colors">Finalizar Sesión</button>
        </div>
     </div>
   );
+
+  if (!isOnboarded) {
+    return (
+      <main className="min-h-screen bg-[#050505] text-white flex flex-col items-center p-4 md:p-12 font-sans selection:bg-emerald-500 selection:text-black overflow-y-auto">
+        <div className="w-full max-w-7xl mb-6 flex justify-between items-center">
+            {/* 🔥 BOTÓN PARA VOLVER A LA WEB PRINCIPAL (ESCAPE DE SEGURIDAD) 🔥 */}
+            <Link href="/" className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors bg-zinc-900/50 hover:bg-zinc-800 px-4 py-2 rounded-xl border border-white/5 text-xs font-black uppercase tracking-widest shadow-md">
+               <span className="text-sm">🏠</span> Volver a la Web
+            </Link>
+            <button onClick={handleLogout} className="text-zinc-500 hover:text-white text-xs font-bold uppercase tracking-widest transition-colors">Cerrar Sesión</button>
+        </div>
+
+        <div className="max-w-5xl w-full bg-[#0a0a0c] border border-zinc-800/80 p-6 md:p-14 rounded-[2rem] md:rounded-[3rem] shadow-[0_0_80px_rgba(16,185,129,0.05)] relative overflow-hidden my-auto animate-in fade-in zoom-in duration-500">
+            
+           <div className="absolute top-0 right-0 w-64 md:w-96 h-64 md:h-96 bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none -mr-10 md:-mr-20 -mt-10 md:-mt-20"></div>
+           <div className="absolute bottom-0 left-0 w-64 md:w-96 h-64 md:h-96 bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none -ml-10 md:-ml-20 -mb-10 md:-mb-20"></div>
+
+           <div className="text-center mb-8 md:mb-12 relative z-10 border-b border-zinc-800/50 pb-8">
+               <span className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-4 py-1.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-4 inline-block">
+                   Paso Obligatorio
+               </span>
+               <h2 className="text-3xl md:text-5xl lg:text-6xl font-black italic tracking-tighter uppercase mb-4 text-white">
+                   Auditoría <span className="text-emerald-500">Clínica</span> Inicial
+               </h2>
+               <p className="text-zinc-400 font-medium text-sm md:text-base max-w-2xl mx-auto px-4">
+                  Necesitamos configurar tu perfil biomecánico y fisiológico en el sistema para que el Coach pueda estructurar tu mesociclo con precisión milimétrica.
+               </p>
+           </div>
+
+           <form onSubmit={handleSaveOnboarding} className="space-y-6 md:space-y-10 relative z-10">
+              
+              <div className="bg-black/40 border border-zinc-800/80 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem]">
+                  <h3 className="text-emerald-500 font-black text-[10px] md:text-xs uppercase tracking-widest mb-6 border-b border-zinc-800 pb-3">1. Perfil Biométrico</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                      <div>
+                          <label className="block text-[10px] text-zinc-400 uppercase tracking-widest mb-2 font-bold">Edad</label>
+                          <input required type="number" value={onboardingData.age || ""} onChange={(e) => setOnboardingData({...onboardingData, age: e.target.value})} placeholder="Ej: 25" className="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-5 py-4 text-white font-bold outline-none focus:border-emerald-500 transition-colors shadow-inner" />
+                      </div>
+                      <div>
+                          <label className="block text-[10px] text-zinc-400 uppercase tracking-widest mb-2 font-bold">Peso Corporal (KG)</label>
+                          <input required type="number" step="0.1" value={onboardingData.body_weight || ""} onChange={(e) => setOnboardingData({...onboardingData, body_weight: e.target.value})} placeholder="Ej: 80.5" className="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-5 py-4 text-white font-bold outline-none focus:border-emerald-500 transition-colors shadow-inner" />
+                      </div>
+                      <div>
+                          <label className="block text-[10px] text-zinc-400 uppercase tracking-widest mb-2 font-bold">Estatura (CM)</label>
+                          <input required type="number" value={onboardingData.height || ""} onChange={(e) => setOnboardingData({...onboardingData, height: e.target.value})} placeholder="Ej: 178" className="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-5 py-4 text-white font-bold outline-none focus:border-emerald-500 transition-colors shadow-inner" />
+                      </div>
+                  </div>
+              </div>
+
+              <div className="bg-black/40 border border-zinc-800/80 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem]">
+                  <h3 className="text-emerald-500 font-black text-[10px] md:text-xs uppercase tracking-widest mb-6 border-b border-zinc-800 pb-3">2. Logística de Entrenamiento</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-4 md:mb-6">
+                      <div>
+                          <label className="block text-[10px] text-zinc-400 uppercase tracking-widest mb-2 font-bold">Objetivo Principal</label>
+                          <select value={onboardingData.goal || "fuerza"} onChange={(e) => setOnboardingData({...onboardingData, goal: e.target.value})} className="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-5 py-4 text-white font-bold outline-none focus:border-emerald-500 transition-colors cursor-pointer appearance-none shadow-inner">
+                              <option value="fuerza">Fuerza Absoluta (Powerlifting)</option>
+                              <option value="hipertrofia">Hipertrofia Estética</option>
+                              <option value="hibrido">Híbrido (Powerbuilding)</option>
+                          </select>
+                      </div>
+                      <div>
+                          <label className="block text-[10px] text-zinc-400 uppercase tracking-widest mb-2 font-bold">Nivel de Experiencia</label>
+                          <select value={onboardingData.experience || "intermedio"} onChange={(e) => setOnboardingData({...onboardingData, experience: e.target.value})} className="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-5 py-4 text-white font-bold outline-none focus:border-emerald-500 transition-colors cursor-pointer appearance-none shadow-inner">
+                              <option value="principiante">Principiante (Menos de 1 año)</option>
+                              <option value="intermedio">Intermedio (1 a 3 años)</option>
+                              <option value="avanzado">Avanzado (+3 años)</option>
+                          </select>
+                      </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                      <div>
+                          <label className="block text-[10px] text-zinc-400 uppercase tracking-widest mb-2 font-bold">Días Disponibles a la Semana</label>
+                          <select value={onboardingData.training_days || "3"} onChange={(e) => setOnboardingData({...onboardingData, training_days: e.target.value})} className="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-5 py-4 text-white font-bold outline-none focus:border-emerald-500 transition-colors cursor-pointer appearance-none shadow-inner">
+                              <option value="3">3 Días</option>
+                              <option value="4">4 Días</option>
+                              <option value="5">5 Días</option>
+                              <option value="6">6 Días</option>
+                          </select>
+                      </div>
+                      <div>
+                          <label className="block text-[10px] text-zinc-400 uppercase tracking-widest mb-2 font-bold">Equipamiento Disponible</label>
+                          <select value={onboardingData.equipment || "gimnasio"} onChange={(e) => setOnboardingData({...onboardingData, equipment: e.target.value})} className="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-5 py-4 text-white font-bold outline-none focus:border-emerald-500 transition-colors cursor-pointer appearance-none shadow-inner">
+                              <option value="gimnasio">Gimnasio Comercial Completo</option>
+                              <option value="home_gym">Home Gym (Barra, discos, rack, banco)</option>
+                              <option value="limitado">Equipamiento Limitado (Mancuernas/Máquinas)</option>
+                          </select>
+                      </div>
+                  </div>
+              </div>
+
+              <div className="bg-black/40 border border-zinc-800/80 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem]">
+                  <h3 className="text-emerald-500 font-black text-[10px] md:text-xs uppercase tracking-widest mb-6 border-b border-zinc-800 pb-3">3. Historial de Lesiones</h3>
+                  <label className="block text-[10px] text-zinc-400 uppercase tracking-widest mb-2 font-bold">Detalle de dolores crónicos o lesiones previas</label>
+                  <textarea 
+                     value={onboardingData.medical_history || ""}
+                     onChange={(e) => setOnboardingData({...onboardingData, medical_history: e.target.value})}
+                     placeholder="Ej: Dolor lumbar crónico al pasar paralelo en sentadilla, molestia en manguito rotador derecho..."
+                     className="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-5 py-4 text-white text-sm font-medium outline-none focus:border-emerald-500 transition-colors resize-none h-32 md:h-24 placeholder:text-zinc-600 shadow-inner"
+                  />
+              </div>
+
+              <div className="bg-black/40 border border-zinc-800/80 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem]">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 border-b border-zinc-800 pb-4">
+                     <h3 className="text-emerald-500 font-black text-[10px] md:text-xs uppercase tracking-widest">
+                        4. Marcas de Referencia (1RM)
+                     </h3>
+                     <label className="flex items-center gap-2 cursor-pointer bg-zinc-900 px-4 py-2.5 rounded-xl border border-zinc-700 hover:border-emerald-500 transition-all w-full sm:w-auto justify-center sm:justify-start">
+                        <span className="text-[10px] font-bold text-white uppercase tracking-widest">Soy Principiante Total</span>
+                        <input type="checkbox" checked={isBeginner} onChange={() => setIsBeginner(!isBeginner)} className="accent-emerald-500 w-4 h-4" />
+                     </label>
+                  </div>
+                  
+                  {!isBeginner ? (
+                      <div className="animate-in slide-in-from-top-4 duration-500">
+                          <p className="text-zinc-400 text-xs md:text-sm mb-6 font-medium">Ingresa tus pesos máximos estimados a 1 repetición en kilogramos. Si no los sabes exactos, pon un aproximado.</p>
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                             <div>
+                                <label className="block text-[10px] text-zinc-400 uppercase tracking-widest mb-2 text-center font-bold">Sentadilla</label>
+                                <input required={!isBeginner} type="number" placeholder="0" value={onboardingData.rm_squat || ""} onChange={e => setOnboardingData({...onboardingData, rm_squat: e.target.value})} className="w-full bg-zinc-900 border border-zinc-700/80 rounded-2xl p-4 md:p-5 text-center text-white font-black text-2xl md:text-3xl outline-none focus:border-emerald-500 transition-colors shadow-inner"/>
+                             </div>
+                             <div>
+                                <label className="block text-[10px] text-zinc-400 uppercase tracking-widest mb-2 text-center font-bold">Press Banca</label>
+                                <input required={!isBeginner} type="number" placeholder="0" value={onboardingData.rm_bench || ""} onChange={e => setOnboardingData({...onboardingData, rm_bench: e.target.value})} className="w-full bg-zinc-900 border border-zinc-700/80 rounded-2xl p-4 md:p-5 text-center text-white font-black text-2xl md:text-3xl outline-none focus:border-emerald-500 transition-colors shadow-inner"/>
+                             </div>
+                             <div className="col-span-2 md:col-span-1">
+                                <label className="block text-[10px] text-zinc-400 uppercase tracking-widest mb-2 text-center font-bold">Peso Muerto</label>
+                                <input required={!isBeginner} type="number" placeholder="0" value={onboardingData.rm_deadlift || ""} onChange={e => setOnboardingData({...onboardingData, rm_deadlift: e.target.value})} className="w-full bg-zinc-900 border border-zinc-700/80 rounded-2xl p-4 md:p-5 text-center text-white font-black text-2xl md:text-3xl outline-none focus:border-emerald-500 transition-colors shadow-inner"/>
+                             </div>
+                             <div>
+                                <label className="block text-[10px] text-zinc-400 uppercase tracking-widest mb-2 text-center font-bold">P. Militar</label>
+                                <input required={!isBeginner} type="number" placeholder="0" value={onboardingData.rm_military || ""} onChange={e => setOnboardingData({...onboardingData, rm_military: e.target.value})} className="w-full bg-zinc-900 border border-zinc-700/80 rounded-2xl p-4 md:p-5 text-center text-white font-black text-2xl md:text-3xl outline-none focus:border-emerald-500 transition-colors shadow-inner"/>
+                             </div>
+                             <div>
+                                <label className="block text-[10px] text-zinc-400 uppercase tracking-widest mb-2 text-center font-bold">Fondos (+KG)</label>
+                                <input required={!isBeginner} type="number" placeholder="0" value={onboardingData.rm_dips || ""} onChange={e => setOnboardingData({...onboardingData, rm_dips: e.target.value})} className="w-full bg-zinc-900 border border-zinc-700/80 rounded-2xl p-4 md:p-5 text-center text-white font-black text-2xl md:text-3xl outline-none focus:border-emerald-500 transition-colors shadow-inner"/>
+                             </div>
+                          </div>
+                      </div>
+                  ) : (
+                      <div className="bg-emerald-500/10 border border-emerald-500/30 p-8 rounded-2xl text-center">
+                          <span className="text-3xl mb-3 block">🛡️</span>
+                          <p className="text-emerald-400 font-bold text-sm">El sistema diseñará una fase de adaptación para construir tu fuerza base desde cero. No necesitas ingresar RMs previos.</p>
+                      </div>
+                  )}
+              </div>
+
+              <div className="pt-8">
+                  <button 
+                     type="submit"
+                     disabled={savingOnboarding}
+                     className="w-full bg-emerald-500 hover:bg-emerald-400 text-black py-6 md:py-8 rounded-[2rem] font-black text-sm md:text-base uppercase tracking-[0.2em] transition-all shadow-[0_10px_40px_rgba(16,185,129,0.3)] hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:transform-none"
+                  >
+                     {savingOnboarding ? 'Sincronizando Base de Datos...' : 'GUARDAR FICHA CLÍNICA E INGRESAR AL PANEL'}
+                  </button>
+              </div>
+           </form>
+        </div>
+      </main>
+    );
+  }
 
   const balance = Number(order?.wallet_balance || 0);
   const precioPlanAtleta = Number(order?.amount_ars) > 0 ? Number(order?.amount_ars) : 50000;
@@ -808,21 +1038,50 @@ export default function DashboardAtleta() {
   const isFreeMonthSecured = balance >= precioPlanAtleta;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white p-6 md:p-12 font-sans selection:bg-emerald-500 selection:text-black">
+    <div className="min-h-screen bg-[#050505] text-white p-4 md:p-12 font-sans selection:bg-emerald-500 selection:text-black">
       
-      {/* HEADER BÁSICO */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-6">
-        <div>
-          <Link href="/" className="text-emerald-500 text-[10px] font-black tracking-widest uppercase mb-1 flex items-center gap-1 hover:underline">Panel Central</Link>
-          <h1 className="text-3xl md:text-4xl font-black italic tracking-tighter">SISTEMA <span className="text-emerald-500">OPERATIVO</span></h1>
-          <div className="flex flex-wrap items-center gap-3 mt-2">
-             <p className="text-xs text-zinc-500 uppercase tracking-widest">ID Atleta: <span className="text-white">{order.customer_name}</span></p>
-             {daysLeft !== null && daysLeft > 3 && (<span className="bg-zinc-800/80 border border-zinc-700 text-zinc-300 px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Acceso: {daysLeft} Días</span>)}
-             {daysLeft !== null && daysLeft <= 3 && daysLeft >= 0 && (<span className="bg-red-500/20 border border-red-500/50 text-red-400 px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 animate-pulse"><span className="w-1.5 h-1.5 rounded-full bg-red-500"></span> CADUCA EN {daysLeft} DÍAS</span>)}
+      {/* ─── HEADER BÁSICO CON NAVEGACIÓN Y SCORE DE ADHERENCIA ─── */}
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 md:mb-12 gap-6 bg-[#0a0a0c] p-6 md:p-8 rounded-[2rem] border border-white/5 shadow-xl">
+        <div className="w-full lg:w-auto">
+          <div className="flex justify-between items-center w-full mb-4">
+              {/* 🔥 BOTÓN PARA VOLVER A LA WEB PRINCIPAL DESDE EL DASHBOARD 🔥 */}
+              <Link href="/" className="flex items-center gap-2 text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500 hover:text-black px-4 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border border-emerald-500/20 shadow-md">
+                <span className="text-sm">🏠</span> Volver a la Web Principal
+              </Link>
+              <button onClick={handleLogout} className="text-[10px] font-black tracking-widest uppercase text-zinc-500 hover:text-white transition-colors lg:hidden">
+                Cerrar Sesión
+              </button>
+          </div>
+          
+          <h1 className="text-4xl md:text-5xl font-black italic tracking-tighter uppercase drop-shadow-md mt-2">
+            SISTEMA <span className="text-emerald-500">OPERATIVO</span>
+          </h1>
+          <div className="flex flex-wrap items-center gap-3 mt-3">
+             <p className="text-xs md:text-sm text-zinc-400 uppercase tracking-widest font-medium">ID Atleta: <span className="text-white font-bold">{order.customer_name}</span></p>
+             {daysLeft !== null && daysLeft > 3 && (<span className="bg-zinc-800/80 border border-zinc-700 text-zinc-300 px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Acceso: {daysLeft} Días</span>)}
+             {daysLeft !== null && daysLeft <= 3 && daysLeft >= 0 && (<span className="bg-red-500/20 border border-red-500/50 text-red-400 px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 animate-pulse"><span className="w-1.5 h-1.5 rounded-full bg-red-500"></span> CADUCA EN {daysLeft} DÍAS</span>)}
           </div>
         </div>
 
-        <button onClick={handleLogout} className="text-[10px] font-black tracking-widest uppercase text-zinc-400 hover:text-white transition-colors border border-white/10 px-5 py-2.5 rounded-lg bg-zinc-900/50 hover:bg-zinc-800">CERRAR SESIÓN</button>
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+           <div className={`flex items-center gap-4 px-5 py-3 rounded-2xl border border-white/5 ${adherenceBg} w-full sm:w-auto shadow-inner`}>
+               <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
+                   <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                       <path className="stroke-black/50" strokeWidth="3" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                       <path className={`${adherenceStroke} transition-all duration-1000 ease-out`} strokeDasharray={`${adherenceScore}, 100`} strokeWidth="3" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                   </svg>
+                   <span className={`absolute text-[11px] font-black ${adherenceColor}`}>{adherenceScore}%</span>
+               </div>
+               <div>
+                   <p className="text-[9px] text-zinc-400 font-black uppercase tracking-widest mb-1">Adherencia</p>
+                   <p className={`text-xs md:text-sm font-black uppercase tracking-tight ${adherenceColor}`}>{adherenceLabel}</p>
+               </div>
+           </div>
+
+           <button onClick={handleLogout} className="text-[10px] font-black tracking-widest uppercase text-zinc-400 hover:text-white transition-colors border border-white/10 px-6 py-4 rounded-2xl bg-zinc-900/50 hover:bg-zinc-800 shrink-0 w-full sm:w-auto hidden lg:block">
+             CERRAR SESIÓN
+           </button>
+        </div>
       </header>
 
       {/* DASHBOARD GAMIFICADO BII-AFFILIATES */}
@@ -833,22 +1092,22 @@ export default function DashboardAtleta() {
               <div className="grid lg:grid-cols-12 gap-8 items-center relative z-10">
                   <div className="lg:col-span-5 space-y-4">
                       <div className="flex items-center gap-3 mb-2">
-                          <span className="text-2xl">🤝</span>
+                          <span className="text-2xl md:text-3xl">🤝</span>
                           <div>
-                              <h3 className="text-xl font-black italic text-white uppercase tracking-tighter">Programa de <span className="text-emerald-500">Afiliados</span></h3>
-                              <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mt-0.5">Invita amigos. Entrena gratis.</p>
+                              <h3 className="text-xl md:text-2xl font-black italic text-white uppercase tracking-tighter">Programa de <span className="text-emerald-500">Afiliados</span></h3>
+                              <p className="text-[10px] md:text-xs text-zinc-400 font-bold uppercase tracking-widest mt-0.5">Invita amigos. Entrena gratis.</p>
                           </div>
                       </div>
                       
-                      <div className="bg-black/60 border border-zinc-800 p-4 rounded-2xl">
-                          <p className="text-[9px] text-zinc-500 uppercase font-black tracking-widest mb-2">Tu Código Personal</p>
+                      <div className="bg-black/60 border border-zinc-800 p-5 rounded-2xl">
+                          <p className="text-[9px] md:text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-3">Tu Código Personal</p>
                           <div className="flex items-center gap-3">
                               <p className="flex-1 text-2xl md:text-3xl font-mono font-black text-white tracking-widest bg-zinc-900 px-4 py-3 rounded-xl border border-zinc-700 text-center select-all">
                                   {order.referral_code}
                               </p>
                               <button 
                                   onClick={() => {navigator.clipboard.writeText(order.referral_code); alert("✅ Código copiado al portapapeles");}}
-                                  className="w-14 h-[60px] bg-emerald-500/10 hover:bg-emerald-500 hover:text-black text-emerald-500 border border-emerald-500/30 rounded-xl flex items-center justify-center transition-all"
+                                  className="w-14 md:w-16 h-[60px] md:h-[64px] bg-emerald-500/10 hover:bg-emerald-500 hover:text-black text-emerald-500 border border-emerald-500/30 rounded-xl flex items-center justify-center transition-all shrink-0"
                                   title="Copiar Código"
                               >
                                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
@@ -859,7 +1118,7 @@ export default function DashboardAtleta() {
                               href={`https://wa.me/?text=${encodeURIComponent(`¡Fiera! Estoy entrenando con la app de Tujague Strength y las marcas suben solas. Sumate al equipo usando mi código *${order.referral_code}* para que te apliquen descuento en tu inscripción: ${process.env.NEXT_PUBLIC_SITE_URL || 'https://tujague.com'}`)}`} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="mt-3 w-full bg-[#25D366] hover:bg-[#20bd5a] text-white py-3 rounded-xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(37,211,102,0.3)]"
+                              className="mt-4 w-full bg-[#25D366] hover:bg-[#20bd5a] text-black py-4 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all shadow-[0_0_20px_rgba(37,211,102,0.3)]"
                           >
                               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 .001 5.383.001 12.029c0 2.124.553 4.195 1.603 6.012L.002 24l6.108-1.601c1.745.952 3.738 1.454 5.92 1.454 6.645 0 12.028-5.383 12.028-12.029C24.059 5.383 18.677 0 12.031 0zm0 20.31c-1.801 0-3.56-.484-5.11-1.401l-.367-.217-3.793.995.998-3.7-.238-.378c-.99-1.583-1.514-3.418-1.514-5.313 0-5.46 4.444-9.905 9.904-9.905 5.46 0 9.906 4.445 9.906 9.905s-4.445 9.905-9.906 9.905zm5.438-7.44c-.298-.15-1.765-.87-2.038-.97-.273-.1-.473-.15-.67.15-.199.298-.771.97-.946 1.17-.174.199-.348.225-.646.075-2.025-.97-3.488-2.613-4.048-3.585-.175-.298-.019-.46.13-.609.135-.135.298-.348.448-.523.15-.175.199-.298.298-.498.1-.199.05-.373-.025-.523-.075-.15-.67-1.611-.918-2.206-.241-.58-.487-.502-.67-.51-.174-.008-.373-.008-.572-.008-.199 0-.523.075-.796.374-.273.298-1.045 1.02-1.045 2.488s1.07 2.886 1.22 3.086c.15.199 2.1 3.208 5.093 4.49 1.831.785 2.493.856 3.468.72 1.05-.148 2.378-.97 2.713-1.91.336-.94.336-1.745.236-1.91-.099-.165-.373-.264-.67-.413z"/></svg>
                               Recomendar por WhatsApp
@@ -867,25 +1126,25 @@ export default function DashboardAtleta() {
                       </div>
                   </div>
 
-                  <div className="lg:col-span-7 border-t lg:border-t-0 lg:border-l border-zinc-800 pt-6 lg:pt-0 lg:pl-8">
-                      <div className="flex justify-between items-start mb-6">
+                  <div className="lg:col-span-7 border-t lg:border-t-0 lg:border-l border-zinc-800 pt-8 lg:pt-0 lg:pl-10">
+                      <div className="flex flex-col sm:flex-row justify-between items-start mb-8 gap-4">
                           <div>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-50 mb-1">Billetera Virtual</p>
-                              <p className="text-4xl md:text-5xl font-black italic tracking-tighter text-white">${balance.toLocaleString()}</p>
+                              <p className="text-[10px] md:text-xs font-black uppercase tracking-widest text-emerald-50 mb-1">Billetera Virtual</p>
+                              <p className="text-4xl md:text-6xl font-black italic tracking-tighter text-white">${balance.toLocaleString()}</p>
                           </div>
-                          <div className="bg-zinc-950 border border-zinc-800 p-3 rounded-xl text-center shadow-inner">
-                              <p className="text-2xl mb-1">🏆</p>
-                              <p className="text-[9px] font-black uppercase text-zinc-500">Afiliado BII</p>
+                          <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-2xl text-center shadow-inner w-full sm:w-auto">
+                              <p className="text-3xl mb-1">🏆</p>
+                              <p className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">Afiliado BII</p>
                           </div>
                       </div>
 
-                      <div className="bg-black/50 p-5 rounded-2xl border border-zinc-800">
-                          <div className="flex justify-between items-end mb-3">
-                              <p className="text-xs font-bold text-zinc-400">Progreso hacia tu Mes Gratis</p>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">{Math.floor(affiliateProgress)}%</p>
+                      <div className="bg-black/50 p-6 md:p-8 rounded-[2rem] border border-zinc-800 shadow-lg">
+                          <div className="flex justify-between items-end mb-4">
+                              <p className="text-xs md:text-sm font-bold text-zinc-400">Progreso hacia tu Mes Gratis</p>
+                              <p className="text-sm md:text-base font-black uppercase tracking-widest text-emerald-400">{Math.floor(affiliateProgress)}%</p>
                           </div>
                           
-                          <div className="w-full bg-zinc-900 rounded-full h-3 mb-4 border border-zinc-800 relative overflow-hidden">
+                          <div className="w-full bg-zinc-900 rounded-full h-4 mb-6 border border-zinc-800 relative overflow-hidden">
                               <div 
                                   className={`h-full rounded-full transition-all duration-1000 ease-out relative ${isFreeMonthSecured ? 'bg-emerald-500' : 'bg-gradient-to-r from-emerald-800 to-emerald-500'}`}
                                   style={{ width: `${affiliateProgress}%` }}
@@ -895,11 +1154,11 @@ export default function DashboardAtleta() {
                           </div>
 
                           {isFreeMonthSecured ? (
-                              <p className="text-xs text-emerald-400 font-bold bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20 text-center">
+                              <p className="text-xs md:text-sm text-emerald-400 font-bold bg-emerald-500/10 p-4 rounded-xl border border-emerald-500/20 text-center shadow-inner">
                                   🎉 ¡Felicidades! Tienes suficiente saldo para pagar tu próxima renovación al 100%.
                               </p>
                           ) : (
-                              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest text-center">
+                              <p className="text-[10px] md:text-xs text-zinc-500 font-bold uppercase tracking-widest text-center">
                                   Faltan <span className="text-white">${(precioPlanAtleta - balance).toLocaleString()}</span> para que tu próximo mes cueste $0.
                               </p>
                           )}
@@ -909,86 +1168,29 @@ export default function DashboardAtleta() {
           </div>
       )}
 
-      {/* PLANTILLA OCULTA PARA GENERAR EL PDF CON MACROS */}
-      <div style={{ display: 'none' }}>
-          <div ref={pdfRef} style={{ width: '800px', padding: '40px', backgroundColor: '#ffffff', color: '#000000', fontFamily: 'Arial, sans-serif' }}>
-              <div style={{ borderBottom: '2px solid #10b981', paddingBottom: '10px', marginBottom: '20px' }}>
-                  <h1 style={{ fontSize: '24px', margin: 0, textTransform: 'uppercase', fontStyle: 'italic', fontWeight: '900' }}>Tujague Strength</h1>
-                  <p style={{ fontSize: '12px', color: '#666', margin: '5px 0 0 0', textTransform: 'uppercase', letterSpacing: '2px' }}>Protocolo de Entrenamiento Oficial</p>
-              </div>
-              
-              <div style={{ marginBottom: '20px', backgroundColor: '#f3f4f6', padding: '15px', borderRadius: '8px' }}>
-                  <p style={{ margin: '0 0 5px 0', fontSize: '14px' }}><strong>Atleta:</strong> {order?.customer_name}</p>
-                  <p style={{ margin: '0 0 5px 0', fontSize: '14px' }}><strong>Macrociclo:</strong> {order?.macrocycle || 'Base'}</p>
-                  <p style={{ margin: '0 0 5px 0', fontSize: '14px' }}><strong>Mesociclo:</strong> {order?.mesocycle || 'Actual'}</p>
-                  <p style={{ margin: '0 0 0 0', fontSize: '14px' }}><strong>Microciclo (Semana):</strong> {order?.microcycle || 'Semana 1'}</p>
-              </div>
-
-              {/* ✅ PDF ACTUALIZADO PARA IMPRIMIR LOS 5 MACROS */}
-              {(order?.macro_calories || order?.macro_protein || order?.macro_water || order?.macro_carbs || order?.macro_fats) && (
-                  <div style={{ marginBottom: '20px', border: '1px solid #ffedd5', backgroundColor: '#fff7ed', padding: '15px', borderRadius: '8px' }}>
-                      <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#ea580c', textTransform: 'uppercase' }}>Directrices Nutricionales</h4>
-                      <p style={{ margin: '0 0 5px 0', fontSize: '12px' }}><strong>Calorías:</strong> {order.macro_calories || '-'}</p>
-                      <p style={{ margin: '0 0 5px 0', fontSize: '12px' }}><strong>Proteína:</strong> {order.macro_protein || '-'}</p>
-                      <p style={{ margin: '0 0 5px 0', fontSize: '12px' }}><strong>Carbohidratos:</strong> {order.macro_carbs || '-'}</p>
-                      <p style={{ margin: '0 0 5px 0', fontSize: '12px' }}><strong>Grasas:</strong> {order.macro_fats || '-'}</p>
-                      <p style={{ margin: '0 0 0 0', fontSize: '12px' }}><strong>Agua:</strong> {order.macro_water || '-'}</p>
-                  </div>
-              )}
-
-              <div style={{ marginBottom: '20px' }}>
-                  <h3 style={{ fontSize: '16px', color: '#10b981', borderBottom: '1px solid #ddd', paddingBottom: '5px' }}>Marcas de Referencia (1RM)</h3>
-                  <p style={{ fontSize: '12px', margin: '5px 0' }}>Sentadilla: {rms.squat}kg | Press Banca: {rms.bench}kg | Peso Muerto: {rms.deadlift}kg | Militar: {rms.military}kg</p>
-              </div>
-
-              {days.map(day => {
-                  if (!order[`routine_${day.id}`]) return null;
-                  return (
-                      <div key={day.id} style={{ marginBottom: '20px', border: '1px solid #ddd', borderRadius: '8px', padding: '15px' }}>
-                          <h4 style={{ margin: '0 0 10px 0', fontSize: '16px', textTransform: 'uppercase', color: '#333' }}>{day.label}</h4>
-                          <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'Arial, sans-serif', fontSize: '13px', lineHeight: '1.5' }}>
-                              {order[`routine_${day.id}`]}
-                          </pre>
-                      </div>
-                  );
-              })}
-              
-              <div style={{ marginTop: '40px', textAlign: 'center', color: '#888', fontSize: '10px', borderTop: '1px solid #ddd', paddingTop: '10px' }}>
-                  Documento generado automáticamente por el Sistema Operativo Tujague AI.
-              </div>
-          </div>
-      </div>
-
-      {isMonthlyPlan && fatigueStatus && (
-         <div className={`mb-8 p-6 rounded-2xl border flex items-center gap-4 animate-in fade-in slide-in-from-top-4 shadow-lg ${fatigueStatus.status === 'verde' ? 'bg-emerald-950/30 border-emerald-500/50 text-emerald-100' : fatigueStatus.status === 'amarillo' ? 'bg-yellow-950/30 border-yellow-500/50 text-yellow-100' : 'bg-red-950/30 border-red-500/50 text-red-100'}`}>
-            <span className="text-4xl">{fatigueStatus.status === 'verde' ? '🟢' : fatigueStatus.status === 'amarillo' ? '🟡' : '🔴'}</span>
-            <div><h4 className="font-black italic uppercase tracking-widest text-xs mb-1 opacity-80">Alerta de Sistema Nervioso Central</h4><p className="text-sm font-medium leading-relaxed">{fatigueStatus.message}</p></div>
-         </div>
-      )}
-
       {/* USO DE BILLETERA EN ALERTA DE RENOVACIÓN */}
       {daysLeft !== null && daysLeft <= 3 && (
-         <div className="mb-8 bg-gradient-to-r from-red-600/20 to-red-900/20 border border-red-500/50 p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_0_30px_rgba(239,68,68,0.2)] animate-in slide-in-from-top-4 duration-500">
-            <div className="flex items-center gap-4">
-               <span className="text-4xl animate-bounce">⚠️</span>
+         <div className="mb-10 bg-gradient-to-r from-red-600/20 to-red-900/20 border border-red-500/50 p-6 md:p-8 rounded-[2rem] flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 shadow-[0_0_40px_rgba(239,68,68,0.2)] animate-in slide-in-from-top-4 duration-500">
+            <div className="flex items-center gap-5">
+               <span className="text-5xl md:text-6xl animate-bounce">⚠️</span>
                <div>
-                  <h3 className="text-white font-black italic text-xl tracking-tighter uppercase">Plan próximo a caducar ({daysLeft} días)</h3>
-                  <p className="text-red-200/80 text-sm font-medium mt-1">Evite interrupciones en su mesociclo procesando la renovación.</p>
+                  <h3 className="text-white font-black italic text-xl md:text-2xl tracking-tighter uppercase">Plan próximo a caducar ({daysLeft} días)</h3>
+                  <p className="text-red-200/80 text-sm md:text-base font-medium mt-1">Evite interrupciones en su mesociclo procesando la renovación.</p>
                </div>
             </div>
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 w-full lg:w-auto">
                {order.wallet_balance > 0 && (
-                  <label className="flex items-center gap-3 bg-red-950/40 border border-red-500/30 p-2.5 rounded-xl cursor-pointer hover:bg-red-900/50 transition-all">
-                     <input type="checkbox" checked={useWalletBalance} onChange={(e) => setUseWalletBalance(e.target.checked)} className="w-4 h-4 accent-red-500 cursor-pointer" />
+                  <label className="flex items-center gap-3 bg-red-950/60 border border-red-500/40 p-4 rounded-2xl cursor-pointer hover:bg-red-900/80 transition-all shadow-inner">
+                     <input type="checkbox" checked={useWalletBalance} onChange={(e) => setUseWalletBalance(e.target.checked)} className="w-5 h-5 accent-red-500 cursor-pointer" />
                      <div>
-                        <p className="text-white text-[10px] font-black uppercase tracking-widest">Usar mis ${Number(order.wallet_balance).toLocaleString()}</p>
+                        <p className="text-white text-[10px] md:text-xs font-black uppercase tracking-widest">Usar mis ${Number(order.wallet_balance).toLocaleString()} de Billetera</p>
                      </div>
                   </label>
                )}
                <button 
                   onClick={handleRenewPlan} 
                   disabled={loadingRenewal}
-                  className="w-full bg-red-500 hover:bg-red-400 text-black px-8 py-4 rounded-xl font-black tracking-[0.2em] text-xs uppercase transition-all hover:scale-105 active:scale-95 text-center shadow-[0_0_20px_rgba(239,68,68,0.4)] whitespace-nowrap disabled:opacity-50"
+                  className="w-full lg:w-auto bg-red-500 hover:bg-red-400 text-black px-10 py-5 rounded-2xl font-black tracking-[0.2em] text-xs md:text-sm uppercase transition-all shadow-[0_0_30px_rgba(239,68,68,0.4)] whitespace-nowrap disabled:opacity-50 active:scale-95"
                >
                   {loadingRenewal ? 'PROCESANDO...' : 'GESTIONAR RENOVACIÓN'}
                </button>
@@ -996,13 +1198,18 @@ export default function DashboardAtleta() {
          </div>
       )}
 
-      <div className="flex flex-wrap gap-3 mb-10 border-b border-zinc-800 pb-4">
-        <button onClick={() => setActiveTab("rutina")} className={`px-6 py-3 rounded-xl text-xs font-black tracking-widest transition-all uppercase ${activeTab === "rutina" ? "bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]" : "bg-zinc-900 text-zinc-400 hover:bg-zinc-800 border border-zinc-800"}`}>Protocolo</button>
-        <button onClick={() => setActiveTab("videos")} className={`px-6 py-3 rounded-xl text-xs font-black tracking-widest transition-all uppercase ${activeTab === "videos" ? "bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]" : "bg-zinc-900 text-zinc-400 hover:bg-zinc-800 border border-zinc-800"}`}>Auditoría 📹</button>
-        <button onClick={() => setActiveTab("boveda")} className={`px-6 py-3 rounded-xl text-xs font-black tracking-widest transition-all uppercase ${activeTab === "boveda" ? "bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]" : "bg-zinc-900 text-zinc-400 hover:bg-zinc-800 border border-zinc-800"}`}>Bóveda Clínica 🏛️</button>
-        <button onClick={() => setActiveTab("rm")} className={`px-6 py-3 rounded-xl text-xs font-black tracking-widest transition-all uppercase ${activeTab === "rm" ? "bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]" : "bg-zinc-900 text-zinc-400 hover:bg-zinc-800 border border-zinc-800"}`}>Métricas 📈</button>
-        <button onClick={() => setActiveTab("checkin")} className={`px-6 py-3 rounded-xl text-xs font-black tracking-widest transition-all uppercase ${activeTab === "checkin" ? "bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]" : "bg-zinc-900 text-zinc-400 hover:bg-zinc-800 border border-zinc-800"}`}>Control SNC ⚡</button>
-        <button onClick={() => setActiveTab("asistente")} className={`ml-auto px-6 py-3 rounded-xl text-xs font-black tracking-widest transition-all uppercase flex items-center gap-2 ${activeTab === "asistente" ? "bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] border border-blue-500" : "bg-blue-900/20 text-blue-400 hover:bg-blue-900/40 border border-blue-900/50 animate-pulse"}`}><span className="text-sm">🤖</span> Tujague AI {isMonthlyPlan ? "" : "🔒"}</button>
+      {/* 🔥 NAVEGACIÓN DE TABS (SCROLL HORIZONTAL EN MÓVIL) 🔥 */}
+      <div className="flex overflow-x-auto gap-3 md:gap-4 mb-10 border-b border-zinc-800 pb-4 custom-scrollbar whitespace-nowrap">
+        <button onClick={() => setActiveTab("rutina")} className={`px-6 md:px-8 py-3.5 md:py-4 rounded-xl md:rounded-2xl text-xs md:text-sm font-black tracking-widest transition-all uppercase shrink-0 ${activeTab === "rutina" ? "bg-emerald-500 text-black shadow-[0_0_30px_rgba(16,185,129,0.3)]" : "bg-zinc-900 text-zinc-400 hover:bg-zinc-800 border border-zinc-800"}`}>Protocolo</button>
+        <button onClick={() => setActiveTab("videos")} className={`px-6 md:px-8 py-3.5 md:py-4 rounded-xl md:rounded-2xl text-xs md:text-sm font-black tracking-widest transition-all uppercase shrink-0 ${activeTab === "videos" ? "bg-emerald-500 text-black shadow-[0_0_30px_rgba(16,185,129,0.3)]" : "bg-zinc-900 text-zinc-400 hover:bg-zinc-800 border border-zinc-800"}`}>Auditoría 📹</button>
+        <button onClick={() => setActiveTab("boveda")} className={`px-6 md:px-8 py-3.5 md:py-4 rounded-xl md:rounded-2xl text-xs md:text-sm font-black tracking-widest transition-all uppercase shrink-0 ${activeTab === "boveda" ? "bg-emerald-500 text-black shadow-[0_0_30px_rgba(16,185,129,0.3)]" : "bg-zinc-900 text-zinc-400 hover:bg-zinc-800 border border-zinc-800"}`}>Bóveda Clínica 🏛️</button>
+        <button onClick={() => setActiveTab("rm")} className={`px-6 md:px-8 py-3.5 md:py-4 rounded-xl md:rounded-2xl text-xs md:text-sm font-black tracking-widest transition-all uppercase shrink-0 ${activeTab === "rm" ? "bg-emerald-500 text-black shadow-[0_0_30px_rgba(16,185,129,0.3)]" : "bg-zinc-900 text-zinc-400 hover:bg-zinc-800 border border-zinc-800"}`}>Métricas 📈</button>
+        <button onClick={() => setActiveTab("checkin")} className={`px-6 md:px-8 py-3.5 md:py-4 rounded-xl md:rounded-2xl text-xs md:text-sm font-black tracking-widest transition-all uppercase shrink-0 ${activeTab === "checkin" ? "bg-emerald-500 text-black shadow-[0_0_30px_rgba(16,185,129,0.3)]" : "bg-zinc-900 text-zinc-400 hover:bg-zinc-800 border border-zinc-800"}`}>Control SNC ⚡</button>
+        
+        {/* Espaciador para separar la IA en PC */}
+        <div className="hidden lg:block flex-1"></div>
+        
+        <button onClick={() => setActiveTab("asistente")} className={`px-6 md:px-8 py-3.5 md:py-4 rounded-xl md:rounded-2xl text-xs md:text-sm font-black tracking-widest transition-all uppercase shrink-0 flex items-center gap-2 ${activeTab === "asistente" ? "bg-blue-600 text-white shadow-[0_0_30px_rgba(37,99,235,0.4)] border border-blue-500" : "bg-blue-900/20 text-blue-400 hover:bg-blue-900/40 border border-blue-900/50 animate-pulse"}`}><span className="text-base md:text-lg">🤖</span> Tujague AI {isMonthlyPlan ? "" : "🔒"}</button>
       </div>
 
       <div className="animate-in fade-in duration-500">
@@ -1011,54 +1218,53 @@ export default function DashboardAtleta() {
         {activeTab === "asistente" && (
            <>
              {!isMonthlyPlan ? (
-                 <div className="max-w-4xl mx-auto flex flex-col items-center justify-center p-12 bg-zinc-900/40 border border-blue-900/30 rounded-[3rem] shadow-2xl relative overflow-hidden text-center h-[60vh]">
-                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none"></div>
-                     <div className="w-20 h-20 bg-black/50 border border-blue-500/20 rounded-full flex items-center justify-center text-4xl mb-6 relative z-10 shadow-inner">🤖</div>
-                     <h3 className="text-3xl md:text-5xl font-black italic text-white mb-4 tracking-tighter relative z-10">SISTEMA <span className="text-blue-500">RESTRINGIDO</span></h3>
-                     <p className="text-zinc-400 font-medium max-w-xl mx-auto mb-10 text-sm md:text-base relative z-10 leading-relaxed">La tecnología de soporte biomecánico y análisis nutricional de Tujague AI es exclusiva para usuarios con suscripciones de Nivel Mensual.</p>
-                     <button onClick={handleUpgradeToMonthly} disabled={loadingUpgrade} className="relative z-10 inline-flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-[0_0_30px_rgba(37,99,235,0.3)] hover:scale-105 active:scale-95 disabled:opacity-50">
+                 <div className="max-w-4xl mx-auto flex flex-col items-center justify-center p-8 md:p-16 bg-zinc-900/40 border border-blue-900/30 rounded-[3rem] shadow-2xl relative overflow-hidden text-center h-[60vh] min-h-[400px]">
+                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+                     <div className="w-20 h-20 md:w-24 md:h-24 bg-black/50 border border-blue-500/20 rounded-full flex items-center justify-center text-4xl md:text-5xl mb-6 md:mb-8 relative z-10 shadow-inner">🤖</div>
+                     <h3 className="text-3xl md:text-5xl font-black italic text-white mb-4 tracking-tighter relative z-10 uppercase">SISTEMA <span className="text-blue-500">RESTRINGIDO</span></h3>
+                     <p className="text-zinc-400 font-medium max-w-xl mx-auto mb-10 text-sm md:text-lg relative z-10 leading-relaxed px-4">La tecnología de soporte biomecánico y análisis nutricional de Tujague AI es exclusiva para usuarios con suscripciones de Nivel Mensual.</p>
+                     <button onClick={handleUpgradeToMonthly} disabled={loadingUpgrade} className="relative z-10 inline-flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white px-8 md:px-12 py-5 md:py-6 rounded-2xl md:rounded-3xl font-black text-xs md:text-sm uppercase tracking-[0.2em] transition-all shadow-[0_0_40px_rgba(37,99,235,0.4)] hover:scale-105 active:scale-95 disabled:opacity-50 w-full sm:w-auto">
                          {loadingUpgrade ? "INICIANDO PASARELA..." : "ACTUALIZAR A PASE MENSUAL"}
                      </button>
                  </div>
               ) : (
-                  <div className="max-w-4xl mx-auto flex flex-col h-[75vh] bg-zinc-900/80 backdrop-blur-xl border border-zinc-800/80 rounded-[2rem] shadow-2xl relative overflow-hidden">
+                  <div className="max-w-5xl mx-auto flex flex-col h-[75vh] min-h-[600px] bg-[#0a0a0c] border border-zinc-800/80 rounded-[2rem] md:rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden backdrop-blur-xl">
                      <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] pointer-events-none -mr-20 -mt-20"></div>
                      
-                     <div className="p-6 border-b border-zinc-800/50 flex flex-col md:flex-row items-start md:items-center justify-between bg-black/40 relative z-10 backdrop-blur-sm gap-4">
+                     <div className="p-4 md:p-6 border-b border-zinc-800/80 flex flex-col md:flex-row items-start md:items-center justify-between bg-black/40 relative z-10 gap-4 shadow-sm">
                         <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-emerald-500/20 border border-white/10 flex items-center justify-center text-3xl shadow-inner relative">
+                            <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-emerald-500/20 border border-white/10 flex items-center justify-center text-2xl md:text-3xl shadow-inner relative shrink-0">
                                {aiMode === 'chef' ? '👨‍🍳' : '🤖'}
-                               <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-black rounded-full"></span>
+                               <span className="absolute -bottom-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-emerald-500 border-2 border-black rounded-full"></span>
                             </div>
                             <div>
-                               <h3 className="text-xl font-black italic text-white uppercase tracking-tight flex items-center gap-2">Tujague <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">AI System</span></h3>
-                               <p className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">
+                               <h3 className="text-xl md:text-2xl font-black italic text-white uppercase tracking-tight flex items-center gap-2">Tujague <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">AI System</span></h3>
+                               <p className="text-[9px] md:text-[10px] text-zinc-400 uppercase tracking-widest font-bold mt-1">
                                   {aiMode === 'chef' ? 'Asesoría Nutricional Clínica' : 'Análisis Biomecánico & Técnico'}
                                </p>
                             </div>
                         </div>
 
-                        <div className="flex bg-black/50 p-1 rounded-xl border border-zinc-800">
-                           <button onClick={() => setAiMode('biomechanic')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${aiMode === 'biomechanic' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-white'}`}>
+                        <div className="flex bg-zinc-950 p-1 rounded-xl md:rounded-2xl border border-zinc-800 w-full md:w-auto">
+                           <button onClick={() => setAiMode('biomechanic')} className={`flex-1 md:flex-none px-4 md:px-6 py-3 rounded-lg md:rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${aiMode === 'biomechanic' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-white'}`}>
                               ⚙️ Biomecánica
                            </button>
-                           <button onClick={() => setAiMode('chef')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${aiMode === 'chef' ? 'bg-orange-600 text-white shadow-[0_0_15px_rgba(234,88,12,0.4)]' : 'text-zinc-500 hover:text-white'}`}>
+                           <button onClick={() => setAiMode('chef')} className={`flex-1 md:flex-none px-4 md:px-6 py-3 rounded-lg md:rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${aiMode === 'chef' ? 'bg-orange-600 text-white shadow-[0_0_20px_rgba(234,88,12,0.4)]' : 'text-zinc-500 hover:text-white'}`}>
                               👨‍🍳 Nutrición
                            </button>
                         </div>
                      </div>
 
                      {aiMode === 'chef' && (
-                         <div className="p-5 bg-gradient-to-b from-orange-950/20 to-black border-b border-zinc-800/50 relative z-20">
+                         <div className="p-4 md:p-6 bg-gradient-to-b from-orange-950/20 to-transparent border-b border-zinc-800/50 relative z-20 overflow-y-auto max-h-[50vh]">
                              
-                             {/* ✅ AVISO DE MACROS OFICIALES DEL COACH - AHORA CON LOS 5 VALORES */}
                              {(order?.macro_calories || order?.macro_protein || order?.macro_carbs || order?.macro_fats) && (
-                                 <div className="mb-4 bg-orange-500/10 border border-orange-500/30 p-3 rounded-xl flex items-center justify-between">
-                                     <div className="flex items-center gap-2">
-                                        <span className="text-xl">🎯</span>
+                                 <div className="mb-4 bg-orange-500/10 border border-orange-500/30 p-4 rounded-xl md:rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                     <div className="flex items-center gap-3">
+                                        <span className="text-2xl">🎯</span>
                                         <div>
-                                            <p className="text-[9px] text-orange-400 font-black uppercase tracking-widest mb-1">Directrices del Coach Activas</p>
-                                            <p className="text-xs text-white font-bold">
+                                            <p className="text-[9px] md:text-[10px] text-orange-400 font-black uppercase tracking-widest mb-1">Directrices del Coach Activas</p>
+                                            <p className="text-xs md:text-sm text-white font-bold">
                                                 {order.macro_calories || 'N/A'} Kcal | {order.macro_protein || 'N/A'} Prot | {order.macro_carbs || 'N/A'} Carbs | {order.macro_fats || 'N/A'} Grasas | {order.macro_water || 'N/A'}
                                             </p>
                                         </div>
@@ -1066,29 +1272,29 @@ export default function DashboardAtleta() {
                                  </div>
                              )}
 
-                             <div className="flex justify-between items-center mb-3">
-                                <p className="text-orange-400 font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
-                                   <span>⚡</span> Calculadora Metabólica
+                             <div className="flex justify-between items-center mb-4 bg-black/40 p-4 rounded-xl border border-zinc-800">
+                                <p className="text-orange-400 font-black text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2">
+                                   <span className="text-base">⚡</span> Calculadora Metabólica
                                 </p>
-                                <button onClick={() => setShowChefForm(!showChefForm)} className="text-zinc-500 hover:text-white text-xs font-bold">
-                                   {showChefForm ? 'Ocultar' : 'Configurar Manual'}
+                                <button onClick={() => setShowChefForm(!showChefForm)} className="text-zinc-400 hover:text-white text-xs font-bold bg-zinc-900 px-4 py-2 rounded-lg transition-colors border border-zinc-700">
+                                   {showChefForm ? 'Ocultar Herramienta' : 'Configurar Manual'}
                                 </button>
                              </div>
                              
                              {showChefForm && (
-                                 <div className="animate-in slide-in-from-top-2 space-y-4">
-                                     <div className="grid md:grid-cols-2 gap-3">
+                                 <div className="animate-in slide-in-from-top-2 space-y-4 bg-black/60 p-5 rounded-2xl border border-zinc-800 mb-6 shadow-inner">
+                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                          <div>
-                                            <label className="text-[9px] text-zinc-500 font-black uppercase tracking-widest mb-1 block">Objetivo</label>
-                                            <select value={dietGoal} onChange={e=>setDietGoal(e.target.value)} className="w-full bg-black/60 border border-zinc-700 p-2.5 rounded-lg text-xs text-white outline-none focus:border-orange-500">
+                                            <label className="text-[10px] md:text-xs text-zinc-500 font-black uppercase tracking-widest mb-2 block">Objetivo</label>
+                                            <select value={dietGoal} onChange={e=>setDietGoal(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 p-3 md:p-4 rounded-xl text-xs md:text-sm text-white outline-none focus:border-orange-500 transition-colors">
                                                 <option value="volumen">Superávit (Ganar Fuerza)</option>
                                                 <option value="mantenimiento">Mantenimiento (Recomposición)</option>
                                                 <option value="deficit">Déficit (Definición)</option>
                                             </select>
                                          </div>
                                          <div>
-                                            <label className="text-[9px] text-zinc-500 font-black uppercase tracking-widest mb-1 block">Actividad Diaria</label>
-                                            <select value={activityLevel} onChange={e=>setActivityLevel(e.target.value)} className="w-full bg-black/60 border border-zinc-700 p-2.5 rounded-lg text-xs text-white outline-none focus:border-orange-500">
+                                            <label className="text-[10px] md:text-xs text-zinc-500 font-black uppercase tracking-widest mb-2 block">Actividad Diaria</label>
+                                            <select value={activityLevel} onChange={e=>setActivityLevel(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 p-3 md:p-4 rounded-xl text-xs md:text-sm text-white outline-none focus:border-orange-500 transition-colors">
                                                 <option value="sedentario">Sedentario (Trabajo de oficina)</option>
                                                 <option value="ligero">Ligero (10k pasos/día)</option>
                                                 <option value="moderado">Moderado (Entreno + Activo)</option>
@@ -1097,39 +1303,39 @@ export default function DashboardAtleta() {
                                          </div>
                                      </div>
                                      
-                                     <button type="button" onClick={handleCalculateMacros} className="w-full bg-zinc-800 hover:bg-zinc-700 text-white py-2 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all border border-zinc-700">
+                                     <button type="button" onClick={handleCalculateMacros} className="w-full bg-orange-600/20 hover:bg-orange-600/40 text-orange-400 py-4 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all border border-orange-500/50">
                                          Calcular Macros (Basado en {checkin.weight || '0'}kg)
                                      </button>
 
                                      {calculatedMacros && (
-                                         <div className="bg-orange-500/10 border border-orange-500/30 p-3 rounded-lg grid grid-cols-5 text-center divide-x divide-orange-500/20">
-                                             <div><p className="text-[8px] text-orange-400 font-bold uppercase">Kcal</p><p className="font-mono font-black text-white text-xs">{calculatedMacros.cals}</p></div>
-                                             <div><p className="text-[8px] text-orange-400 font-bold uppercase">Prot</p><p className="font-mono font-black text-white text-xs">{calculatedMacros.prot}g</p></div>
-                                             <div><p className="text-[8px] text-orange-400 font-bold uppercase">Carbs</p><p className="font-mono font-black text-white text-xs">{calculatedMacros.carbs}g</p></div>
-                                             <div><p className="text-[8px] text-orange-400 font-bold uppercase">Grasas</p><p className="font-mono font-black text-white text-xs">{calculatedMacros.fats}g</p></div>
-                                             <div><p className="text-[8px] text-orange-400 font-bold uppercase">Agua</p><p className="font-mono font-black text-white text-xs">{calculatedMacros.water}L</p></div>
+                                         <div className="bg-orange-500/10 border border-orange-500/30 p-4 rounded-xl grid grid-cols-5 text-center divide-x divide-orange-500/20 mt-4 shadow-inner">
+                                             <div><p className="text-[8px] md:text-[10px] text-orange-400 font-bold uppercase mb-1">Kcal</p><p className="font-mono font-black text-white text-xs md:text-base">{calculatedMacros.cals}</p></div>
+                                             <div><p className="text-[8px] md:text-[10px] text-orange-400 font-bold uppercase mb-1">Prot</p><p className="font-mono font-black text-white text-xs md:text-base">{calculatedMacros.prot}g</p></div>
+                                             <div><p className="text-[8px] md:text-[10px] text-orange-400 font-bold uppercase mb-1">Carbs</p><p className="font-mono font-black text-white text-xs md:text-base">{calculatedMacros.carbs}g</p></div>
+                                             <div><p className="text-[8px] md:text-[10px] text-orange-400 font-bold uppercase mb-1">Grasas</p><p className="font-mono font-black text-white text-xs md:text-base">{calculatedMacros.fats}g</p></div>
+                                             <div><p className="text-[8px] md:text-[10px] text-orange-400 font-bold uppercase mb-1">Agua</p><p className="font-mono font-black text-white text-xs md:text-base">{calculatedMacros.water}L</p></div>
                                          </div>
                                      )}
                                  </div>
                              )}
 
                              {/* ✅ BOTÓN GIGANTE GENERADOR DE MENÚ */}
-                             <form onSubmit={handleQuickChefRequest} className="flex gap-2 pt-4 mt-2 border-t border-zinc-800">
-                                 <input type="text" value={chefIngredients} onChange={e=>setChefIngredients(e.target.value)} placeholder="Ej: Arroz, pollo, huevos, avena..." className="flex-1 bg-black/60 border border-zinc-700 p-3 rounded-xl text-sm text-white outline-none focus:border-orange-500" />
-                                 <button type="submit" disabled={isTyping || !chefIngredients.trim()} className="bg-orange-600 hover:bg-orange-500 text-white px-6 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(234,88,12,0.4)] disabled:opacity-50 shrink-0 flex items-center gap-2">
-                                     🥩 Generar Menú Diario
+                             <form onSubmit={handleQuickChefRequest} className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-zinc-800">
+                                 <input type="text" value={chefIngredients} onChange={e=>setChefIngredients(e.target.value)} placeholder="Ej: Tengo Arroz, pollo, huevos y avena..." className="flex-1 bg-black border border-zinc-700 p-4 md:p-5 rounded-xl text-sm text-white outline-none focus:border-orange-500 transition-colors shadow-inner" />
+                                 <button type="submit" disabled={isTyping || !chefIngredients.trim()} className="bg-orange-600 hover:bg-orange-500 text-white px-8 py-4 md:py-5 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(234,88,12,0.4)] disabled:opacity-50 shrink-0 flex items-center justify-center gap-2">
+                                     🥩 Generar Menú 
                                  </button>
                              </form>
                          </div>
                      )}
 
-                     <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar relative z-10">
+                     <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 custom-scrollbar relative z-10 bg-black/20">
                         {aiMode === 'biomechanic' ? (
                            <>
                               {bioHistory.map((msg, index) => (
-                                 <div key={index} className={`flex flex-col max-w-[85%] ${msg.role === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'}`}>
-                                    <span className={`text-[9px] font-black uppercase tracking-widest mb-1.5 ${msg.role === 'user' ? 'text-zinc-500' : 'text-emerald-500'}`}>{msg.role === 'user' ? 'Atleta' : 'Tujague AI'}</span>
-                                    <div className={`p-5 rounded-[1.5rem] text-sm font-medium leading-relaxed shadow-lg ${msg.role === 'user' ? 'bg-zinc-800/90 text-white rounded-tr-sm border border-zinc-700/50' : 'bg-gradient-to-b from-blue-950/40 to-emerald-950/10 border border-blue-500/20 text-blue-50 rounded-tl-sm whitespace-pre-wrap'}`}>
+                                 <div key={index} className={`flex flex-col max-w-[90%] md:max-w-[80%] ${msg.role === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'}`}>
+                                    <span className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-2 ${msg.role === 'user' ? 'text-zinc-500' : 'text-emerald-500'}`}>{msg.role === 'user' ? 'Atleta' : 'Tujague AI'}</span>
+                                    <div className={`p-5 md:p-6 rounded-[1.5rem] md:rounded-[2rem] text-sm md:text-base font-medium leading-relaxed shadow-lg ${msg.role === 'user' ? 'bg-zinc-800/90 text-white rounded-tr-sm border border-zinc-700/50' : 'bg-gradient-to-br from-blue-950/60 to-emerald-950/20 border border-blue-500/30 text-blue-50 rounded-tl-sm whitespace-pre-wrap'}`}>
                                        {msg.content}
                                     </div>
                                  </div>
@@ -1138,9 +1344,9 @@ export default function DashboardAtleta() {
                         ) : (
                            <>
                               {chefHistory.map((msg, index) => (
-                                 <div key={index} className={`flex flex-col max-w-[85%] ${msg.role === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'}`}>
-                                    <span className={`text-[9px] font-black uppercase tracking-widest mb-1.5 ${msg.role === 'user' ? 'text-zinc-500' : 'text-orange-500'}`}>{msg.role === 'user' ? 'Atleta' : 'Asesor Culinario'}</span>
-                                    <div className={`p-5 rounded-[1.5rem] text-sm font-medium leading-relaxed flex flex-col gap-3 shadow-lg ${msg.role === 'user' ? 'bg-zinc-800/90 text-white rounded-tr-sm border border-zinc-700/50' : 'bg-gradient-to-b from-orange-950/20 to-black border border-orange-500/20 text-orange-50 rounded-tl-sm whitespace-pre-wrap'}`}>
+                                 <div key={index} className={`flex flex-col max-w-[90%] md:max-w-[80%] ${msg.role === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'}`}>
+                                    <span className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-2 ${msg.role === 'user' ? 'text-zinc-500' : 'text-orange-500'}`}>{msg.role === 'user' ? 'Atleta' : 'Asesor Culinario'}</span>
+                                    <div className={`p-5 md:p-6 rounded-[1.5rem] md:rounded-[2rem] text-sm md:text-base font-medium leading-relaxed shadow-lg ${msg.role === 'user' ? 'bg-zinc-800/90 text-white rounded-tr-sm border border-zinc-700/50' : 'bg-gradient-to-br from-orange-950/60 to-[#0a0a0c] border border-orange-500/30 text-orange-50 rounded-tl-sm whitespace-pre-wrap'}`}>
                                        {msg.content}
                                     </div>
                                  </div>
@@ -1150,28 +1356,29 @@ export default function DashboardAtleta() {
                         
                         {isTyping && (
                            <div className="mr-auto flex flex-col items-start max-w-[80%]">
-                              <span className="text-[9px] font-black uppercase tracking-widest mb-1.5 text-emerald-500">Procesando datos...</span>
-                              <div className="p-5 rounded-[1.5rem] bg-gradient-to-b from-blue-950/40 to-emerald-950/10 border border-blue-500/20 rounded-tl-sm flex items-center gap-2 shadow-lg">
-                                 <span className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-bounce"></span><span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-bounce" style={{animationDelay: '0.15s'}}></span><span className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.3s'}}></span>
+                              <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-2 text-emerald-500">Procesando Base de Datos...</span>
+                              <div className="p-5 rounded-[1.5rem] bg-gradient-to-br from-blue-950/60 to-emerald-950/20 border border-blue-500/30 rounded-tl-sm flex items-center gap-2 shadow-lg">
+                                 <span className="w-2.5 h-2.5 md:w-3 md:h-3 bg-blue-500 rounded-full animate-bounce"></span>
+                                 <span className="w-2.5 h-2.5 md:w-3 md:h-3 bg-emerald-500 rounded-full animate-bounce" style={{animationDelay: '0.15s'}}></span>
+                                 <span className="w-2.5 h-2.5 md:w-3 md:h-3 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.3s'}}></span>
                               </div>
                            </div>
                         )}
                         <div ref={chatEndRef} />
                      </div>
 
-                     <div className="p-6 border-t border-zinc-800/50 bg-black/60 relative z-10 backdrop-blur-md">
-                        <form onSubmit={aiMode === 'chef' ? handleChefMessage : handleBioMessage} className="flex gap-3 items-center">
+                     <div className="p-4 md:p-6 border-t border-zinc-800/80 bg-zinc-950 relative z-10 backdrop-blur-xl shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+                        <form onSubmit={aiMode === 'chef' ? handleChefMessage : handleBioMessage} className="flex gap-3 md:gap-4 items-center">
                            <input 
                               type="text" 
-                              className="flex-1 bg-zinc-900/50 border border-zinc-700/50 rounded-xl px-5 py-4 text-sm text-white font-medium outline-none focus:border-blue-500/50 focus:bg-zinc-800/80 transition-all placeholder:text-zinc-600 shadow-inner" 
-                              placeholder={aiMode === 'chef' ? "Haz una consulta nutricional libre..." : "Especifique su consulta sobre torque, palancas o programación..."}
+                              className="flex-1 bg-black border border-zinc-700/80 rounded-xl md:rounded-2xl px-5 py-4 md:py-5 text-sm md:text-base text-white font-medium outline-none focus:border-blue-500/50 transition-all placeholder:text-zinc-600 shadow-inner" 
+                              placeholder={aiMode === 'chef' ? "Haz una consulta nutricional libre..." : "Escribe tu consulta sobre técnica, programación o fatiga..."}
                               value={aiMode === 'chef' ? chefInput : bioInput} 
                               onChange={(e) => aiMode === 'chef' ? setChefInput(e.target.value) : setBioInput(e.target.value)} 
                               disabled={isTyping}
                            />
-                           
-                           <button type="submit" disabled={isTyping || (aiMode === 'chef' && !chefInput.trim()) || (aiMode === 'biomechanic' && !bioInput.trim())} className={`px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50 text-white ${aiMode === 'chef' ? 'bg-orange-600 hover:bg-orange-500 shadow-[0_0_20px_rgba(234,88,12,0.4)]' : 'bg-blue-600 hover:bg-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.4)]'}`}>
-                              EJECUTAR
+                           <button type="submit" disabled={isTyping || (aiMode === 'chef' && !chefInput.trim()) || (aiMode === 'biomechanic' && !bioInput.trim())} className={`px-6 md:px-10 py-4 md:py-5 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all disabled:opacity-50 text-white shrink-0 ${aiMode === 'chef' ? 'bg-orange-600 hover:bg-orange-500 shadow-[0_0_25px_rgba(234,88,12,0.4)]' : 'bg-blue-600 hover:bg-blue-500 shadow-[0_0_25px_rgba(37,99,235,0.4)]'}`}>
+                              ENVIAR
                            </button>
                         </form>
                      </div>
@@ -1182,25 +1389,25 @@ export default function DashboardAtleta() {
 
         {/* ─── PESTAÑA RUTINA + BOTÓN DE PÁNICO Y PDF ─── */}
         {activeTab === "rutina" && (
-          <div className="relative pb-24"> 
+          <div className="relative pb-24 max-w-6xl mx-auto"> 
 
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                <h2 className="text-2xl font-black italic text-white uppercase">Documento de Trabajo</h2>
-                <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-6 bg-[#0a0a0c] p-6 rounded-[2rem] border border-white/5 shadow-lg">
+                <h2 className="text-2xl md:text-3xl font-black italic text-white uppercase tracking-tight">Documento de Trabajo</h2>
+                <div className="flex flex-wrap gap-3 w-full sm:w-auto">
                    <button 
                        onClick={downloadPDF}
                        disabled={generatingPDF || !hasRoutines}
-                       className="bg-zinc-800 hover:bg-zinc-700 text-white px-5 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 border border-zinc-700 transition-all disabled:opacity-50"
+                       className="flex-1 sm:flex-none justify-center bg-zinc-900 hover:bg-zinc-800 text-white px-6 py-4 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2 border border-zinc-700 transition-all disabled:opacity-50 shadow-md"
                    >
-                       {generatingPDF ? 'Procesando Documento...' : '📄 Exportar a PDF (Offline)'}
+                       {generatingPDF ? 'Generando...' : '📄 Exportar a PDF'}
                    </button>
 
                    {isMonthlyPlan && (
                        <button 
                           onClick={() => setShowPanicModal(true)}
-                          className="bg-red-600 hover:bg-red-500 text-white px-5 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-[0_0_20px_rgba(239,68,68,0.4)] animate-pulse"
+                          className="flex-1 sm:flex-none justify-center bg-red-600 hover:bg-red-500 text-white px-6 py-4 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2 shadow-[0_0_25px_rgba(239,68,68,0.4)] animate-pulse"
                        >
-                          🚨 Soporte Biomecánico Inmediato
+                          🚨 Soporte Inmediato
                        </button>
                    )}
                 </div>
@@ -1209,224 +1416,270 @@ export default function DashboardAtleta() {
             {/* MODAL BOTON DE PANICO */}
             {showPanicModal && (
                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-                   <div className="bg-zinc-950 border border-red-900/50 p-8 rounded-[2rem] w-full max-w-lg shadow-[0_0_50px_rgba(239,68,68,0.2)] relative overflow-hidden">
+                   <div className="bg-[#0a0a0c] border border-red-900/50 p-8 md:p-10 rounded-[2.5rem] w-full max-w-lg shadow-[0_0_80px_rgba(239,68,68,0.25)] relative overflow-hidden animate-in zoom-in duration-300">
                        <div className="absolute top-0 left-0 w-full h-2 bg-red-600"></div>
-                       <button onClick={() => setShowPanicModal(false)} className="absolute top-6 right-6 text-zinc-500 hover:text-white font-bold">✕</button>
+                       <button onClick={() => setShowPanicModal(false)} className="absolute top-6 right-6 text-zinc-500 hover:text-white font-bold text-xl">✕</button>
                        
-                       <h3 className="text-2xl font-black italic text-red-500 uppercase tracking-tighter mb-2 flex items-center gap-3">🚨 Protocolo de Sustitución</h3>
-                       <p className="text-zinc-400 text-xs mb-6 font-medium">Informe de inmediato la alteración logística o fisiológica para que la IA recalibre la sesión respetando el patrón motor.</p>
+                       <h3 className="text-2xl md:text-3xl font-black italic text-red-500 uppercase tracking-tighter mb-2 flex items-center gap-3">🚨 Botón de Pánico</h3>
+                       <p className="text-zinc-400 text-xs md:text-sm mb-8 font-medium leading-relaxed">Informe de inmediato la alteración logística o fisiológica para que la IA recalibre la sesión respetando el patrón motor.</p>
                        
                        {!panicResponse ? (
-                           <form onSubmit={handlePanicRequest} className="space-y-4 relative z-10">
+                           <form onSubmit={handlePanicRequest} className="space-y-5 relative z-10">
                                <div>
-                                   <label className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-1 block">Ejercicio a sustituir</label>
-                                   <input type="text" required value={panicExercise} onChange={e=>setPanicExercise(e.target.value)} placeholder="Ej: Prensa a 45 grados" className="w-full bg-black/60 border border-zinc-800 p-4 rounded-xl text-sm text-white outline-none focus:border-red-500" />
+                                   <label className="text-[10px] md:text-xs font-black text-red-400 uppercase tracking-widest mb-2 block">Ejercicio a sustituir</label>
+                                   <input type="text" required value={panicExercise} onChange={e=>setPanicExercise(e.target.value)} placeholder="Ej: Prensa a 45 grados" className="w-full bg-black border border-zinc-800 p-4 md:p-5 rounded-xl text-sm md:text-base text-white outline-none focus:border-red-500 transition-colors" />
                                </div>
                                <div>
-                                   <label className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-1 block">Motivo clínico o logístico</label>
-                                   <input type="text" required value={panicProblem} onChange={e=>setPanicProblem(e.target.value)} placeholder="Ej: Presento molestia aguda en el tendón rotuliano..." className="w-full bg-black/60 border border-zinc-800 p-4 rounded-xl text-sm text-white outline-none focus:border-red-500" />
+                                   <label className="text-[10px] md:text-xs font-black text-red-400 uppercase tracking-widest mb-2 block">Motivo clínico o logístico</label>
+                                   <input type="text" required value={panicProblem} onChange={e=>setPanicProblem(e.target.value)} placeholder="Ej: Presento molestia aguda en el tendón rotuliano..." className="w-full bg-black border border-zinc-800 p-4 md:p-5 rounded-xl text-sm md:text-base text-white outline-none focus:border-red-500 transition-colors" />
                                </div>
-                               <button type="submit" disabled={panicLoading} className="w-full bg-red-600 hover:bg-red-500 text-white py-4 rounded-xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-[0_0_20px_rgba(239,68,68,0.4)] mt-2 disabled:opacity-50">
-                                   {panicLoading ? 'PROCESANDO ESTRUCTURA...' : 'SOLICITAR REEMPLAZO TÉCNICO 🔄'}
+                               <button type="submit" disabled={panicLoading} className="w-full bg-red-600 hover:bg-red-500 text-white py-5 rounded-2xl font-black text-xs md:text-sm uppercase tracking-[0.2em] transition-all shadow-[0_0_30px_rgba(239,68,68,0.4)] mt-4 disabled:opacity-50 active:scale-95">
+                                   {panicLoading ? 'PROCESANDO ESTRUCTURA...' : 'SOLICITAR REEMPLAZO 🔄'}
                                </button>
                            </form>
                        ) : (
                            <div className="space-y-6 animate-in zoom-in duration-300">
-                               <div className="bg-red-950/20 border border-red-500/30 p-5 rounded-2xl">
-                                   <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-2 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Determinación del Sistema</p>
-                                   <p className="text-red-50 text-sm font-medium leading-relaxed whitespace-pre-wrap">{panicResponse}</p>
+                               <div className="bg-red-950/20 border border-red-500/30 p-6 rounded-2xl shadow-inner">
+                                   <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-3 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Determinación del Sistema</p>
+                                   <p className="text-red-50 text-sm md:text-base font-medium leading-relaxed whitespace-pre-wrap">{panicResponse}</p>
                                </div>
-                               <button onClick={() => {setShowPanicModal(false); setPanicResponse(""); setPanicExercise(""); setPanicProblem("");}} className="w-full bg-zinc-800 hover:bg-zinc-700 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest transition-all">Comprendido. Retomando entrenamiento.</button>
+                               <button onClick={() => {setShowPanicModal(false); setPanicResponse(""); setPanicExercise(""); setPanicProblem("");}} className="w-full bg-zinc-800 hover:bg-zinc-700 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">Comprendido. Retomando entrenamiento.</button>
                            </div>
                        )}
                    </div>
                </div>
             )}
 
-            <div className="grid lg:grid-cols-2 gap-6 mb-6">
-               <div className="bg-zinc-950 border border-zinc-800 p-6 md:p-8 rounded-[2rem] flex flex-col items-center shadow-2xl relative overflow-hidden">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl border mb-4 transition-all ${isTimerActive ? 'bg-red-500/10 border-red-500/30 text-red-500 animate-pulse' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500'}`}>⏱️</div>
-                  <h3 className="text-white font-black italic uppercase tracking-tighter text-lg mb-1">Recuperación Neural</h3>
-                  <div className="flex gap-2 w-full bg-black p-1 rounded-xl border border-zinc-800 mb-6 mt-4">
-                     <button onClick={() => resetTimer(180)} className={`flex-1 px-2 py-2 rounded-lg text-[10px] font-black tracking-widest transition-all ${time === 180 && !isTimerActive ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-white'}`}>3 MIN</button>
-                     <button onClick={() => resetTimer(240)} className={`flex-1 px-2 py-2 rounded-lg text-[10px] font-black tracking-widest transition-all ${time === 240 && !isTimerActive ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-white'}`}>4 MIN</button>
-                     <button onClick={() => resetTimer(300)} className={`flex-1 px-2 py-2 rounded-lg text-[10px] font-black tracking-widest transition-all ${time === 300 && !isTimerActive ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-white'}`}>5 MIN</button>
+            <div className="grid lg:grid-cols-2 gap-6 md:gap-8 mb-8">
+               <div className="bg-[#0a0a0c] border border-zinc-800/80 p-8 md:p-10 rounded-[2.5rem] flex flex-col items-center shadow-xl relative overflow-hidden text-center">
+                  <div className={`w-16 h-16 md:w-20 md:h-20 rounded-3xl flex items-center justify-center text-3xl border mb-6 transition-all shadow-inner ${isTimerActive ? 'bg-red-500/10 border-red-500/30 text-red-500 animate-pulse' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500'}`}>⏱️</div>
+                  <h3 className="text-white font-black italic uppercase tracking-tighter text-xl md:text-2xl mb-2">Recuperación Neural</h3>
+                  <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-6">Descanso entre series efectivas</p>
+                  
+                  <div className="flex gap-3 w-full bg-black p-2 rounded-2xl border border-zinc-800 mb-8">
+                     <button onClick={() => resetTimer(180)} className={`flex-1 py-3 rounded-xl text-[10px] md:text-xs font-black tracking-widest transition-all ${time === 180 && !isTimerActive ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-white'}`}>3 MIN</button>
+                     <button onClick={() => resetTimer(240)} className={`flex-1 py-3 rounded-xl text-[10px] md:text-xs font-black tracking-widest transition-all ${time === 240 && !isTimerActive ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-white'}`}>4 MIN</button>
+                     <button onClick={() => resetTimer(300)} className={`flex-1 py-3 rounded-xl text-[10px] md:text-xs font-black tracking-widest transition-all ${time === 300 && !isTimerActive ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-white'}`}>5 MIN</button>
                   </div>
-                  <div className="bg-black border border-zinc-800 px-12 py-4 rounded-xl w-full text-center shadow-inner mb-6">
-                     <span className={`font-mono text-4xl md:text-5xl font-black tracking-widest ${isTimerActive ? 'text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.8)]' : 'text-white'}`}>{formatTime(time)}</span>
+                  
+                  <div className="bg-black border border-zinc-800 py-6 rounded-2xl w-full text-center shadow-inner mb-8">
+                     <span className={`font-mono text-6xl md:text-7xl font-black tracking-tighter ${isTimerActive ? 'text-emerald-400 drop-shadow-[0_0_20px_rgba(16,185,129,0.6)]' : 'text-white'}`}>{formatTime(time)}</span>
                   </div>
-                  <button onClick={toggleTimer} className={`w-full px-8 py-4 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] transition-all shadow-lg border border-transparent ${isTimerActive ? 'bg-red-500/10 text-red-500 border-red-500/50 hover:bg-red-500/20' : 'bg-emerald-500 text-black hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)]'}`}>{isTimerActive ? 'Suspender Reloj' : time === 0 ? 'Restablecer' : 'Iniciar Temporizador'}</button>
+                  
+                  <button onClick={toggleTimer} className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] md:text-xs transition-all shadow-lg border border-transparent active:scale-95 ${isTimerActive ? 'bg-red-500/10 text-red-500 border-red-500/50 hover:bg-red-500/20' : 'bg-emerald-500 text-black hover:bg-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.3)]'}`}>
+                     {isTimerActive ? 'Suspender Reloj' : time === 0 ? 'Restablecer' : 'Iniciar Temporizador'}
+                  </button>
                </div>
 
-               <div className="bg-zinc-900 border border-zinc-800 p-6 md:p-8 rounded-[2rem] shadow-2xl relative overflow-hidden flex flex-col">
-                  <div className="flex items-center justify-between mb-8">
+               <div className="bg-[#0a0a0c] border border-zinc-800/80 p-8 md:p-10 rounded-[2.5rem] shadow-xl relative overflow-hidden flex flex-col">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center text-xl">🧮</div>
-                        <div><h3 className="text-white font-black italic uppercase tracking-tighter text-lg">Parámetros de Carga</h3><p className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest">Base de intensidad</p></div>
+                        <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-3xl flex items-center justify-center text-3xl shadow-inner">🧮</div>
+                        <div>
+                           <h3 className="text-white font-black italic uppercase tracking-tighter text-xl md:text-2xl">Parámetros de Carga</h3>
+                           <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">Calculadora de Intensidad</p>
+                        </div>
                      </div>
                      {isMonthlyPlan && (
-                         <button onClick={handleGenerateWarmup} disabled={generatingWarmup} className="bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 text-blue-400 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.1)]">{generatingWarmup ? 'Analizando...' : '🤖 Warm-Up'}</button>
+                         <button onClick={handleGenerateWarmup} disabled={generatingWarmup} className="bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 text-blue-400 px-5 py-3 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(59,130,246,0.15)] w-full sm:w-auto justify-center mt-4 sm:mt-0">
+                            {generatingWarmup ? 'Analizando...' : '🤖 Generar Warm-Up'}
+                         </button>
                      )}
                   </div>
 
-                  <div className="flex gap-3 mb-6">
-                     <select value={calcLift} onChange={(e) => setCalcLift(e.target.value)} className="bg-black border border-zinc-700 text-zinc-300 text-xs font-bold uppercase rounded-xl px-4 py-4 outline-none focus:border-emerald-500 flex-1">
+                  <div className="flex flex-col sm:flex-row gap-4 mb-8">
+                     <select value={calcLift} onChange={(e) => setCalcLift(e.target.value)} className="bg-black border border-zinc-800 text-zinc-300 text-sm md:text-base font-bold uppercase rounded-2xl px-5 py-5 outline-none focus:border-emerald-500 flex-1 shadow-inner">
                         <option value="squat">Sentadilla</option>
                         <option value="bench">Press Banca</option>
                         <option value="deadlift">Peso Muerto</option>
                         <option value="dips">Fondos</option>
                         <option value="military">Militar</option>
                      </select>
-                     <div className="relative">
-                        <input type="number" value={calcPercent} onChange={(e) => setCalcPercent(Number(e.target.value))} className="w-24 bg-black border border-zinc-700 text-white text-center text-xl font-black rounded-xl px-2 py-4 outline-none focus:border-emerald-500" />
-                        <span className="absolute top-1/2 -translate-y-1/2 right-3 text-zinc-500 font-bold text-xs">%</span>
+                     <div className="relative w-full sm:w-32">
+                        <input type="number" value={calcPercent} onChange={(e) => setCalcPercent(Number(e.target.value))} className="w-full h-full bg-black border border-zinc-800 text-white text-center text-2xl font-black rounded-2xl outline-none focus:border-emerald-500 shadow-inner py-4" />
+                        <span className="absolute top-1/2 -translate-y-1/2 right-4 text-zinc-500 font-bold text-sm">%</span>
                      </div>
                   </div>
-                  <div className="bg-emerald-500 text-black px-6 py-5 rounded-xl flex justify-between items-center shadow-[0_0_15px_rgba(16,185,129,0.3)] mt-auto">
-                     <span className="text-[10px] font-black uppercase tracking-widest">Carga prescripta:</span>
-                     <span className="text-3xl font-black italic">{calculatedWeight} <span className="text-sm">KG</span></span>
+                  
+                  <div className="bg-emerald-500 text-black px-8 py-6 rounded-2xl flex justify-between items-center shadow-[0_0_30px_rgba(16,185,129,0.3)] mt-auto border border-emerald-400">
+                     <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em]">Carga a utilizar:</span>
+                     <span className="text-4xl md:text-5xl font-black italic tracking-tighter">{calculatedWeight} <span className="text-lg md:text-xl text-black/70 not-italic">KG</span></span>
                   </div>
+                  
                   {warmupPlan && (
-                      <div className="mt-6 p-5 bg-blue-950/40 border border-blue-500/30 rounded-2xl animate-in fade-in slide-in-from-top-2 shadow-lg">
-                          <span className="text-blue-400 font-black text-[10px] uppercase tracking-widest flex items-center gap-2 mb-3 border-b border-blue-500/20 pb-2"><span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>Protocolo de Aproximación</span>
-                          <p className="text-xs text-blue-50 font-medium leading-relaxed whitespace-pre-wrap">{warmupPlan}</p>
+                      <div className="mt-8 p-6 bg-blue-950/40 border border-blue-500/30 rounded-2xl animate-in fade-in slide-in-from-top-4 shadow-xl">
+                          <span className="text-blue-400 font-black text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2 mb-4 border-b border-blue-500/20 pb-3">
+                             <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                             Protocolo de Aproximación
+                          </span>
+                          <p className="text-sm text-blue-50 font-medium leading-relaxed whitespace-pre-wrap">{warmupPlan}</p>
                       </div>
                   )}
                </div>
             </div>
 
             {(order.macrocycle || order.mesocycle || order.microcycle) && (
-              <div className="mb-6 bg-zinc-900/60 border border-zinc-800 p-6 rounded-[2rem] flex flex-col md:flex-row gap-4 justify-between items-stretch shadow-lg relative overflow-hidden">
-                <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="mb-8 bg-[#0a0a0c] border border-zinc-800/80 p-6 md:p-8 rounded-[2rem] flex flex-col lg:flex-row gap-6 justify-between items-stretch shadow-xl relative overflow-hidden">
+                <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 relative z-10">
                    {order.macrocycle && (
-                     <div className="bg-black/50 border border-white/5 p-4 rounded-xl relative z-10"><p className="text-[9px] text-zinc-500 font-black uppercase tracking-widest mb-1">Macrociclo</p><p className="text-sm font-bold text-white">{order.macrocycle}</p></div>
+                     <div className="bg-black/60 border border-white/5 p-5 rounded-2xl shadow-inner">
+                        <p className="text-[9px] md:text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1.5">Macrociclo</p>
+                        <p className="text-base md:text-lg font-bold text-white tracking-tight">{order.macrocycle}</p>
+                     </div>
                    )}
                    {order.mesocycle && (
-                     <div className="bg-black/50 border border-white/5 p-4 rounded-xl relative z-10"><p className="text-[9px] text-zinc-500 font-black uppercase tracking-widest mb-1">Mesociclo</p><p className="text-sm font-bold text-white">{order.mesocycle}</p></div>
+                     <div className="bg-black/60 border border-white/5 p-5 rounded-2xl shadow-inner">
+                        <p className="text-[9px] md:text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1.5">Mesociclo</p>
+                        <p className="text-base md:text-lg font-bold text-white tracking-tight">{order.mesocycle}</p>
+                     </div>
                    )}
                    {order.microcycle && (
-                     <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl relative z-10 shadow-[0_0_15px_rgba(16,185,129,0.05)]"><p className="text-[9px] text-emerald-500 font-black uppercase tracking-widest mb-1 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>Microciclo Activo</p><p className="text-sm font-black text-emerald-400">{order.microcycle}</p></div>
+                     <div className="bg-emerald-500/10 border border-emerald-500/20 p-5 rounded-2xl shadow-[0_0_20px_rgba(16,185,129,0.1)] relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 blur-[20px]"></div>
+                        <p className="text-[9px] md:text-[10px] text-emerald-500 font-black uppercase tracking-widest mb-1.5 flex items-center gap-2 relative z-10">
+                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>Microciclo Activo
+                        </p>
+                        <p className="text-lg md:text-xl font-black text-emerald-400 tracking-tight relative z-10">{order.microcycle}</p>
+                     </div>
                    )}
                 </div>
               </div>
             )}
 
-            {/* ✅ DIRECTRICES NUTRICIONALES COMPLETAS (5 MACROS) A LA VISTA DEL CLIENTE */}
+            {/* ✅ DIRECTRICES NUTRICIONALES COMPLETAS */}
             {(order.macro_calories || order.macro_protein || order.macro_carbs || order.macro_fats || order.macro_water || calculatedMacros) && (
-                <div className="mb-8 bg-zinc-900/60 border border-zinc-800 p-6 rounded-[2rem] shadow-lg relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-[40px] pointer-events-none"></div>
-                    <h3 className="text-[10px] font-black italic text-orange-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <span className="text-lg">🥩</span> Directrices Nutricionales del Coach
+                <div className="mb-10 bg-[#0a0a0c] border border-zinc-800/80 p-8 md:p-10 rounded-[2.5rem] shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-orange-500/10 rounded-full blur-[60px] pointer-events-none"></div>
+                    <h3 className="text-[10px] md:text-xs font-black italic text-orange-500 uppercase tracking-widest mb-6 flex items-center gap-3 relative z-10">
+                        <span className="text-2xl bg-orange-500/10 p-2 rounded-xl border border-orange-500/20">🥩</span> 
+                        Directrices Nutricionales del Coach
                     </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 relative z-10">
-                        <div className="bg-black/50 border border-white/5 p-4 rounded-xl">
-                            <p className="text-[9px] text-zinc-500 font-black uppercase tracking-widest mb-1">Calorías</p>
-                            <p className="text-lg font-black text-white">{order.macro_calories || (calculatedMacros?.cals ? calculatedMacros.cals + ' kcal' : '-')}</p>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-5 relative z-10">
+                        <div className="bg-black/60 border border-white/5 p-5 rounded-2xl shadow-inner">
+                            <p className="text-[9px] md:text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1.5">Calorías</p>
+                            <p className="text-xl md:text-2xl font-black text-white">{order.macro_calories || (calculatedMacros?.cals ? calculatedMacros.cals + ' kcal' : '-')}</p>
                         </div>
-                        <div className="bg-black/50 border border-white/5 p-4 rounded-xl">
-                            <p className="text-[9px] text-zinc-500 font-black uppercase tracking-widest mb-1">Proteína</p>
-                            <p className="text-lg font-black text-white">{order.macro_protein || (calculatedMacros?.prot ? calculatedMacros.prot + 'g' : '-')}</p>
+                        <div className="bg-black/60 border border-white/5 p-5 rounded-2xl shadow-inner">
+                            <p className="text-[9px] md:text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1.5">Proteína</p>
+                            <p className="text-xl md:text-2xl font-black text-white">{order.macro_protein || (calculatedMacros?.prot ? calculatedMacros.prot + 'g' : '-')}</p>
                         </div>
-                        <div className="bg-black/50 border border-white/5 p-4 rounded-xl">
-                            <p className="text-[9px] text-zinc-500 font-black uppercase tracking-widest mb-1">Carbos</p>
-                            <p className="text-lg font-black text-white">{order.macro_carbs || (calculatedMacros?.carbs ? calculatedMacros.carbs + 'g' : '-')}</p>
+                        <div className="bg-black/60 border border-white/5 p-5 rounded-2xl shadow-inner">
+                            <p className="text-[9px] md:text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1.5">Carbohidratos</p>
+                            <p className="text-xl md:text-2xl font-black text-white">{order.macro_carbs || (calculatedMacros?.carbs ? calculatedMacros.carbs + 'g' : '-')}</p>
                         </div>
-                        <div className="bg-black/50 border border-white/5 p-4 rounded-xl">
-                            <p className="text-[9px] text-zinc-500 font-black uppercase tracking-widest mb-1">Grasas</p>
-                            <p className="text-lg font-black text-white">{order.macro_fats || (calculatedMacros?.fats ? calculatedMacros.fats + 'g' : '-')}</p>
+                        <div className="bg-black/60 border border-white/5 p-5 rounded-2xl shadow-inner">
+                            <p className="text-[9px] md:text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1.5">Grasas</p>
+                            <p className="text-xl md:text-2xl font-black text-white">{order.macro_fats || (calculatedMacros?.fats ? calculatedMacros.fats + 'g' : '-')}</p>
                         </div>
-                        <div className="bg-black/50 border border-white/5 p-4 rounded-xl md:col-span-1">
-                            <p className="text-[9px] text-zinc-500 font-black uppercase tracking-widest mb-1">Agua</p>
-                            <p className="text-lg font-black text-blue-400">{order.macro_water || (calculatedMacros?.water ? calculatedMacros.water + ' L' : '-')}</p>
+                        <div className="bg-black/60 border border-white/5 p-5 rounded-2xl md:col-span-1 shadow-inner">
+                            <p className="text-[9px] md:text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1.5">Agua</p>
+                            <p className="text-xl md:text-2xl font-black text-blue-400 drop-shadow-md">{order.macro_water || (calculatedMacros?.water ? calculatedMacros.water + ' L' : '-')}</p>
                         </div>
                     </div>
                 </div>
             )}
 
             {!hasRoutines ? (
-              <div className="bg-zinc-900/40 border border-zinc-800 p-8 md:p-12 rounded-[3rem] text-center shadow-2xl relative overflow-hidden mb-8 animate-in fade-in duration-500">
-                  <h3 className="text-2xl md:text-4xl font-black italic text-white mb-10 tracking-tighter uppercase relative z-10">Estado del <span className="text-emerald-500">Sistema</span></h3>
-                  <div className="relative max-w-4xl mx-auto mb-12">
-                      <div className="hidden md:block absolute top-6 left-10 right-10 h-1.5 bg-zinc-800 z-0 rounded-full"></div>
+              <div className="bg-[#0a0a0c] border border-zinc-800/80 p-10 md:p-16 rounded-[3rem] text-center shadow-2xl relative overflow-hidden mb-8 animate-in fade-in duration-500">
+                  <h3 className="text-3xl md:text-5xl font-black italic text-white mb-12 tracking-tighter uppercase relative z-10">
+                      Estado del <span className="text-emerald-500">Sistema</span>
+                  </h3>
+                  
+                  <div className="relative max-w-4xl mx-auto mb-16">
+                      <div className="hidden md:block absolute top-8 left-12 right-12 h-2 bg-zinc-900 z-0 rounded-full shadow-inner"></div>
+                      <div className={`hidden md:block absolute top-8 left-12 h-2 z-0 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.6)] transition-all duration-1000 ${order.status === 'paid' ? 'w-[60%] bg-emerald-500' : 'w-[20%] bg-amber-500'}`}></div>
                       
-                      <div className={`hidden md:block absolute top-6 left-10 h-1.5 z-0 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-1000 ${order.status === 'paid' ? 'w-[60%] bg-emerald-500' : 'w-[20%] bg-amber-500'}`}></div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative z-10">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-8 relative z-10">
                           
                           <div className="flex flex-col items-center gap-4">
                               {order.status === 'paid' ? (
                                   <>
-                                     <div className="w-12 h-12 rounded-full bg-emerald-500 text-black flex items-center justify-center font-black text-xl shadow-[0_0_20px_rgba(16,185,129,0.4)]">✓</div>
-                                     <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Verificación Financiera</p>
+                                     <div className="w-16 h-16 rounded-3xl bg-emerald-500 text-black flex items-center justify-center font-black text-3xl shadow-[0_0_30px_rgba(16,185,129,0.5)]">✓</div>
+                                     <p className="text-[10px] md:text-xs font-black uppercase tracking-widest text-emerald-400 mt-2">1. Pago Verificado</p>
                                   </>
                               ) : (
                                   <>
-                                     <div className="w-12 h-12 rounded-full bg-zinc-950 border-2 border-amber-500 text-amber-500 flex items-center justify-center font-black text-xl animate-pulse shadow-[0_0_20px_rgba(245,158,11,0.2)]">⏳</div>
-                                     <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">Validando Comprobante</p>
+                                     <div className="w-16 h-16 rounded-3xl bg-zinc-950 border-2 border-amber-500 text-amber-500 flex items-center justify-center font-black text-3xl animate-pulse shadow-[0_0_30px_rgba(245,158,11,0.2)]">⏳</div>
+                                     <p className="text-[10px] md:text-xs font-black uppercase tracking-widest text-amber-400 mt-2">1. Validando Pago</p>
                                   </>
                               )}
                           </div>
 
                           <div className={`flex flex-col items-center gap-4 ${order.status === 'paid' ? 'opacity-100' : 'opacity-40 grayscale'}`}>
-                              <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-xl ${order.status === 'paid' ? 'bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'bg-zinc-800 text-zinc-500'}`}>✓</div>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Auditoría Clínica OK</p>
+                              <div className={`w-16 h-16 rounded-3xl flex items-center justify-center font-black text-3xl transition-all ${order.status === 'paid' ? 'bg-emerald-500 text-black shadow-[0_0_30px_rgba(16,185,129,0.5)]' : 'bg-zinc-900 border border-zinc-700 text-zinc-600'}`}>✓</div>
+                              <p className="text-[10px] md:text-xs font-black uppercase tracking-widest text-emerald-400 mt-2">2. Clínica Aprobada</p>
                           </div>
 
                           <div className={`flex flex-col items-center gap-4 ${order.status === 'paid' ? 'opacity-100' : 'opacity-40 grayscale'}`}>
-                              <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-xl ${order.status === 'paid' ? 'bg-zinc-950 border-2 border-emerald-500 text-emerald-500 animate-pulse shadow-[0_0_20px_rgba(16,185,129,0.2)]' : 'bg-zinc-800 text-zinc-500 border-none'}`}>⚙️</div>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-white">Diseño en Proceso</p>
+                              <div className={`w-16 h-16 rounded-3xl flex items-center justify-center font-black text-3xl transition-all ${order.status === 'paid' ? 'bg-black border-2 border-emerald-500 text-emerald-500 animate-pulse shadow-[0_0_30px_rgba(16,185,129,0.2)]' : 'bg-zinc-900 border border-zinc-700 text-zinc-600'}`}>⚙️</div>
+                              <p className="text-[10px] md:text-xs font-black uppercase tracking-widest text-white mt-2">3. Diseño en Proceso</p>
                           </div>
 
                           <div className="flex flex-col items-center gap-4 opacity-30">
-                              <div className="w-12 h-12 rounded-full bg-zinc-900 border-2 border-zinc-800 text-zinc-600 flex items-center justify-center font-black text-xl">🚀</div>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Plan Finalizado</p>
+                              <div className="w-16 h-16 rounded-3xl bg-zinc-900 border-2 border-zinc-800 text-zinc-600 flex items-center justify-center font-black text-3xl">🚀</div>
+                              <p className="text-[10px] md:text-xs font-black uppercase tracking-widest text-zinc-500 mt-2">4. Plan Listo</p>
                           </div>
                       </div>
                   </div>
 
                   {order.status !== 'paid' && (
-                      <p className="text-amber-500 text-xs font-bold mt-4 animate-pulse">
-                         El Coach está revisando tu pago. La rutina comenzará a diseñarse en breve.
+                      <p className="text-amber-500 text-xs md:text-sm font-bold mt-8 animate-pulse bg-amber-500/10 p-4 rounded-xl inline-block border border-amber-500/20">
+                          El Coach está revisando tu transferencia. La rutina comenzará a diseñarse en breve.
                       </p>
                   )}
               </div>
             ) : (
               <>
                  {logFeedback && (
-                    <div className="mb-8 p-6 bg-gradient-to-r from-blue-950/40 to-transparent border-l-4 border-l-blue-500 border-y border-r border-zinc-800 rounded-r-2xl shadow-lg animate-in slide-in-from-left-4">
-                        <span className="text-[10px] text-blue-400 font-black uppercase tracking-widest flex items-center gap-2 mb-2">🤖 Auditoría de Bitácora (Tujague AI)</span>
-                        <p className="text-sm text-blue-50 font-medium leading-relaxed italic">"{logFeedback}"</p>
+                    <div className="mb-10 p-6 md:p-8 bg-gradient-to-r from-blue-950/60 to-[#0a0a0c] border-l-4 border-l-blue-500 border-y border-r border-zinc-800 rounded-r-3xl shadow-xl animate-in slide-in-from-left-4 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[40px] pointer-events-none"></div>
+                        <span className="text-[10px] md:text-xs text-blue-400 font-black uppercase tracking-widest flex items-center gap-3 mb-3 relative z-10">
+                           <span className="text-2xl">🤖</span> Auditoría de Bitácora (Tujague AI)
+                        </span>
+                        <p className="text-sm md:text-base text-blue-50 font-medium leading-relaxed italic relative z-10">"{logFeedback}"</p>
                     </div>
                  )}
 
-                 <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-6">
+                 {/* GRID DE RUTINAS ADAPTATIVO (CON REF PARA PDF) */}
+                 <div ref={pdfRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                    {days.map(day => {
                      if (!order[`routine_${day.id}`]) return null;
                      return (
-                       <div key={day.id} className="bg-zinc-900/60 border border-zinc-800 p-6 rounded-3xl backdrop-blur-sm shadow-xl flex flex-col">
-                          <h3 className="text-xl font-black italic text-emerald-400 mb-6 uppercase tracking-tight">{day.label}</h3>
+                       <div key={day.id} className="bg-[#0a0a0c] border border-zinc-800/80 p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-xl flex flex-col hover:border-emerald-500/30 transition-colors">
+                          <h3 className="text-2xl font-black italic text-emerald-400 mb-6 uppercase tracking-tight drop-shadow-md">{day.label}</h3>
                           
-                          {/* ✅ MEJORA VISUAL EN LA RUTINA PARA EL CLIENTE */}
-                          <div className="bg-black/40 border border-zinc-800/50 rounded-2xl p-5 mb-6 shadow-inner">
+                          <div className="bg-black border border-zinc-800/80 rounded-2xl p-5 md:p-6 mb-8 shadow-inner flex-1">
                               <div 
-                                  className="text-zinc-200 font-medium text-sm leading-relaxed whitespace-pre-wrap break-words"
+                                  className="text-zinc-200 font-medium text-sm md:text-base leading-relaxed whitespace-pre-wrap break-words"
                                   style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
                               >
                                   {order[`routine_${day.id}`]}
                               </div>
                           </div>
 
-                          <div className="mt-auto border-t border-zinc-800 pt-4">
-                             <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-2 flex items-center gap-2"><span>📓</span> Registro Fisiológico de Sesión</p>
-                             <textarea className="w-full bg-black/60 border border-zinc-700 rounded-xl p-3 text-zinc-300 text-xs font-medium outline-none focus:border-emerald-500/50 resize-none h-24 placeholder:text-zinc-700 custom-scrollbar whitespace-pre-wrap" placeholder="Ej: Sentadilla completada. RPE 8. Presencia de ligera fatiga sistémica..." value={logs[day.id as keyof typeof logs]} onChange={(e) => setLogs({...logs, [day.id]: e.target.value})} />
+                          {/* OCULTAR CAJA DE TEXTO EN EL PDF */}
+                          <div className="mt-auto border-t border-zinc-800 pt-6 pdf-exclude">
+                             <p className="text-[10px] md:text-xs text-zinc-500 font-black uppercase tracking-widest mb-3 flex items-center gap-2"><span>📓</span> Registro Fisiológico de Sesión</p>
+                             <textarea 
+                                className="w-full bg-black border border-zinc-700/80 rounded-xl p-4 text-zinc-300 text-xs md:text-sm font-medium outline-none focus:border-emerald-500/50 resize-none h-28 md:h-32 placeholder:text-zinc-700 custom-scrollbar whitespace-pre-wrap shadow-inner" 
+                                placeholder="Ej: Sentadilla completada. RPE 8. Presencia de ligera fatiga sistémica..." 
+                                value={logs[day.id as keyof typeof logs]} 
+                                onChange={(e) => setLogs({...logs, [day.id]: e.target.value})} 
+                             />
                           </div>
                        </div>
                      )
                    })}
                  </div>
 
-                 <div className="fixed bottom-6 left-0 w-full flex justify-center z-50 pointer-events-none px-4">
-                    <button onClick={handleSaveLogs} disabled={savingLogs} className="bg-emerald-500 hover:bg-emerald-400 text-black px-8 md:px-12 py-4 rounded-2xl font-black uppercase tracking-[0.2em] shadow-[0_10px_40px_rgba(16,185,129,0.4)] transition-all transform hover:-translate-y-1 pointer-events-auto text-xs md:text-sm">
+                 {/* BOTÓN FLOTANTE ESTILIZADO */}
+                 <div className="fixed bottom-6 md:bottom-10 left-0 w-full flex justify-center z-50 pointer-events-none px-4">
+                    <button 
+                       onClick={handleSaveLogs} 
+                       disabled={savingLogs} 
+                       className="bg-emerald-500 hover:bg-emerald-400 text-black px-10 md:px-14 py-5 md:py-6 rounded-3xl font-black uppercase tracking-[0.2em] shadow-[0_10px_50px_rgba(16,185,129,0.5)] transition-all transform hover:-translate-y-1 active:scale-95 pointer-events-auto text-xs md:text-sm border border-emerald-400"
+                    >
                        {savingLogs ? "Sincronizando Base de Datos..." : "💾 ALMACENAR DATOS DE SESIÓN"}
                     </button>
                  </div>
@@ -1437,13 +1690,13 @@ export default function DashboardAtleta() {
 
         {/* ─── PESTAÑA BOVEDA TÉCNICA ─── */}
         {activeTab === "boveda" && (
-          <div className="max-w-6xl mx-auto">
-             <div className="text-center mb-12">
-                <h2 className="text-3xl font-black italic text-white uppercase tracking-tighter">Bóveda Técnica <span className="text-emerald-500">BII-Vintage</span></h2>
-                <p className="text-zinc-400 mt-2 text-sm font-medium">Estudie rigurosamente el diseño de palancas y ejecución antes del abordaje práctico.</p>
+          <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in duration-500">
+             <div className="text-center mb-16">
+                <h2 className="text-4xl md:text-5xl font-black italic text-white uppercase tracking-tighter drop-shadow-md">Bóveda Técnica <span className="text-emerald-500">BII-Vintage</span></h2>
+                <p className="text-zinc-400 mt-4 text-sm md:text-base font-medium max-w-2xl mx-auto">Estudie rigurosamente el diseño de palancas y ejecución antes del abordaje práctico en el gimnasio.</p>
              </div>
 
-             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
                 {[
                   { id: 'squat', name: 'Sentadilla (Squat)', url: '' }, 
                   { id: 'bench', name: 'Press Banca (Bench)', url: '' },
@@ -1451,20 +1704,22 @@ export default function DashboardAtleta() {
                   { id: 'military', name: 'Press Militar (OHP)', url: '' },
                   { id: 'dips', name: 'Fondos (Dips)', url: '' }
                 ].map(video => (
-                   <div key={video.id} className="bg-zinc-900 border border-zinc-800 rounded-[2rem] overflow-hidden shadow-2xl">
-                      <div className="p-5 border-b border-zinc-800 bg-black/50">
-                         <h3 className="font-black italic uppercase text-lg text-white">{video.name}</h3>
+                   <div key={video.id} className="bg-[#0a0a0c] border border-zinc-800/80 rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-xl hover:shadow-[0_0_40px_rgba(16,185,129,0.1)] transition-shadow">
+                      <div className="p-6 md:p-8 border-b border-zinc-800 bg-black/40">
+                         <h3 className="font-black italic uppercase text-lg md:text-xl text-white tracking-tight">{video.name}</h3>
                       </div>
                       
                       {video.url ? (
-                         <div className="aspect-video w-full">
+                         <div className="aspect-video w-full bg-black">
                             <iframe width="100%" height="100%" src={video.url} title={video.name} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
                          </div>
                       ) : (
-                         <div className="aspect-video w-full bg-zinc-950 flex flex-col items-center justify-center p-8 relative">
-                             <div className="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center border border-zinc-800 mb-4 opacity-50"><span className="text-2xl">🔒</span></div>
-                             <h4 className="text-zinc-600 font-black tracking-widest text-xs uppercase text-center">Clínica Técnica en Producción</h4>
-                             <p className="text-zinc-700 text-[10px] mt-2 font-bold uppercase">Coach Luciano Tujague</p>
+                         <div className="aspect-video w-full bg-black flex flex-col items-center justify-center p-8 relative shadow-inner">
+                             <div className="w-16 h-16 md:w-20 md:h-20 bg-zinc-900 rounded-[2rem] flex items-center justify-center border border-zinc-800 mb-6 opacity-50 shadow-inner">
+                                 <span className="text-3xl">🔒</span>
+                             </div>
+                             <h4 className="text-zinc-500 font-black tracking-widest text-[10px] md:text-xs uppercase text-center">Clínica Técnica en Producción</h4>
+                             <p className="text-zinc-600 text-[9px] md:text-[10px] mt-2 font-bold uppercase tracking-widest">Coach Luciano Tujague</p>
                          </div>
                       )}
                    </div>
@@ -1473,75 +1728,81 @@ export default function DashboardAtleta() {
           </div>
         )}
 
-        {/* ─── PESTAÑA DE VIDEOS ─── */}
+        {/* ─── PESTAÑA DE AUDITORÍA DE VIDEOS ─── */}
         {activeTab === "videos" && (
-          <div className="max-w-5xl mx-auto">
+          <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in duration-500">
             {!order.has_video_review ? (
-                <div className="bg-zinc-900/40 border border-zinc-800 p-8 md:p-14 rounded-[3rem] shadow-2xl relative overflow-hidden text-center animate-in fade-in zoom-in duration-500">
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-red-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+                <div className="bg-[#0a0a0c] border border-zinc-800/80 p-8 md:p-16 rounded-[3rem] shadow-2xl relative overflow-hidden text-center max-w-4xl mx-auto">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] md:w-[600px] h-[400px] md:h-[600px] bg-red-500/5 rounded-full blur-[100px] md:blur-[150px] pointer-events-none"></div>
                     
-                    <div className="w-20 h-20 bg-zinc-900 rounded-full flex items-center justify-center border border-zinc-800 mx-auto mb-8 relative z-10 shadow-inner">
-                        <span className="text-4xl opacity-50">🔒</span>
+                    <div className="w-20 h-20 md:w-28 md:h-28 bg-black rounded-full flex items-center justify-center border border-zinc-800 mx-auto mb-8 relative z-10 shadow-inner">
+                        <span className="text-4xl md:text-5xl opacity-50">🔒</span>
                     </div>
                     
-                    <h2 className="text-3xl md:text-5xl font-black italic mb-4 tracking-tighter text-white relative z-10">MÓDULO <span className="text-red-500">RESTRINGIDO</span></h2>
-                    <p className="text-zinc-400 font-medium max-w-xl mx-auto mb-10 text-sm md:text-base relative z-10">
+                    <h2 className="text-4xl md:text-6xl font-black italic mb-6 tracking-tighter text-white relative z-10 uppercase drop-shadow-md">
+                        MÓDULO <span className="text-red-500">RESTRINGIDO</span>
+                    </h2>
+                    <p className="text-zinc-400 font-medium max-w-2xl mx-auto mb-12 text-sm md:text-lg relative z-10 leading-relaxed px-4">
                         Su suscripción actual omite la Auditoría Técnica Biomecánica. Esta es la herramienta indispensable para eludir estancamientos mecánicos estructurales bajo cargas máximas.
                     </p>
                     
-                    <div className="bg-black/50 border border-zinc-800 p-6 rounded-3xl max-w-md mx-auto mb-10 text-left relative z-10">
-                        <p className="text-[10px] text-zinc-500 font-black tracking-widest uppercase mb-4 border-b border-zinc-800/50 pb-2">Beneficios del Sistema:</p>
-                        <ul className="space-y-3">
-                            <li className="flex items-start gap-3 text-sm text-zinc-300 font-medium"><span className="text-emerald-500">✓</span> Auditoría clínica de patrones motores.</li>
-                            <li className="flex items-start gap-3 text-sm text-zinc-300 font-medium"><span className="text-emerald-500">✓</span> Calibración de palancas y tensión estructural.</li>
-                            <li className="flex items-start gap-3 text-sm text-zinc-300 font-medium"><span className="text-emerald-500">✓</span> Intervención directa del Head Coach en la base de datos.</li>
+                    <div className="bg-black/60 border border-zinc-800 p-6 md:p-10 rounded-3xl max-w-lg mx-auto mb-12 text-left relative z-10 shadow-lg">
+                        <p className="text-[10px] md:text-xs text-zinc-500 font-black tracking-widest uppercase mb-6 border-b border-zinc-800/50 pb-3">Beneficios del Sistema:</p>
+                        <ul className="space-y-4 md:space-y-5">
+                            <li className="flex items-start gap-4 text-sm md:text-base text-zinc-300 font-medium"><span className="text-emerald-500 font-black">✓</span> Auditoría clínica de patrones motores.</li>
+                            <li className="flex items-start gap-4 text-sm md:text-base text-zinc-300 font-medium"><span className="text-emerald-500 font-black">✓</span> Calibración de palancas y tensión estructural.</li>
+                            <li className="flex items-start gap-4 text-sm md:text-base text-zinc-300 font-medium"><span className="text-emerald-500 font-black">✓</span> Intervención directa del Head Coach en la base de datos.</li>
                         </ul>
                     </div>
 
                     <button 
                        onClick={handleBuyUpsell}
                        disabled={loadingUpsell}
-                       className="relative z-10 inline-flex items-center justify-center bg-emerald-500 text-black px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-emerald-400 transition-all shadow-[0_0_30px_rgba(16,185,129,0.2)] disabled:opacity-50"
+                       className="relative z-10 inline-flex items-center justify-center bg-emerald-500 text-black px-10 md:px-14 py-5 md:py-6 rounded-2xl md:rounded-3xl font-black text-[10px] md:text-xs uppercase tracking-[0.2em] hover:bg-emerald-400 transition-all shadow-[0_0_40px_rgba(16,185,129,0.3)] disabled:opacity-50 hover:scale-105 active:scale-95 w-full sm:w-auto"
                     >
                         {loadingUpsell ? 'ESTABLECIENDO CONEXIÓN FINANCIERA...' : 'DESBLOQUEAR MÓDULO POR ARS $15.000'}
                     </button>
                 </div>
             ) : (
-              <div className="space-y-12 animate-in fade-in duration-500">
+              <div className="space-y-16">
                 
                 {/* VIDEOS PRINCIPALES */}
                 <div>
-                   <h3 className="text-2xl font-black italic text-emerald-500 uppercase tracking-tighter mb-6">El Core BII-Vintage</h3>
-                   <div className="grid lg:grid-cols-2 gap-8">
+                   <div className="text-center md:text-left mb-10">
+                      <h3 className="text-3xl md:text-4xl font-black italic text-emerald-500 uppercase tracking-tighter drop-shadow-md">El Core BII-Vintage</h3>
+                      <p className="text-zinc-400 font-medium text-sm md:text-base mt-2">Aporte visual para la calibración del Big 5.</p>
+                   </div>
+                   
+                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-10">
                      {mainLifts.map(lift => (
-                        <div key={lift.id} className="bg-zinc-900/40 border border-zinc-800 p-6 md:p-8 rounded-[2rem] shadow-xl">
-                           <div className="flex justify-between items-center mb-6 border-b border-zinc-800/50 pb-4">
-                              <h3 className="text-xl font-black italic text-white uppercase">{lift.label}</h3>
+                        <div key={lift.id} className="bg-[#0a0a0c] border border-zinc-800/80 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-xl hover:border-emerald-500/30 transition-colors">
+                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8 border-b border-zinc-800/50 pb-6">
+                              <h3 className="text-2xl font-black italic text-white uppercase tracking-tight">{lift.label}</h3>
                               {order[`video_${lift.id}`] 
-                                  ? <span className="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase border border-emerald-500/20">Evidencia Cargada</span> 
-                                  : <span className="bg-zinc-800 text-zinc-500 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase">En Espera</span>
+                                  ? <span className="bg-emerald-500/20 text-emerald-400 px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-black tracking-widest uppercase border border-emerald-500/30 shadow-inner w-full sm:w-auto text-center">Evidencia Cargada</span> 
+                                  : <span className="bg-zinc-900 border border-zinc-800 text-zinc-500 px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-black tracking-widest uppercase w-full sm:w-auto text-center">En Espera</span>
                               }
                            </div>
 
-                           <div className="mb-6 bg-black/50 border border-zinc-800 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                           <div className="mb-8 bg-black/40 border border-zinc-800/80 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-inner">
                               <div>
-                                 <p className="text-xs text-zinc-300 font-bold mb-1 uppercase tracking-widest">Aportar Serie Efectiva</p>
-                                 <p className="text-[10px] text-zinc-600">Extensión admitida: MP4/MOV (Máx 50MB)</p>
+                                 <p className="text-xs md:text-sm text-zinc-300 font-bold mb-2 uppercase tracking-widest">Aportar Serie Efectiva</p>
+                                 <p className="text-[10px] text-zinc-500 font-medium">Extensión: MP4/MOV (Máx 50MB)</p>
                               </div>
-                              <label className={`cursor-pointer px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-center flex-shrink-0 ${uploading === lift.id ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-white text-black hover:bg-zinc-200'}`}>
+                              <label className={`cursor-pointer px-8 py-4 rounded-xl md:rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all text-center shrink-0 w-full sm:w-auto shadow-md ${uploading === lift.id ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-white text-black hover:bg-zinc-200 hover:scale-105 active:scale-95'}`}>
                                  {uploading === lift.id ? 'TRANSMITIENDO...' : 'CARGAR VIDEO 📹'}
                                  <input type="file" accept="video/*" className="hidden" onChange={(e) => handleFileUpload(e, lift.id)} disabled={uploading === lift.id} />
                               </label>
                            </div>
 
-                           <div className="bg-emerald-950/20 border border-emerald-500/30 p-6 rounded-2xl">
-                              <h4 className="flex items-center gap-2 text-emerald-500 font-black text-[10px] uppercase tracking-widest mb-4">
+                           <div className="bg-emerald-950/20 border border-emerald-500/30 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] shadow-inner">
+                              <h4 className="flex items-center gap-3 text-emerald-500 font-black text-[10px] md:text-xs uppercase tracking-widest mb-4">
                                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Auditoría del Coach
                               </h4>
                               {order[`feedback_${lift.id}`] ? (
-                                <p className="text-emerald-100/80 text-sm leading-relaxed whitespace-pre-wrap font-medium">{order[`feedback_${lift.id}`]}</p>
+                                <p className="text-emerald-50 text-sm md:text-base leading-relaxed whitespace-pre-wrap font-medium">{order[`feedback_${lift.id}`]}</p>
                               ) : (
-                                <p className="text-emerald-500/40 text-xs italic">Se requiere material visual para iniciar la evaluación técnica.</p>
+                                <p className="text-emerald-500/40 text-xs md:text-sm italic font-medium">Se requiere material visual para iniciar la evaluación técnica.</p>
                               )}
                            </div>
                         </div>
@@ -1550,44 +1811,48 @@ export default function DashboardAtleta() {
                 </div>
 
                 {/* VIDEOS EXTRAS */}
-                <div>
-                   <h3 className="text-2xl font-black italic text-zinc-400 uppercase tracking-tighter mb-6">Módulo de Accesorios</h3>
-                   <div className="grid lg:grid-cols-2 gap-8">
+                <div className="pt-10 border-t border-white/5">
+                   <div className="text-center md:text-left mb-10">
+                      <h3 className="text-3xl md:text-4xl font-black italic text-zinc-400 uppercase tracking-tighter drop-shadow-md">Módulo de Accesorios</h3>
+                      <p className="text-zinc-500 font-medium text-sm md:text-base mt-2">Aporte visual para variantes y máquinas.</p>
+                   </div>
+                   
+                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-10">
                      {extraLifts.map(lift => (
-                        <div key={lift.id} className="bg-zinc-950 border border-dashed border-zinc-800 p-6 md:p-8 rounded-[2rem] shadow-xl">
-                           <div className="flex justify-between items-center mb-6 border-b border-zinc-800/50 pb-4">
+                        <div key={lift.id} className="bg-black border border-dashed border-zinc-800/80 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-xl hover:border-blue-500/30 transition-colors">
+                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8 border-b border-zinc-800/50 pb-6">
                               <input 
                                  type="text"
                                  placeholder="Nomenclatura (Ej: Hack Squat)..."
                                  value={order[`name_${lift.id}`] || ''}
                                  onChange={(e) => handleUpdateExtraName(lift.id, e.target.value)}
-                                 className="bg-transparent text-xl font-black italic text-white uppercase outline-none placeholder:text-zinc-700 w-2/3"
+                                 className="bg-transparent text-xl md:text-2xl font-black italic text-white uppercase outline-none placeholder:text-zinc-700 w-full sm:w-2/3 focus:text-blue-400 transition-colors"
                               />
                               {order[`video_${lift.id}`] 
-                                  ? <span className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase border border-blue-500/20">Evidencia Cargada</span> 
-                                  : <span className="bg-zinc-800 text-zinc-500 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase">En Espera</span>
+                                  ? <span className="bg-blue-500/20 text-blue-400 px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-black tracking-widest uppercase border border-blue-500/30 shadow-inner w-full sm:w-auto text-center mt-4 sm:mt-0">Evidencia Cargada</span> 
+                                  : <span className="bg-zinc-900 border border-zinc-800 text-zinc-500 px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-black tracking-widest uppercase w-full sm:w-auto text-center mt-4 sm:mt-0">En Espera</span>
                               }
                            </div>
 
-                           <div className="mb-6 bg-black/50 border border-zinc-800 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                           <div className="mb-8 bg-zinc-900/40 border border-zinc-800/80 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-inner">
                               <div>
-                                 <p className="text-xs text-zinc-300 font-bold mb-1 uppercase tracking-widest">Aportar Ejecución</p>
-                                 <p className="text-[10px] text-zinc-600">Extensión admitida: MP4/MOV (Máx 50MB)</p>
+                                 <p className="text-xs md:text-sm text-zinc-300 font-bold mb-2 uppercase tracking-widest">Aportar Ejecución</p>
+                                 <p className="text-[10px] text-zinc-500 font-medium">Extensión: MP4/MOV (Máx 50MB)</p>
                               </div>
-                              <label className={`cursor-pointer px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-center flex-shrink-0 ${uploading === lift.id ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-500'}`}>
+                              <label className={`cursor-pointer px-8 py-4 rounded-xl md:rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all text-center shrink-0 w-full sm:w-auto shadow-md ${uploading === lift.id ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-500 hover:scale-105 active:scale-95'}`}>
                                  {uploading === lift.id ? 'TRANSMITIENDO...' : 'CARGAR VIDEO 📹'}
                                  <input type="file" accept="video/*" className="hidden" onChange={(e) => handleFileUpload(e, lift.id)} disabled={uploading === lift.id} />
                               </label>
                            </div>
 
-                           <div className="bg-blue-950/20 border border-blue-500/30 p-6 rounded-2xl">
-                              <h4 className="flex items-center gap-2 text-blue-500 font-black text-[10px] uppercase tracking-widest mb-4">
+                           <div className="bg-blue-950/20 border border-blue-500/30 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] shadow-inner">
+                              <h4 className="flex items-center gap-3 text-blue-500 font-black text-[10px] md:text-xs uppercase tracking-widest mb-4">
                                 <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> Auditoría del Coach
                               </h4>
                               {order[`feedback_${lift.id}`] ? (
-                                <p className="text-blue-100/80 text-sm leading-relaxed whitespace-pre-wrap font-medium">{order[`feedback_${lift.id}`]}</p>
+                                <p className="text-blue-50 text-sm md:text-base leading-relaxed whitespace-pre-wrap font-medium">{order[`feedback_${lift.id}`]}</p>
                               ) : (
-                                <p className="text-blue-500/40 text-xs italic">Complete la nomenclatura y aporte el material para obtener asistencia.</p>
+                                <p className="text-blue-500/40 text-xs md:text-sm italic font-medium">Complete la nomenclatura y aporte el material para obtener asistencia.</p>
                               )}
                            </div>
                         </div>
@@ -1602,27 +1867,30 @@ export default function DashboardAtleta() {
 
         {/* ─── PESTAÑA RM Y TROFEOS ÉPICOS (52 MEDALLAS) ─── */}
         {activeTab === "rm" && (
-          <div className="max-w-7xl mx-auto space-y-12 animate-in fade-in duration-500">
+          <div className="max-w-7xl mx-auto space-y-12 md:space-y-16 animate-in fade-in duration-500">
+            
             {/* PANEL DE REGISTRO DE RM */}
-            <div className="bg-zinc-900/40 border border-zinc-800 p-8 md:p-14 rounded-[3rem] shadow-2xl relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none -mr-20 -mt-20"></div>
+            <div className="bg-[#0a0a0c] border border-zinc-800/80 p-6 sm:p-10 md:p-16 rounded-[2.5rem] md:rounded-[4rem] shadow-[0_0_80px_rgba(0,0,0,0.5)] relative overflow-hidden backdrop-blur-xl">
+               <div className="absolute top-0 right-0 w-64 md:w-96 h-64 md:h-96 bg-emerald-500/10 rounded-full blur-[100px] md:blur-[150px] pointer-events-none -mr-20 -mt-20"></div>
                
-               <h2 className="text-3xl font-black italic text-center mb-12 text-white relative z-10">MÉTRICAS BASE DE <span className="text-emerald-500">1RM</span></h2>
+               <h2 className="text-4xl md:text-6xl font-black italic text-center mb-10 md:mb-16 text-white relative z-10 tracking-tighter drop-shadow-md">
+                  MÉTRICAS BASE DE <span className="text-emerald-500 block sm:inline">1RM</span>
+               </h2>
                
                {/* 🎮 SISTEMA DE NIVELES Y GAMIFICACIÓN */}
-               <div className="relative z-10 bg-black/60 border border-zinc-800 rounded-3xl p-6 md:p-8 mb-12 shadow-inner">
-                   <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+               <div className="relative z-10 bg-black/60 border border-zinc-800 rounded-[2rem] md:rounded-[3rem] p-8 md:p-12 mb-12 md:mb-16 shadow-inner">
+                   <div className="flex flex-col md:flex-row justify-between items-center mb-8 md:mb-10 gap-6">
                        <div className="text-center md:text-left">
-                           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500 mb-1">Rango Actual</p>
-                           <h3 className="text-3xl font-black italic text-white uppercase tracking-tighter drop-shadow-md">{levelInfo.current}</h3>
+                           <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-emerald-500 mb-2">Rango Actual</p>
+                           <h3 className="text-4xl md:text-5xl font-black italic text-white uppercase tracking-tighter drop-shadow-md">{levelInfo.current}</h3>
                        </div>
                        <div className="text-center md:text-right">
-                           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 mb-1">Próximo Rango</p>
-                           <p className="text-xl font-black italic text-zinc-300 uppercase tracking-tighter">{levelInfo.next}</p>
+                           <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-zinc-500 mb-2">Próximo Rango</p>
+                           <p className="text-2xl md:text-3xl font-black italic text-zinc-300 uppercase tracking-tighter">{levelInfo.next}</p>
                        </div>
                    </div>
 
-                   <div className="w-full bg-zinc-900 rounded-full h-4 mb-4 border border-zinc-800 relative overflow-hidden">
+                   <div className="w-full bg-zinc-900 rounded-full h-4 md:h-6 mb-6 border border-zinc-800 relative overflow-hidden shadow-inner">
                        <div 
                           className="bg-gradient-to-r from-emerald-600 to-emerald-400 h-full rounded-full transition-all duration-1000 ease-out relative"
                           style={{ width: `${progressPercent}%` }}
@@ -1631,17 +1899,17 @@ export default function DashboardAtleta() {
                        </div>
                    </div>
 
-                   <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                       <span className="text-zinc-400">{totalAbsoluto} KG Totales</span>
+                   <div className="flex flex-col sm:flex-row justify-between items-center text-[10px] md:text-xs font-black uppercase tracking-widest gap-4">
+                       <span className="text-zinc-400 bg-black/50 px-4 py-2 rounded-xl border border-zinc-800">{totalAbsoluto} KG Totales Absolutos</span>
                        {kgLeft > 0 ? (
-                           <span className="text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]">Faltan {kgLeft} KG para ascender</span>
+                           <span className="text-emerald-400 bg-emerald-500/10 px-5 py-2.5 rounded-xl border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]">Faltan {kgLeft} KG para ascender</span>
                        ) : (
-                           <span className="text-yellow-400 bg-yellow-500/10 px-3 py-1.5 rounded-lg border border-yellow-500/20 shadow-[0_0_10px_rgba(234,179,8,0.2)]">Nivel Máximo Desbloqueado 👑</span>
+                           <span className="text-yellow-400 bg-yellow-500/10 px-5 py-2.5 rounded-xl border border-yellow-500/20 shadow-[0_0_15px_rgba(234,179,8,0.2)]">Nivel Máximo Desbloqueado 👑</span>
                        )}
                    </div>
                </div>
 
-               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6 mb-12 relative z-10">
+               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6 mb-12 md:mb-16 relative z-10">
                   {[
                     { id: 'squat', name: 'Sentadilla' },
                     { id: 'bench', name: 'Press Banca' },
@@ -1649,18 +1917,18 @@ export default function DashboardAtleta() {
                     { id: 'dips', name: 'Fondos' },
                     { id: 'military', name: 'Militar' }
                   ].map(lift => (
-                     <div key={lift.id} className="bg-black/60 p-4 md:p-6 rounded-3xl border border-zinc-800 text-center relative focus-within:border-emerald-500/50 transition-colors">
-                         <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4">{lift.name}</p>
+                     <div key={lift.id} className="bg-black/60 p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-zinc-800 text-center relative focus-within:border-emerald-500/50 transition-all hover:bg-zinc-900/40 shadow-inner group">
+                         <p className="text-[10px] md:text-xs font-black text-zinc-500 uppercase tracking-widest mb-4 md:mb-6 group-hover:text-emerald-500/50 transition-colors">{lift.name}</p>
                          <div className="relative inline-block w-full">
                             <input 
                                type="number"
                                inputMode="numeric"
-                               value={rms[lift.id as keyof typeof rms]} 
+                               value={rms[lift.id as keyof typeof rms] || ""} 
                                onChange={e => setRms(prev => ({...prev, [lift.id]: e.target.value}))}
-                               className="bg-transparent text-center text-3xl md:text-4xl font-black text-white w-full outline-none focus:text-emerald-400 placeholder:text-zinc-800"
+                               className="bg-transparent text-center text-4xl md:text-5xl lg:text-6xl font-black text-white w-full outline-none focus:text-emerald-400 transition-colors placeholder:text-zinc-800"
                                placeholder="0"
                             />
-                            <span className="absolute top-1/2 -translate-y-1/2 right-0 text-zinc-700 text-[10px] md:text-xs font-black">KG</span>
+                            <span className="absolute top-1/2 -translate-y-1/2 right-0 md:-right-2 text-zinc-700 text-[10px] md:text-sm font-black">KG</span>
                          </div>
                      </div>
                   ))}
@@ -1669,53 +1937,83 @@ export default function DashboardAtleta() {
                <button 
                  onClick={saveRMs}
                  disabled={savingRm}
-                 className="relative z-10 w-full bg-emerald-500 text-black py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-emerald-400 hover:scale-[1.02] transition-all disabled:opacity-50 shadow-[0_0_30px_rgba(16,185,129,0.2)]"
+                 className="relative z-10 w-full bg-emerald-500 text-black py-6 md:py-8 rounded-[2rem] md:rounded-[2.5rem] font-black text-xs md:text-sm uppercase tracking-[0.2em] hover:bg-emerald-400 hover:scale-[1.02] transition-all disabled:opacity-50 shadow-[0_10px_40px_rgba(16,185,129,0.3)] active:scale-95"
                >
                  {savingRm ? 'SINCRONIZANDO CON BASE DE DATOS...' : 'CONFIRMAR NUEVAS MÉTRICAS ⚡'}
                </button>
+
+               {/* 🔥 IA DE RM - ANÁLISIS DE PROPORCIONES 🔥 */}
+               <div className="bg-gradient-to-r from-blue-950/40 to-[#0a0a0c] border border-blue-900/50 p-8 md:p-12 rounded-[2rem] md:rounded-[3rem] relative overflow-hidden mt-12 md:mt-16 shadow-xl">
+                  <div className="absolute top-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] pointer-events-none"></div>
+                  <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+                     <div>
+                        <h3 className="text-2xl md:text-3xl font-black italic text-white uppercase flex items-center gap-3 tracking-tight mb-2">
+                           <span className="text-3xl md:text-4xl drop-shadow-md">🤖</span> Análisis Estructural <span className="text-blue-500">Tujague AI</span>
+                        </h3>
+                        <p className="text-zinc-400 text-sm md:text-base font-medium max-w-xl">Detectá desbalances biomecánicos y puntos de estancamiento evaluando las proporciones de tus levantamientos actuales.</p>
+                     </div>
+                     <button
+                        onClick={handleAnalyzeRMs}
+                        disabled={rmAiLoading}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-8 md:px-12 py-5 md:py-6 rounded-2xl md:rounded-3xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all shadow-[0_0_30px_rgba(37,99,235,0.4)] disabled:opacity-50 flex-shrink-0 w-full sm:w-auto hover:scale-105 active:scale-95"
+                     >
+                        {rmAiLoading ? 'PROCESANDO RED NEURAL...' : 'AUDITAR MARCAS'}
+                     </button>
+                  </div>
+                  
+                  {rmAiFeedback && (
+                     <div className="mt-8 bg-black/60 border border-blue-500/30 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] animate-in slide-in-from-top-4 shadow-inner">
+                        <p className="text-[10px] md:text-xs text-blue-400 font-black uppercase tracking-widest mb-4 flex items-center gap-3 border-b border-blue-500/20 pb-3">
+                           <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span> Reporte Biomecánico
+                        </p>
+                        <p className="text-sm md:text-base text-blue-50 font-medium leading-relaxed whitespace-pre-wrap">{rmAiFeedback}</p>
+                     </div>
+                  )}
+               </div>
+
             </div>
 
             {/* MURO DE TROFEOS HARDCORE (52 MEDALLAS) */}
-            <div className="bg-zinc-950 border border-emerald-900/30 p-8 md:p-12 rounded-[3rem] shadow-xl relative overflow-hidden">
-               <div className="absolute top-0 left-0 w-full h-[500px] bg-emerald-500/5 blur-[120px] pointer-events-none -translate-y-1/2"></div>
+            <div className="bg-[#0a0a0c] border border-emerald-900/40 p-8 md:p-16 rounded-[2.5rem] md:rounded-[4rem] shadow-[0_0_80px_rgba(0,0,0,0.5)] relative overflow-hidden backdrop-blur-xl">
+               <div className="absolute top-0 left-0 w-full h-[500px] md:h-[800px] bg-emerald-500/5 blur-[120px] md:blur-[180px] pointer-events-none -translate-y-1/2"></div>
                
-               <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 text-center md:text-left relative z-10">
+               <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 md:mb-20 gap-8 text-left relative z-10">
                    <div>
-                       <h3 className="text-3xl md:text-4xl font-black italic text-white uppercase tracking-tighter">Inventario de Logros <span className="text-emerald-500">Élite</span></h3>
-                       <p className="text-zinc-400 text-xs mt-2 font-bold tracking-widest">Acumulado del trabajo de fuerza a largo plazo. TOTAL ABSOLUTO: <span className="text-emerald-400 font-black text-lg ml-1">{totalAbsoluto} KG</span></p>
+                       <h3 className="text-4xl md:text-6xl font-black italic text-white uppercase tracking-tighter drop-shadow-md">Inventario de Logros <span className="text-emerald-500 block sm:inline">Élite</span></h3>
+                       <p className="text-zinc-400 text-xs md:text-sm mt-4 font-medium tracking-wide">Acumulado del trabajo de fuerza a largo plazo. TOTAL ABSOLUTO: <span className="text-emerald-400 font-black text-xl md:text-2xl ml-1 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20">{totalAbsoluto} KG</span></p>
                    </div>
                    <button 
                        onClick={shareTrophies}
-                       className="bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-700 px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg flex items-center gap-3"
+                       className="bg-zinc-900 hover:bg-emerald-500 hover:text-black text-white border border-zinc-700 hover:border-emerald-500 px-8 md:px-10 py-4 md:py-5 rounded-2xl md:rounded-3xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-3 w-full sm:w-auto"
                    >
                        <span>Compartir Legado</span>
-                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.067 3.204.146 4.833 1.79 4.98 5.01.054 1.266.066 1.645.066 4.849 0 3.205-.012 3.584-.066 4.85-.147 3.22-1.776 4.864-4.98 5.01-1.266.054-1.646.066-4.85.066-3.204 0-3.584-.012-4.85-.066-3.204-.146-4.833-1.79-4.98-5.01-.054-1.266-.066-1.645-.066-4.85 0-3.205.012-3.584.066-4.85.147-3.22 1.776-4.864 4.98-5.01 1.266-.054 1.646-.066 4.85-.066m0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 1.848-6.98 6.208-.058 1.28-.072 1.688-.072 4.948s.014 3.668.072 4.948c.2 4.358 2.618 6.008 6.98 6.208 1.281.058 1.689.072 4.947.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-1.848 6.979-6.208.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.004-6.979-6.209C15.668.014 15.259 0 12 0zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                       <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.067 3.204.146 4.833 1.79 4.98 5.01.054 1.266.066 1.645.066 4.849 0 3.205-.012 3.584-.066 4.85-.147 3.22-1.776 4.864-4.98 5.01-1.266.054-1.646.066-4.85.066-3.204 0-3.584-.012-4.85-.066-3.204-.146-4.833-1.79-4.98-5.01-.054-1.266-.066-1.645-.066-4.85 0-3.205.012-3.584.066-4.85.147-3.22 1.776-4.864 4.98-5.01 1.266-.054 1.646-.066 4.85-.066m0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 1.848-6.98 6.208-.058 1.28-.072 1.688-.072 4.948s.014 3.668.072 4.948c.2 4.358 2.618 6.008 6.98 6.208 1.281.058 1.689.072 4.947.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-1.848 6.979-6.208.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.004-6.979-6.209C15.668.014 15.259 0 12 0zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
                    </button>
                </div>
 
-               <div className="space-y-16 relative z-10">
+               <div className="space-y-16 md:space-y-24 relative z-10">
                   {Object.entries(groupedTrophies).map(([category, items], index) => (
                      <div key={index} className="animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `${index * 50}ms` }}>
-                        <h4 className="text-emerald-500 font-black tracking-widest text-xs uppercase mb-6 border-b border-zinc-800 pb-2">
+                        <h4 className="text-emerald-500 font-black tracking-[0.2em] text-xs md:text-sm uppercase mb-6 md:mb-8 border-b border-zinc-800/80 pb-4">
                            {category}
                         </h4>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-4 md:gap-6">
                            {items.map(trophy => (
-                               <div key={trophy.id} className={`p-5 rounded-2xl border transition-all duration-500 flex flex-col justify-between min-h-[140px] relative overflow-hidden ${trophy.unlocked ? 'bg-gradient-to-br from-emerald-950/40 to-black border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.15)] scale-[1.02]' : 'bg-black/40 border-zinc-800/80 opacity-60 grayscale'}`}>
+                               <div key={trophy.id} className={`p-5 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border transition-all duration-500 flex flex-col justify-between min-h-[140px] md:min-h-[160px] relative overflow-hidden ${trophy.unlocked ? 'bg-gradient-to-br from-emerald-950/40 to-black border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.15)] scale-[1.02] hover:scale-105' : 'bg-black/40 border-zinc-800/80 opacity-60 grayscale'}`}>
                                    
-                                   {trophy.unlocked && <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/10 rounded-full blur-[20px] pointer-events-none"></div>}
+                                   {trophy.unlocked && <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-full blur-[25px] pointer-events-none"></div>}
                                    
-                                   <div className="flex justify-between items-start mb-4 relative z-10">
-                                      <span className={`text-3xl drop-shadow-md ${trophy.unlocked ? 'animate-pulse' : ''}`}>{trophy.icon}</span>
+                                   <div className="flex justify-between items-start mb-4 md:mb-6 relative z-10">
+                                      <span className={`text-4xl md:text-5xl drop-shadow-md ${trophy.unlocked ? 'animate-pulse' : ''}`}>{trophy.icon}</span>
                                       {trophy.unlocked ? (
-                                         <span className="text-black font-black text-[10px] bg-emerald-500 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(16,185,129,0.5)]">✓</span>
+                                         <span className="text-black font-black text-[10px] md:text-xs bg-emerald-500 px-2.5 py-1 rounded-md shadow-[0_0_15px_rgba(16,185,129,0.6)]">✓</span>
                                       ) : (
-                                         <span className="text-zinc-600 text-[10px] bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">🔒</span>
+                                         <span className="text-zinc-600 text-[10px] md:text-xs bg-zinc-900 px-2.5 py-1 rounded-md border border-zinc-800">🔒</span>
                                       )}
                                    </div>
                                    <div className="relative z-10">
-                                      <h4 className={`font-black italic uppercase text-[11px] tracking-tight leading-tight ${trophy.unlocked ? 'text-white' : 'text-zinc-500'}`}>{trophy.title}</h4>
-                                      <p className={`text-[9px] font-bold mt-1 uppercase tracking-widest ${trophy.unlocked ? 'text-emerald-400' : 'text-zinc-600'}`}>{trophy.desc}</p>
+                                      <h4 className={`font-black italic uppercase text-[11px] md:text-[13px] tracking-tight leading-tight mb-1 md:mb-1.5 ${trophy.unlocked ? 'text-white' : 'text-zinc-500'}`}>{trophy.title}</h4>
+                                      <p className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest ${trophy.unlocked ? 'text-emerald-400' : 'text-zinc-600'}`}>{trophy.desc}</p>
                                    </div>
                                </div>
                            ))}
@@ -1725,23 +2023,23 @@ export default function DashboardAtleta() {
                </div>
             </div>
 
-            <div className="bg-zinc-900/30 border border-zinc-800 p-8 md:p-10 rounded-[3rem] shadow-xl">
-               <h3 className="text-xl font-black italic text-white mb-8">TRAYECTORIA DE <span className="text-emerald-500">FUERZA PROYECTADA</span></h3>
-               <div className="h-[300px] w-full">
+            <div className="bg-[#0a0a0c] border border-zinc-800/80 p-8 md:p-12 lg:p-16 rounded-[2.5rem] md:rounded-[4rem] shadow-[0_0_80px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+               <h3 className="text-2xl md:text-4xl font-black italic text-white mb-10 md:mb-12 text-center md:text-left drop-shadow-md">TRAYECTORIA DE <span className="text-emerald-500 block sm:inline">FUERZA PROYECTADA</span></h3>
+               <div className="h-[300px] md:h-[400px] w-full bg-black/40 p-4 md:p-6 rounded-[2rem] border border-zinc-800/80 shadow-inner">
                  <ResponsiveContainer width="100%" height="100%">
-                   <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                   <LineChart data={chartData} margin={{ top: 20, right: 20, left: -10, bottom: 0 }}>
                      <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                     <XAxis dataKey="name" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
-                     <YAxis stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
+                     <XAxis dataKey="name" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} dy={10} />
+                     <YAxis stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} dx={-10} />
                      <Tooltip 
-                        contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}
+                        contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '16px', fontSize: '12px', fontWeight: 'bold', padding: '12px' }}
                         itemStyle={{ color: '#fff' }}
                      />
-                     <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '20px' }} iconType="circle" />
-                     <Line type="monotone" dataKey="Sentadilla" stroke="#10b981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                     <Line type="monotone" dataKey="Banca" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                     <Line type="monotone" dataKey="PesoMuerto" stroke="#ef4444" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                     <Line type="monotone" dataKey="Fondos" stroke="#eab308" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                     <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '20px', fontWeight: 'bold' }} iconType="circle" />
+                     <Line type="monotone" dataKey="Sentadilla" stroke="#10b981" strokeWidth={4} dot={{ r: 5, strokeWidth: 2 }} activeDot={{ r: 8 }} />
+                     <Line type="monotone" dataKey="Banca" stroke="#3b82f6" strokeWidth={4} dot={{ r: 5, strokeWidth: 2 }} activeDot={{ r: 8 }} />
+                     <Line type="monotone" dataKey="PesoMuerto" stroke="#ef4444" strokeWidth={4} dot={{ r: 5, strokeWidth: 2 }} activeDot={{ r: 8 }} />
+                     <Line type="monotone" dataKey="Fondos" stroke="#eab308" strokeWidth={4} dot={{ r: 5, strokeWidth: 2 }} activeDot={{ r: 8 }} />
                    </LineChart>
                  </ResponsiveContainer>
                </div>
@@ -1751,89 +2049,94 @@ export default function DashboardAtleta() {
 
         {/* ─── PESTAÑA CHECKIN ─── */}
         {activeTab === "checkin" && (
-           <div className="max-w-5xl mx-auto space-y-8">
+           <div className="max-w-6xl mx-auto space-y-10 md:space-y-12">
               
-              <div className="bg-zinc-900/40 border border-zinc-800 p-8 md:p-12 rounded-[3rem] shadow-2xl relative overflow-hidden">
-                 <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none -mr-20 -mt-20"></div>
+              <div className="bg-[#0a0a0c] border border-zinc-800/80 p-8 md:p-16 rounded-[2.5rem] md:rounded-[4rem] shadow-[0_0_80px_rgba(0,0,0,0.5)] relative overflow-hidden backdrop-blur-xl">
+                 <div className="absolute top-0 right-0 w-64 md:w-96 h-64 md:h-96 bg-emerald-500/5 rounded-full blur-[100px] md:blur-[150px] pointer-events-none -mr-20 -mt-20"></div>
                  
-                 <h2 className="text-3xl font-black italic text-center mb-4 text-white relative z-10">CONTROL PRE-SESIÓN: <span className="text-emerald-500">HOY</span></h2>
-                 <p className="text-center text-zinc-400 text-sm mb-10 relative z-10">Datos fundamentales para el ajuste auto-rregulado (RPE) del entrenamiento de hoy.</p>
+                 <div className="text-center mb-10 md:mb-14 relative z-10">
+                    <h2 className="text-3xl md:text-5xl lg:text-6xl font-black italic text-white tracking-tighter uppercase mb-4 drop-shadow-md">CONTROL PRE-SESIÓN: <span className="text-emerald-500 block sm:inline">HOY</span></h2>
+                    <p className="text-zinc-400 text-sm md:text-base font-medium max-w-2xl mx-auto">Datos fundamentales para el ajuste auto-rregulado (RPE) del entrenamiento de hoy. La IA analizará su estado.</p>
+                 </div>
 
-                 <form onSubmit={handleSaveCheckin} className="space-y-6 relative z-10">
-                    <div className="grid md:grid-cols-2 gap-6">
-                       <div className="bg-black/40 border border-zinc-800 p-6 rounded-2xl">
-                          <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-3 block">Peso Corporal (KG)</label>
+                 <form onSubmit={handleSaveCheckin} className="space-y-6 md:space-y-8 relative z-10 max-w-4xl mx-auto">
+                    {/* USO DE GRID PARA PC, APILADO PARA CELULAR */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                       <div className="bg-black/60 border border-zinc-800 p-6 md:p-8 rounded-[2rem] hover:border-emerald-500/50 transition-colors shadow-inner group">
+                          <label className="text-[10px] md:text-xs font-black uppercase text-zinc-500 tracking-widest mb-3 md:mb-4 block group-hover:text-emerald-500 transition-colors">Peso Corporal (KG)</label>
                           <input 
                              type="number" step="0.1" required
                              value={checkin.weight} onChange={e => setCheckin({...checkin, weight: e.target.value})}
-                             className="w-full bg-transparent text-3xl font-black text-white outline-none focus:text-emerald-400 transition-colors placeholder:text-zinc-800"
+                             className="w-full bg-transparent text-4xl md:text-5xl font-black text-white outline-none focus:text-emerald-400 transition-colors placeholder:text-zinc-800"
                              placeholder="Ej: 80.5"
                           />
                        </div>
-                       <div className="bg-black/40 border border-zinc-800 p-6 rounded-2xl">
-                          <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-3 block">Tiempo de Sueño Efectivo</label>
+                       <div className="bg-black/60 border border-zinc-800 p-6 md:p-8 rounded-[2rem] hover:border-blue-500/50 transition-colors shadow-inner group">
+                          <label className="text-[10px] md:text-xs font-black uppercase text-zinc-500 tracking-widest mb-3 md:mb-4 block group-hover:text-blue-500 transition-colors">Tiempo de Sueño Efectivo</label>
                           <input 
                              type="number" step="0.5" required
                              value={checkin.sleep} onChange={e => setCheckin({...checkin, sleep: e.target.value})}
-                             className="w-full bg-transparent text-3xl font-black text-white outline-none focus:text-blue-400 transition-colors placeholder:text-zinc-800"
+                             className="w-full bg-transparent text-4xl md:text-5xl font-black text-white outline-none focus:text-blue-400 transition-colors placeholder:text-zinc-800"
                              placeholder="Ej: 7.5"
                           />
                        </div>
                     </div>
 
-                    <div className="bg-black/40 border border-zinc-800 p-6 rounded-2xl">
-                       <div className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-4 flex justify-between items-center">
+                    <div className="bg-black/60 border border-zinc-800 p-6 md:p-10 rounded-[2rem] hover:border-emerald-500/30 transition-colors shadow-inner">
+                       <div className="text-[10px] md:text-xs font-black uppercase text-zinc-500 tracking-widest mb-6 md:mb-8 flex justify-between items-center">
                          <span>Estrés Sistémico General</span>
-                         <span className="text-emerald-500 text-lg">{checkin.stress} / 10</span>
+                         <span className="text-emerald-500 text-2xl md:text-3xl font-black italic bg-emerald-500/10 px-4 py-2 rounded-xl border border-emerald-500/20">{checkin.stress} <span className="text-sm md:text-base text-emerald-500/50 not-italic">/ 10</span></span>
                        </div>
                        <input 
                           type="range" min="1" max="10" required
                           value={checkin.stress} onChange={e => setCheckin({...checkin, stress: e.target.value})}
-                          className="w-full accent-emerald-500 h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                          className="w-full accent-emerald-500 h-3 md:h-4 bg-zinc-900 rounded-full appearance-none cursor-pointer border border-zinc-800 shadow-inner"
                        />
-                       <div className="flex justify-between text-[9px] text-zinc-600 mt-2 font-bold uppercase">
+                       <div className="flex justify-between text-[9px] md:text-[10px] text-zinc-500 mt-4 font-black uppercase tracking-widest">
                          <span>1 (Óptimo)</span>
                          <span>10 (Exhausto)</span>
                        </div>
                     </div>
 
-                    <div className="bg-black/40 border border-zinc-800 p-6 rounded-2xl">
-                       <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-3 block">Registro Clínico Libre (Opcional)</label>
+                    <div className="bg-black/60 border border-zinc-800 p-6 md:p-8 rounded-[2rem] shadow-inner focus-within:border-emerald-500/50 transition-colors">
+                       <label className="text-[10px] md:text-xs font-black uppercase text-zinc-500 tracking-widest mb-4 block">Registro Clínico Libre (Opcional)</label>
                        <textarea 
                           value={checkin.notes} onChange={e => setCheckin({...checkin, notes: e.target.value})}
-                          placeholder="Reporte anomalías, dolores articulares o niveles anormales de fatiga..."
-                          className="w-full bg-transparent text-sm font-medium text-zinc-300 outline-none resize-none h-20 placeholder:text-zinc-700"
+                          placeholder="Reporte anomalías, dolores articulares o niveles anormales de fatiga general para que el Coach y la IA lo tengan en cuenta..."
+                          className="w-full bg-transparent text-sm md:text-base font-medium text-zinc-300 outline-none resize-none h-24 md:h-32 placeholder:text-zinc-700 custom-scrollbar"
                        />
                     </div>
 
-                    <button 
-                       type="submit"
-                       disabled={savingCheckin}
-                       className="w-full bg-emerald-500 text-black py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-emerald-400 hover:scale-[1.02] transition-all disabled:opacity-50 shadow-[0_0_30px_rgba(16,185,129,0.2)] mt-4"
-                    >
-                       {savingCheckin ? 'COMUNICANDO DATOS AL SISTEMA...' : 'ENVIAR REPORTE AL HEAD COACH 🚀'}
-                    </button>
+                    <div className="pt-4 md:pt-6">
+                        <button 
+                           type="submit"
+                           disabled={savingCheckin}
+                           className="w-full bg-emerald-500 text-black py-6 md:py-8 rounded-[2rem] md:rounded-[2.5rem] font-black text-xs md:text-sm uppercase tracking-[0.2em] hover:bg-emerald-400 hover:scale-[1.02] transition-all disabled:opacity-50 shadow-[0_10px_40px_rgba(16,185,129,0.3)] active:scale-95"
+                        >
+                           {savingCheckin ? 'COMUNICANDO DATOS AL SISTEMA...' : 'ENVIAR REPORTE AL HEAD COACH 🚀'}
+                        </button>
+                    </div>
                  </form>
               </div>
 
               {checkinHistory.length > 0 && (
-                 <div className="bg-zinc-900/30 border border-zinc-800 p-8 md:p-10 rounded-[3rem] shadow-xl animate-in fade-in zoom-in duration-500">
-                    <h3 className="text-xl font-black italic text-white mb-8 text-center uppercase tracking-widest">Gráfico de <span className="text-emerald-500">Fatiga Semanal</span></h3>
+                 <div className="bg-[#0a0a0c] border border-zinc-800/80 p-8 md:p-14 rounded-[2.5rem] md:rounded-[4rem] shadow-[0_0_80px_rgba(0,0,0,0.5)] animate-in fade-in zoom-in duration-500 backdrop-blur-xl">
+                    <h3 className="text-2xl md:text-4xl font-black italic text-white mb-10 md:mb-12 text-center md:text-left drop-shadow-md">Gráfico de <span className="text-emerald-500 block sm:inline">Fatiga Semanal</span></h3>
                     
-                    <div className="h-[300px] w-full">
+                    <div className="h-[300px] md:h-[400px] w-full bg-black/40 p-4 md:p-6 rounded-[2rem] border border-zinc-800/80 shadow-inner">
                       <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={checkinHistory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <LineChart data={checkinHistory} margin={{ top: 20, right: 20, left: -10, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                          <XAxis dataKey="date" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
-                          <YAxis yAxisId="left" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} domain={['dataMin - 2', 'dataMax + 2']} />
-                          <YAxis yAxisId="right" orientation="right" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} domain={[0, 10]} />
+                          <XAxis dataKey="date" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} dy={10} />
+                          <YAxis yAxisId="left" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} domain={['dataMin - 2', 'dataMax + 2']} dx={-10} />
+                          <YAxis yAxisId="right" orientation="right" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} domain={[0, 10]} dx={10} />
                           
-                          <Tooltip contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '12px' }} itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }} />
-                          <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '20px' }} iconType="circle" />
+                          <Tooltip contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '16px', padding: '12px' }} itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }} />
+                          <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '20px', fontWeight: 'bold' }} iconType="circle" />
                           
-                          <Line yAxisId="left" type="monotone" dataKey="weight" name="Peso Corporal (kg)" stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                          <Line yAxisId="right" type="monotone" dataKey="stress" name="Nivel de Estrés (1-10)" stroke="#ef4444" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                          <Line yAxisId="right" type="monotone" dataKey="sleep" name="Horas de Sueño" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                          <Line yAxisId="left" type="monotone" dataKey="weight" name="Peso Corporal (kg)" stroke="#10b981" strokeWidth={4} dot={{ r: 5 }} activeDot={{ r: 8 }} />
+                          <Line yAxisId="right" type="monotone" dataKey="stress" name="Nivel de Estrés (1-10)" stroke="#ef4444" strokeWidth={4} dot={{ r: 5 }} activeDot={{ r: 8 }} />
+                          <Line yAxisId="right" type="monotone" dataKey="sleep" name="Horas de Sueño" stroke="#3b82f6" strokeWidth={4} dot={{ r: 5 }} activeDot={{ r: 8 }} />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
@@ -1847,20 +2150,25 @@ export default function DashboardAtleta() {
 
       <style dangerouslySetInnerHTML={{__html: `
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.5); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.8); }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(16, 185, 129, 0.5); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(16, 185, 129, 0.8); }
         
         .whitespace-pre-wrap { white-space: pre-wrap !important; }
 
+        /* Ajuste específico para esconder la scrollbar nativa en las pestañas móviles pero permitir scroll */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            height: 20px;
-            width: 20px;
+            height: 24px;
+            width: 24px;
             border-radius: 50%;
             background: #10b981;
             cursor: pointer;
-            box-shadow: 0 0 10px rgba(16,185,129,0.5);
+            box-shadow: 0 0 15px rgba(16,185,129,0.8);
+            border: 2px solid #000;
         }
         
         input[type="date"]::-webkit-calendar-picker-indicator {
@@ -1872,6 +2180,28 @@ export default function DashboardAtleta() {
         @keyframes shimmer {
             0% { transform: translateX(-100%); }
             100% { transform: translateX(100%); }
+        }
+
+        /* 🔥 CSS EXCLUSIVO PARA QUE EL PDF SALGA BLANCO, PERFECTO E IMPRIMIBLE 🔥 */
+        .exporting-pdf-mode {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            padding: 20px !important;
+        }
+        .exporting-pdf-mode * {
+            color: #000000 !important; 
+            border-color: #cccccc !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+        }
+        .exporting-pdf-mode [class*="bg-"] {
+            background-color: #ffffff !important;
+            border: 1px solid #e5e7eb !important;
+        }
+        .exporting-pdf-mode .pdf-exclude, 
+        .exporting-pdf-mode textarea, 
+        .exporting-pdf-mode button {
+            display: none !important;
         }
       `}} />
     </div>

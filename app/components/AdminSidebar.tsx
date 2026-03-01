@@ -1,3 +1,4 @@
+// app/components/AdminSidebar.tsx
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -8,6 +9,9 @@ export default function AdminSidebar() {
     { name: "Ventas / Órdenes", href: "/admin/orders", icon: "💰" },
     { name: "Gestión de Atletas", href: "/admin/athletes", icon: "🦍" },
     { name: "Plantillas BII", href: "/admin/templates", icon: "📝" },
+    { name: "Admisiones / Leads", href: "/admin/leads", icon: "🎯" },
+    // 🔥 NUEVO BOTÓN PARA RECUPERACIÓN DE VENTAS 🔥
+    { name: "Recuperación de Ventas", href: "/admin/recovery", icon: "🛒" },
   ];
 
   return (

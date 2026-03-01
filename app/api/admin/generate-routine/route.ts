@@ -1,4 +1,3 @@
-// app/api/admin/generate-routine/route.ts
 import { NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 
@@ -36,7 +35,7 @@ export async function POST(req: Request) {
 
         const isWeek = context.daysCount === 7;
 
-        // ✅ PROMPT MAESTRO BII-VINTAGE CON ESTRUCTURA VISUAL OBLIGATORIA
+        // ✅ PROMPT MAESTRO BII-VINTAGE CON ESTRUCTURA VISUAL OBLIGATORIA DE PLANILLA
         const systemPrompt = `
             Eres el Asistente Clínico de Programación del Coach Luciano Tujague.
             Tu función es generar la estructura de un entrenamiento basado en la metodología BII-Vintage.
@@ -52,26 +51,22 @@ export async function POST(req: Request) {
                - Ejercicios Accesorios: Programar por RPE/RIR (Ej: 2x8-10 @ RPE 8).
             7. Control SNC: Ajusta el volumen si el reporte de fatiga indica estrés alto o falta de sueño.
 
-            🚨 REGLA DE ORO DE ESTRUCTURA VISUAL (OBLIGATORIA):
-            NUNCA uses párrafos largos ni texto de corrido. Usa saltos de línea reales (\\n).
-            Cada día debe tener ESTE formato exacto:
+            🚨 REGLA DE ORO DE ESTRUCTURA VISUAL (PLANILLA DE IMPRESIÓN ÉLITE):
+            - PROHIBIDO USAR ASTERISCOS (*). Escribe en TEXTO PLANO y LIMPIO.
+            - NUNCA uses párrafos largos ni texto de corrido. Usa saltos de línea reales (\\n).
+            - Debes estructurar CADA EJERCICIO como una planilla de registro profesional para imprimir.
+            
+            Usa EXACTAMENTE esta plantilla visual para cada ejercicio:
 
-            [TÍTULO DEL DÍA EN MAYÚSCULAS]
-            🎯 Objetivo: (Breve descripción)
-
-            🏋️ EJERCICIO PRINCIPAL:
-            1. [Nombre del Ejercicio]
-               • Calentamiento: [Series y Reps]
-               • Top Set: [1 serie x Reps @ % RM]
-               • Back-offs: [Series x Reps @ % RM]
-               • Descanso: [Minutos]
-               • Foco Técnico: [Indicación breve]
-
-            ⚙️ ACCESORIOS:
-            2. [Nombre del Ejercicio]
-               • Series/Reps: [Ej: 2x10]
-               • Intensidad: [Ej: RPE 8]
-               • Descanso: [Minutos]
+            EJERCICIO 1: [NOMBRE DEL EJERCICIO EN MAYÚSCULAS]
+            - Metodo: [Ej: Top Set + Back-offs]
+            - Series x Reps: [Ej: 1x5-8 pesadas, 2x8-12 moderadas]
+            - Intensidad (RPE): [Ej: RPE 9] | Descanso: [Ej: 3 a 4 min]
+            - Foco Biomecanico: [Instruccion tecnica breve]
+            [ ] Carga Top Set: _______ kg  x  _______ reps
+            [ ] Carga Back-off: _______ kg  x  _______ reps
+            [ ] Notas de sesion: _________________________________________
+            --------------------------------------------------------------
 
             (Repite la estructura de accesorios según el volumen necesario).
 
@@ -87,24 +82,27 @@ export async function POST(req: Request) {
                   "d7": "..."
                 }
                 IMPORTANTE: Si un día es de descanso, el contenido debe ser simplemente: "DÍA DE DESCANSO / RECUPERACIÓN NEURAL". No incluyas markdown, solo el JSON puro.` : 
-                `FORMATO DE SALIDA: Texto plano con la rutina del día formateada estrictamente como se indicó.`
+                `FORMATO DE SALIDA: Texto plano con la rutina del día formateada estrictamente como planilla.`
             }
         `;
 
         const chatCompletion = await groq.chat.completions.create({
             messages: [
                 { role: "system", content: systemPrompt },
-                { role: "user", content: `Perfil del Atleta:\n${clinicalProfile}\n\nGenera la programación solicitada respetando estrictamente los saltos de línea.` }
+                { role: "user", content: `Perfil del Atleta:\n${clinicalProfile}\n\nGenera la programación solicitada respetando estrictamente los saltos de línea y el formato de planilla.` }
             ],
             model: "llama-3.3-70b-versatile",
             temperature: 0.2,
             max_tokens: 2500,
-            response_format: isWeek ? { type: "json_object" } : undefined, // Eliminado el { type: "text" } que causaba conflicto en la API nueva de Groq
+            response_format: isWeek ? { type: "json_object" } : undefined,
         });
 
-        const generatedRoutine = chatCompletion.choices[0]?.message?.content;
+        let generatedRoutine = chatCompletion.choices[0]?.message?.content;
 
         if (!generatedRoutine) throw new Error("Respuesta vacía de la IA.");
+
+        // 🔥 ASESINO DE ASTERISCOS 🔥
+        generatedRoutine = generatedRoutine.replace(/\*/g, '');
 
         if (isWeek) {
             return NextResponse.json({ isWeek: true, routine: JSON.parse(generatedRoutine) });

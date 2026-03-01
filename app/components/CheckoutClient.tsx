@@ -1,10 +1,28 @@
 // app/components/CheckoutClient.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getConversions } from "@/lib/pricing";
 import { supabase } from "@/lib/supabase";
+
+// ============================================================================
+// ⚙️ PANEL MASTER DE CONFIGURACIÓN DEL COACH ⚙️
+// ============================================================================
+// Aquí usted decide qué porcentaje de descuento se aplica. 
+// Estos números son porcentajes. Ej: 10 significa 10% de descuento.
+
+const DESCUENTO_POR_REFERIDO = 10; // Lo que se le descuenta al cliente si usa el código de un amigo.
+
+// SUS CÓDIGOS PROPIOS (No le regalan saldo a nadie, solo hacen descuento)
+// Puede agregar los que quiera. Ej: "BLACKFRIDAY": 30
+const MIS_CODIGOS_PROPIOS: Record<string, number> = {
+  "BII10": 10,
+  "PROMO15": 15,
+  "TUJAGUE20": 20
+};
+// ============================================================================
+
 
 interface CheckoutClientProps {
   selectedPlan: { id: string; title: string; subtitle: string; price: number; };
@@ -24,7 +42,7 @@ export default function CheckoutClient({ selectedPlan, extraVideo, extraPrice }:
     email: "",
     password: "", 
     instagram: "",
-    age: "",
+    age: "0", 
     phone: "",
     experience: "intermedio",
     goal: "fuerza",
@@ -32,45 +50,86 @@ export default function CheckoutClient({ selectedPlan, extraVideo, extraPrice }:
     equipment: "gimnasio"
   });
 
-  // ✅ ESTADOS PARA EL SISTEMA DE REFERIDOS (BII-AFFILIATES)
   const [referralCode, setReferralCode] = useState("");
   const [discountApplied, setDiscountApplied] = useState<{ code: string; percentage: number } | null>(null);
   const [validatingCode, setValidatingCode] = useState(false);
   const [codeError, setCodeError] = useState("");
 
+  const abandonIdRef = useRef<string | null>(null);
+
+  const captureAbandon = async () => {
+      if (!formData.email && !formData.phone) return;
+
+      try {
+          if (abandonIdRef.current) {
+              await supabase.from('abandoned_checkouts').update({
+                  name: formData.name, email: formData.email, phone: formData.phone
+              }).eq('id', abandonIdRef.current);
+          } else {
+              const { data, error } = await supabase.from('abandoned_checkouts').insert([{
+                  name: formData.name, 
+                  email: formData.email, 
+                  phone: formData.phone,
+                  plan_title: selectedPlan.title,
+                  plan_price: selectedPlan.price
+              }]).select().single();
+              
+              if (data && !error) {
+                  abandonIdRef.current = data.id;
+              }
+          }
+      } catch (err) {
+          console.error("Error silencioso capturando lead", err);
+      }
+  };
+
+  // 🔥 SISTEMA ANTI-FRAUDE Y VALIDACIÓN DE CÓDIGOS 🔥
   const handleValidateCode = async () => {
       if (!referralCode.trim()) return;
+      if (!formData.email.trim()) {
+          setCodeError("Debes escribir tu Email primero para usar un código.");
+          return;
+      }
+
       setValidatingCode(true);
       setCodeError("");
+      const cleanCodeToTest = referralCode.trim().toUpperCase();
+      const cleanEmailToTest = formData.email.trim().toLowerCase();
       
       try {
-          // Buscamos si el código pertenece a algún atleta activo en la base de datos
-          const { data, error } = await supabase
+          // 1. Verificar si es un código personal del Coach (No da saldo, solo descuento)
+          if (MIS_CODIGOS_PROPIOS[cleanCodeToTest]) {
+              setDiscountApplied({ code: cleanCodeToTest, percentage: MIS_CODIGOS_PROPIOS[cleanCodeToTest] });
+              setValidatingCode(false);
+              return;
+          }
+
+          // 2. Si no es del Coach, buscar en la Base de Datos a ver si es de un alumno
+          const { data: atletaDueño, error } = await supabase
               .from('orders')
-              .select('id, customer_name')
-              .eq('referral_code', referralCode.trim().toUpperCase())
+              .select('id, customer_name, customer_email')
+              .eq('referral_code', cleanCodeToTest)
               .single();
 
-          // Códigos Maestros (Promociones que vos podés dar en Instagram)
-          const masterCodes: Record<string, number> = { "BII10": 10, "PROMO15": 15, "TUJAGUE20": 20 };
-
-          if (masterCodes[referralCode.trim().toUpperCase()]) {
-              setDiscountApplied({ code: referralCode.trim().toUpperCase(), percentage: masterCodes[referralCode.trim().toUpperCase()] });
-          } else if (data) {
-              // Si el código es de un alumno, le damos 10% de descuento al nuevo
-              setDiscountApplied({ code: referralCode.trim().toUpperCase(), percentage: 10 }); 
+          if (atletaDueño) {
+              // BARRERA ANTI-TRAMPAS: Evita que el usuario use su propio código
+              if (atletaDueño.customer_email.toLowerCase() === cleanEmailToTest) {
+                  setCodeError("🚫 Fraude detectado: No puedes utilizar tu propio código de afiliado.");
+                  setDiscountApplied(null);
+              } else {
+                  setDiscountApplied({ code: cleanCodeToTest, percentage: DESCUENTO_POR_REFERIDO }); 
+              }
           } else {
-              setCodeError("Código inválido o inexistente.");
+              setCodeError("El código ingresado es inválido o no existe.");
               setDiscountApplied(null);
           }
       } catch (err) {
-          setCodeError("Error de red al validar el código.");
+          setCodeError("Error de red al validar el código. Intenta de nuevo.");
       } finally {
           setValidatingCode(false);
       }
   };
 
-  // ✅ LÓGICA DE PRECIOS DINÁMICOS
   const subtotal = selectedPlan.price + (extraVideo ? extraPrice : 0);
   const discountMultiplier = discountApplied ? (1 - discountApplied.percentage / 100) : 1;
   const totalAmount = Math.round(subtotal * discountMultiplier);
@@ -80,8 +139,7 @@ export default function CheckoutClient({ selectedPlan, extraVideo, extraPrice }:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validar campos obligatorios
-    if (!formData.name || !formData.email || !formData.password || !formData.phone || !formData.age) {
+    if (!formData.name || !formData.email || !formData.password || !formData.phone) {
       alert("Por favor, completá todos los campos obligatorios (*)");
       return;
     }
@@ -94,7 +152,6 @@ export default function CheckoutClient({ selectedPlan, extraVideo, extraPrice }:
     setLoading(true);
 
     try {
-      // 🚀 1. MAGIA: CREAR EL USUARIO EN SUPABASE Y LOGUEARLO
       const cleanEmail = formData.email.trim().toLowerCase();
       
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -102,7 +159,6 @@ export default function CheckoutClient({ selectedPlan, extraVideo, extraPrice }:
           password: formData.password
       });
       
-      // Si el email ya está registrado, simplemente le iniciamos sesión
       if (authError && authError.message.toLowerCase().includes('already registered')) {
           const { error: signInError } = await supabase.auth.signInWithPassword({
               email: cleanEmail,
@@ -117,7 +173,6 @@ export default function CheckoutClient({ selectedPlan, extraVideo, extraPrice }:
           throw new Error("No pudimos crear tu cuenta de acceso: " + authError.message);
       }
 
-      // 🚀 2. CREAR LA ORDEN EN EL BACKEND
       const methodMapping = {
         mercadopago: "mercado_pago",
         transferencia: "transfer_ars",
@@ -136,8 +191,8 @@ export default function CheckoutClient({ selectedPlan, extraVideo, extraPrice }:
           password: formData.password, 
           customerRef: formData.instagram.trim() || null, 
           extraVideo: extraVideo,
-          referredBy: discountApplied?.code || null, // Mandamos el código al backend
-          finalPrice: totalAmount, // Mandamos el precio rebajado
+          referredBy: discountApplied?.code || null,
+          finalPrice: totalAmount,
           onboardingData: {
             age: formData.age,
             phone: formData.phone,
@@ -155,7 +210,10 @@ export default function CheckoutClient({ selectedPlan, extraVideo, extraPrice }:
         throw new Error(data.error || "Error al procesar la orden");
       }
 
-      // 🚀 3. REDIRIGIR
+      if (abandonIdRef.current) {
+          await supabase.from('abandoned_checkouts').delete().eq('id', abandonIdRef.current);
+      }
+
       if (data.paymentUrl) {
         window.location.href = data.paymentUrl;
       } else if (data.orderId) {
@@ -172,41 +230,32 @@ export default function CheckoutClient({ selectedPlan, extraVideo, extraPrice }:
 
   const inputClass = "w-full bg-black/40 border-2 border-zinc-800/80 rounded-xl px-5 py-4 text-white font-bold text-sm focus:border-emerald-500 focus:bg-zinc-900 outline-none transition-all placeholder:text-zinc-600 placeholder:font-medium";
   const labelClass = "block text-[10px] font-black text-zinc-400 mb-2 uppercase tracking-widest ml-1";
-  const selectClass = "w-full bg-black/40 border-2 border-zinc-800/80 rounded-xl px-5 py-4 text-white font-bold text-sm focus:border-emerald-500 outline-none transition-all appearance-none cursor-pointer";
 
   return (
     <div className="grid lg:grid-cols-12 gap-12 text-left p-6 md:p-14 relative z-10">
       
-      {/* ─── COLUMNA IZQUIERDA: FORMULARIO ─── */}
       <div className="lg:col-span-7 space-y-12">
-        
         <section>
           <div className="flex items-center gap-5 mb-8">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500 font-black text-xl shadow-[0_0_20px_rgba(16,185,129,0.15)] shrink-0">
-              1
-            </div>
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500 font-black text-xl shadow-[0_0_20px_rgba(16,185,129,0.15)] shrink-0">1</div>
             <div>
-              <h3 className="text-2xl md:text-3xl font-black text-white italic tracking-tighter uppercase">Ficha del Atleta</h3>
-              <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-[0.2em] mt-1">Datos de Onboarding Obligatorios</p>
+              <h3 className="text-2xl md:text-3xl font-black text-white italic tracking-tighter uppercase">Ficha de Acceso</h3>
+              <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-[0.2em] mt-1">Creación de cuenta privada</p>
             </div>
           </div>
           
           <div className="space-y-6 bg-zinc-900/30 p-6 md:p-8 rounded-[2rem] border border-white/5 backdrop-blur-sm">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6">
               <div>
                 <label className={labelClass}>Nombre Completo <span className="text-emerald-500">*</span></label>
-                <input required className={inputClass} placeholder="Ej: Juan Pérez" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-              </div>
-              <div>
-                <label className={labelClass}>Edad <span className="text-emerald-500">*</span></label>
-                <input required type="number" className={inputClass} placeholder="Ej: 24" value={formData.age} onChange={e => setFormData({...formData, age: e.target.value})} />
+                <input required className={inputClass} placeholder="Ej: Juan Pérez" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} onBlur={captureAbandon} />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className={labelClass}>Email <span className="text-emerald-500">*</span></label>
-                <input required type="email" className={inputClass} placeholder="tu@email.com" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                <input required type="email" className={inputClass} placeholder="tu@email.com" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} onBlur={captureAbandon} />
               </div>
               <div>
                 <label className={labelClass}>Creá una Contraseña <span className="text-emerald-500">*</span></label>
@@ -217,53 +266,25 @@ export default function CheckoutClient({ selectedPlan, extraVideo, extraPrice }:
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className={labelClass}>WhatsApp (Soporte) <span className="text-emerald-500">*</span></label>
-                <input required type="tel" className={inputClass} placeholder="+54 9 11..." value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                <input required type="tel" className={inputClass} placeholder="+54 9 11..." value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} onBlur={captureAbandon} />
               </div>
               <div>
                  <label className={labelClass}>Instagram (Opcional)</label>
                  <input className={inputClass} placeholder="@usuario" value={formData.instagram} onChange={e => setFormData({...formData, instagram: e.target.value})} />
               </div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-white/5">
-               <div className="relative">
-                 <label className={labelClass}>Objetivo Principal</label>
-                 <select className={selectClass} value={formData.goal} onChange={e => setFormData({...formData, goal: e.target.value})}>
-                   <option value="fuerza">Fuerza (Powerlifting)</option>
-                   <option value="hipertrofia">Hipertrofia (Estética)</option>
-                   <option value="mixto">Híbrido (Powerbuilding)</option>
-                 </select>
-                 <div className="absolute right-4 top-[38px] pointer-events-none text-zinc-500">▼</div>
-               </div>
-               <div className="relative">
-                 <label className={labelClass}>Nivel Experiencia</label>
-                 <select className={selectClass} value={formData.experience} onChange={e => setFormData({...formData, experience: e.target.value})}>
-                   <option value="principiante">Principiante</option>
-                   <option value="intermedio">Intermedio</option>
-                   <option value="avanzado">Avanzado</option>
-                 </select>
-                 <div className="absolute right-4 top-[38px] pointer-events-none text-zinc-500">▼</div>
-               </div>
-            </div>
-
-            <div>
-              <label className={labelClass}>¿Lesiones actuales o dolores?</label>
-              <textarea 
-                className={`${inputClass} h-24 resize-none`} 
-                placeholder="Describí brevemente si tenés alguna molestia o lesión previa..." 
-                value={formData.injuries} 
-                onChange={e => setFormData({...formData, injuries: e.target.value})} 
-              />
+            
+            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl mt-4">
+              <p className="text-emerald-400 text-[10px] font-bold uppercase tracking-widest text-center">
+                 Al completar el pago accederás a la auditoría clínica profunda.
+              </p>
             </div>
           </div>
         </section>
 
-        {/* SECCIÓN 2: MÉTODOS DE PAGO */}
         <section>
           <div className="flex items-center gap-5 mb-8 pt-8 border-t border-white/5">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500 font-black text-xl shadow-[0_0_20px_rgba(16,185,129,0.15)] shrink-0">
-              2
-            </div>
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500 font-black text-xl shadow-[0_0_20px_rgba(16,185,129,0.15)] shrink-0">2</div>
             <div>
               <h3 className="text-2xl md:text-3xl font-black text-white italic tracking-tighter uppercase">Método de Pago</h3>
               <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-[0.2em] mt-1">Seleccioná tu divisa</p>
@@ -279,15 +300,8 @@ export default function CheckoutClient({ selectedPlan, extraVideo, extraPrice }:
 
           <div className="bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-6 min-h-[90px] flex items-center justify-center text-center backdrop-blur-sm transition-all duration-300">
              {paymentMethod === 'mercadopago' && <p className="text-sm font-medium text-zinc-300">Abonarás en pesos argentinos de forma segura a través de <span className="text-blue-400 font-bold">Mercado Pago</span>.</p>}
-             
              {paymentMethod === 'transferencia' && <p className="text-sm font-medium text-zinc-300">Generá tu pedido para ver el <span className="text-emerald-400 font-bold">Alias/CBU</span> y transferir en pesos.</p>}
-             
-             {paymentMethod === 'crypto' && (
-                 <p className="text-sm font-medium text-zinc-300">
-                    Generá tu pedido para ver las billeteras y enviar <span className="font-mono text-emerald-400 font-bold">{conversions.usdt} USDT/USDC</span> o <span className="font-mono text-emerald-400 font-bold">{conversions.btc} BTC</span>.
-                 </p>
-             )}
-             
+             {paymentMethod === 'crypto' && (<p className="text-sm font-medium text-zinc-300">Generá tu pedido para ver las billeteras y enviar <span className="font-mono text-emerald-400 font-bold">{conversions.usdt} USDT/USDC</span> o <span className="font-mono text-emerald-400 font-bold">{conversions.btc} BTC</span>.</p>)}
              {paymentMethod === 'usd' && <p className="text-sm font-medium text-zinc-300">Generá tu pedido para ver los datos bancarios y transferir <span className="font-mono text-emerald-400 font-bold">U$D {conversions.usd}</span> (ACH o Local).</p>}
           </div>
           
@@ -297,15 +311,12 @@ export default function CheckoutClient({ selectedPlan, extraVideo, extraPrice }:
             </div>
             <div>
                <strong className="text-white text-sm block mb-1 tracking-wide">Términos de Inscripción</strong>
-               <p className="text-xs text-zinc-400 leading-relaxed font-medium">
-                 Al continuar, aceptás que este es un servicio de pago único y declarás estar apto físicamente para realizar actividad física de alta intensidad. No se realizan reembolsos por bajas anticipadas.
-               </p>
+               <p className="text-xs text-zinc-400 leading-relaxed font-medium">Al continuar, aceptás que este es un servicio de pago único y declarás estar apto físicamente. No se realizan reembolsos por bajas anticipadas.</p>
             </div>
           </div>
         </section>
       </div>
 
-      {/* ─── COLUMNA DERECHA: RESUMEN Y BOTÓN FINAL ─── */}
       <div className="lg:col-span-5 relative">
         <div className="bg-zinc-900/80 border border-white/5 p-8 md:p-10 rounded-[2.5rem] h-fit shadow-2xl sticky top-28 backdrop-blur-xl">
           <div className="mb-8">
@@ -318,92 +329,41 @@ export default function CheckoutClient({ selectedPlan, extraVideo, extraPrice }:
             <div className="flex justify-between items-center text-sm">
               <span className="text-zinc-300 font-medium">Suscripción Base</span>
               <span className="text-white font-mono text-lg">
-                {paymentMethod === 'usd' ? `U$D ${getConversions(selectedPlan.price).usd}` : 
-                 paymentMethod === 'crypto' ? `${getConversions(selectedPlan.price).usdt} USDT` : 
-                 `$${selectedPlan.price.toLocaleString()}`}
+                {paymentMethod === 'usd' ? `U$D ${getConversions(selectedPlan.price).usd}` : paymentMethod === 'crypto' ? `${getConversions(selectedPlan.price).usdt} USDT` : `$${selectedPlan.price.toLocaleString()}`}
               </span>
             </div>
             {extraVideo && (
               <div className="flex justify-between items-center text-sm">
-                <span className="text-emerald-400 font-medium flex items-center gap-2">
-                  <span className="bg-emerald-500/20 px-1.5 rounded font-black">+</span> Video Análisis
-                </span>
+                <span className="text-emerald-400 font-medium flex items-center gap-2"><span className="bg-emerald-500/20 px-1.5 rounded font-black">+</span> Video Análisis</span>
                 <span className="text-emerald-400 font-mono text-lg">
-                  {paymentMethod === 'usd' ? `U$D ${getConversions(extraPrice).usd}` : 
-                   paymentMethod === 'crypto' ? `${getConversions(extraPrice).usdt} USDT` : 
-                   `+$${extraPrice.toLocaleString()}`}
+                  {paymentMethod === 'usd' ? `U$D ${getConversions(extraPrice).usd}` : paymentMethod === 'crypto' ? `${getConversions(extraPrice).usdt} USDT` : `+$${extraPrice.toLocaleString()}`}
                 </span>
               </div>
             )}
           </div>
 
-          {/* ✅ CÓDIGO DE DESCUENTO ESTABILIZADO VISUALMENTE */}
-          <div className="mb-8 bg-black/40 border border-zinc-800 p-5 rounded-3xl">
+          <div className={`mb-8 bg-black/40 border p-5 rounded-3xl transition-all ${codeError ? 'border-red-500/50' : 'border-zinc-800'}`}>
               <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3 block">¿Código de Referido / Promoción?</label>
               <div className="flex flex-col sm:flex-row gap-3">
-                  <input 
-                      type="text" 
-                      value={referralCode}
-                      onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                      placeholder="Ej: JUAN74"
-                      className="w-full sm:flex-1 bg-black border border-zinc-700 rounded-xl px-5 py-4 text-white font-bold text-sm outline-none focus:border-emerald-500 transition-all uppercase placeholder:text-zinc-600"
-                      disabled={discountApplied !== null || validatingCode}
-                  />
+                  <input type="text" value={referralCode} onChange={(e) => setReferralCode(e.target.value.toUpperCase())} placeholder="Ej: JUAN74 o TUJAGUE20" className="w-full sm:flex-1 bg-black border border-zinc-700 rounded-xl px-5 py-4 text-white font-bold text-sm outline-none focus:border-emerald-500 transition-all uppercase placeholder:text-zinc-600" disabled={discountApplied !== null || validatingCode} />
                   {!discountApplied ? (
-                      <button 
-                          type="button"
-                          onClick={handleValidateCode}
-                          disabled={validatingCode || !referralCode.trim()}
-                          className="w-full sm:w-auto bg-zinc-800 hover:bg-zinc-700 text-white px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center whitespace-nowrap"
-                      >
-                          {validatingCode ? 'Validando...' : 'Aplicar Código'}
-                      </button>
+                      <button type="button" onClick={handleValidateCode} disabled={validatingCode || !referralCode.trim() || !formData.email.trim()} className="w-full sm:w-auto bg-zinc-800 hover:bg-zinc-700 text-white px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center whitespace-nowrap">{validatingCode ? 'Validando...' : 'Aplicar Código'}</button>
                   ) : (
-                      <button 
-                          type="button"
-                          onClick={() => { setDiscountApplied(null); setReferralCode(""); }}
-                          className="w-full sm:w-auto bg-red-500/20 hover:bg-red-500/30 text-red-500 border border-red-500/20 px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center whitespace-nowrap"
-                      >
-                          Quitar Descuento
-                      </button>
+                      <button type="button" onClick={() => { setDiscountApplied(null); setReferralCode(""); }} className="w-full sm:w-auto bg-red-500/20 hover:bg-red-500/30 text-red-500 border border-red-500/20 px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center whitespace-nowrap">Quitar</button>
                   )}
               </div>
-              
               {codeError && <p className="text-red-500 text-[10px] font-bold mt-3 uppercase ml-1">{codeError}</p>}
-              
-              {discountApplied && (
-                  <p className="text-emerald-400 text-xs font-black mt-4 bg-emerald-500/10 p-4 rounded-xl border border-emerald-500/20 flex items-center gap-2">
-                      <span className="text-xl">✅</span> ¡CÓDIGO {discountApplied.code} APLICADO! (-{discountApplied.percentage}%)
-                  </p>
-              )}
+              {discountApplied && <p className="text-emerald-400 text-xs font-black mt-4 bg-emerald-500/10 p-4 rounded-xl border border-emerald-500/20 flex items-center gap-2"><span className="text-xl">✅</span> ¡CÓDIGO APLICADO! (-{discountApplied.percentage}%)</p>}
           </div>
 
           <div className="flex justify-between items-end mb-10">
-            <span className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em]">
-               {paymentMethod === 'usd' ? 'Inversión Final (USD)' : 
-                paymentMethod === 'crypto' ? 'Inversión Final (CRIPTO)' : 
-                'Inversión Final (ARS)'}
-            </span>
+            <span className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em]">Inversión Final</span>
             <div className="text-right">
-              {/* Mostramos el precio tachado si hay descuento */}
-              {discountApplied && (
-                  <div className="text-sm font-bold text-zinc-600 line-through mb-1">
-                      {paymentMethod === 'usd' ? `U$D ${originalConversions.usd}` : 
-                       paymentMethod === 'crypto' ? `${originalConversions.usdt} USDT` : 
-                       `$${subtotal.toLocaleString()}`}
-                  </div>
-              )}
-              
+              {discountApplied && (<div className="text-sm font-bold text-zinc-600 line-through mb-1">{paymentMethod === 'usd' ? `U$D ${originalConversions.usd}` : paymentMethod === 'crypto' ? `${originalConversions.usdt} USDT` : `$${subtotal.toLocaleString()}`}</div>)}
               <div className={`text-5xl font-black tracking-tighter ${discountApplied ? 'text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400'}`}>
-                 {paymentMethod === 'usd' ? `U$D ${conversions.usd}` : 
-                  paymentMethod === 'crypto' ? `${conversions.usdt}` : 
-                  `$${totalAmount.toLocaleString()}`}
+                 {paymentMethod === 'usd' ? `U$D ${conversions.usd}` : paymentMethod === 'crypto' ? `${conversions.usdt}` : `$${totalAmount.toLocaleString()}`}
               </div>
-              {paymentMethod === 'crypto' && (
-                 <div className="text-xs font-mono font-bold text-zinc-500 mt-2">
-                    o ₿ {conversions.btc} BTC
-                 </div>
-              )}
+              {paymentMethod === 'crypto' && <div className="text-xs font-mono font-bold text-zinc-500 mt-2">o ₿ {conversions.btc} BTC</div>}
             </div>
           </div>
 
@@ -414,11 +374,6 @@ export default function CheckoutClient({ selectedPlan, extraVideo, extraPrice }:
             </span>
             {!loading && <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>}
           </button>
-          
-          <div className="mt-6 flex items-center justify-center gap-2 opacity-60">
-             <svg className="w-3 h-3 text-zinc-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-2H9v-2h2v-2H9V9h2V7h2v2h2v2h-2v2h2v2h-2v2h-2z"/></svg>
-             <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Transacción 100% Segura y Encriptada</span>
-          </div>
         </div>
       </div>
     </div>

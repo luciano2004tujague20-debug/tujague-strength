@@ -71,6 +71,13 @@ export default function CustomLogin() {
       <div className="fixed inset-0 bg-[url('/grid.svg')] opacity-[0.03] pointer-events-none z-0"></div>
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none"></div>
       
+      {/* 🔥 BOTÓN PARA VOLVER A LA WEB PRINCIPAL 🔥 */}
+      <div className="absolute top-6 left-4 md:left-6 z-50">
+          <Link href="/" className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors bg-zinc-900/80 px-4 py-2 rounded-xl border border-white/5 text-[10px] md:text-xs font-black uppercase tracking-widest shadow-lg backdrop-blur-md">
+              <span className="text-sm">🏠</span> Volver al Inicio
+          </Link>
+      </div>
+
       <div className="relative z-10 w-full max-w-md animate-in fade-in zoom-in duration-500">
         <div className="bg-zinc-900/60 border border-zinc-800 backdrop-blur-xl p-8 md:p-12 rounded-[3rem] shadow-2xl">
           
