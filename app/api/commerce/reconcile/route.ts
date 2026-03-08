@@ -215,11 +215,21 @@ async function reconcileByExternalReference(externalReference: string) {
   };
 }
 
+function isAuthorized(secret: string | null) {
+  const expected = process.env.RECONCILE_SECRET;
+  return !!expected && !!secret && secret === expected;
+}
+
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
+    const secret = url.searchParams.get("secret");
     const externalReference =
       url.searchParams.get("externalReference")?.trim() || "";
+
+    if (!isAuthorized(secret)) {
+      return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    }
 
     if (!externalReference) {
       return NextResponse.json(
@@ -240,10 +250,16 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => null);
+    const secret =
+      typeof body?.secret === "string" ? body.secret.trim() : null;
     const externalReference =
       typeof body?.externalReference === "string"
         ? body.externalReference.trim()
         : "";
+
+    if (!isAuthorized(secret)) {
+      return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    }
 
     if (!externalReference) {
       return NextResponse.json(
