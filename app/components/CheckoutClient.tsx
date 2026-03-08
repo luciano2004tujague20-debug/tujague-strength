@@ -227,20 +227,25 @@ const handleSubmit = async (e: React.FormEvent) => {
       };
 
       // 🔥 ACÁ ESTÁ LA MAGIA: DECIDIMOS A QUÉ MOTOR MANDAR LA ORDEN 🔥
+// 🔥 ACÁ ESTÁ LA MAGIA: DECIDIMOS A QUÉ MOTOR MANDAR LA ORDEN 🔥
       if (isStaticPlan) {
         // ----------------------------------------------------
         // MOTOR NUEVO (PRODUCTOS DIGITALES - MESOCICLOS PDF)
         // ----------------------------------------------------
         
-        // Ajustamos el ID para que coincida con el "slug" de nuestra base de datos commerce_products
         let productSlug = "";
         if (selectedPlan.id === "static-fuerza") productSlug = "mesociclo-fuerza-4-semanas";
         if (selectedPlan.id === "static-hipertrofia") productSlug = "mesociclo-hipertrofia-4-semanas";
 
+        // ARMAMOS EL PAQUETE EXACTAMENTE COMO LO PIDE LA API
         const response = await fetch('/api/commerce/checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productSlug })
+          body: JSON.stringify({ 
+            items: [
+              { slug: productSlug, quantity: 1 }
+            ] 
+          })
         });
 
         const data = await response.json();
@@ -251,7 +256,6 @@ const handleSubmit = async (e: React.FormEvent) => {
           await supabase.from("abandoned_checkouts").delete().eq("id", abandonIdRef.current);
         }
 
-        // Redirigir a Mercado Pago
         if (data.init_point) {
           window.location.href = data.init_point;
         }
