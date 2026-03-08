@@ -100,7 +100,55 @@ const templateHipertrofia = {
          d2: "📆 Fecha: ___/___/___ | 💤 Sueño: ___ | ⚡ Energía: ___ | 🤕 Dolor: ___\n\n🔥 DÍA 2 (UPPER A) | Tempo: 3-1-2-1\n\nA. Press Banca: 2x8 @ RPE 6-7\nB. Fondos: 2x8 @ RPE 6-7\nC. Remo: 2x10 @ RPE 6-7\nD. Laterales: 2x12 @ RPE 7", 
          d3: "📆 Fecha: ___/___/___ | 💤 Sueño: ___ | ⚡ Energía: ___ | 🤕 Dolor: ___\n\n🔥 DÍA 3 (LOWER B)\n\nA. Peso Muerto (2-1-X-1): 2x6 @ RPE 6-7\nB. Sentadilla Frontal: 2x10 @ RPE 6-7\nC. Hip Thrust: 2x10 @ RPE 6-7", 
          d4: "📆 Fecha: ___/___/___ | 💤 Sueño: ___ | ⚡ Energía: ___ | 🤕 Dolor: ___\n\n🔥 DÍA 4 (UPPER B) | Tempo: 3-1-2-1\n\nA. Press Militar: 2x8 @ RPE 6-7\nB. Press Inclinado: 2x10 @ RPE 6-7\nC. Deltoide posterior: 2x12-15 @ RPE 7\n\n🏆 PROTOCOLO COMPLETADO. Fibras reconstruidas. Estás listo para testear o iniciar un nuevo bloque.", 
-         d5: "🚶‍♂️ DESCANSO ACTIVO", d6: "💤 DESCANSO TOTAL (SNC)", d7: "💤 DESCANSO TOTAL (SNC)" 
+         d5: "🚶‍♂️ DESCANSO ACTIVO (RECUPERACIÓN)\n- Caminar 25-45 min suave (Zona 2 conversable).\n- Movilidad 10-15 min: tobillo/cadera + hombro/escápulas.\n- Opcional: 'Pump' de 10 min muy liviano de brazos si no interfiere en recuperación.", 
+         d6: "💤 DESCANSO TOTAL (SNC)", 
+         d7: "💤 DESCANSO TOTAL (SNC)" 
+       }
+  }
+};
+
+const templateDefinicion = {
+  macrocycle: "Estructura BII-Vintage",
+  mesocycle: "Definición Estricta (Cut)",
+  microcycle: "Semana 1 - Adaptación al Déficit",
+  annual_plan: {
+    1: { 
+         phase: "Déficit Calórico", 
+         focus: "Adaptación al Déficit", 
+         d1: "📖 REGLAS DEFINICIÓN BII:\n- Tempo: 4-1-X-1 (Control excéntrico).\n- RPE 8: 2 reps en recámara.\n- Regla NO GRIND: Si la repetición es muy lenta, terminar serie.\n- Checklist: Subir carga solo si cumple tempo + técnica + reps.\n\n===================================\n\n📆 Fecha: ___/___/___ | 💤 Sueño: ___ | ⚡ Energía: ___ | 🤕 Dolor: ___\n\n🔥 DÍA 1 (LOWER A - Sentadilla)\n\nA. Sentadilla Libre\n🎯 1x4 @ RPE 8 | 2x4 @ RPE 7\n⏳ Descanso: 4-5 min\n📊 [ ] Top Set: Real ___kg x ___reps\n📊 [ ] Back-off: Real ___kg x ___reps\n\nB. Peso Muerto Rumano\n🎯 3x6 @ RPE 8\n\nC. Curl Femoral\n🎯 2x10 @ RPE 8", 
+         d2: "📆 Fecha: ___/___/___ | 💤 Sueño: ___ | ⚡ Energía: ___ | 🤕 Dolor: ___\n\n🔥 DÍA 2 (UPPER A - Banca)\n\nA. Press Banca\n🎯 1x4 @ RPE 8 | 2x4 @ RPE 7\n📊 [ ] Top Set: Real ___kg x ___reps\n\nB. Fondos Lastrados\n🎯 3x6 @ RPE 8\n\nC. Remo con Barra\n🎯 3x6-8 @ RPE 8\n\nD. Elevaciones Laterales\n🎯 2x12 @ RPE 8", 
+         d3: "📆 Fecha: ___/___/___ | 💤 Sueño: ___ | ⚡ Energía: ___ | 🤕 Dolor: ___\n\n🔥 DÍA 3 (LOWER B - Deadlift)\n\nA. Peso Muerto\n🎯 1x3 @ RPE 8 | 2x3 @ RPE 7\n📊 [ ] Top Set: Real ___kg x ___reps\n\nB. Sentadilla Frontal\n🎯 3x6 @ RPE 8\n\nC. Hip Thrust\n🎯 2x8 @ RPE 8", 
+         d4: "📆 Fecha: ___/___/___ | 💤 Sueño: ___ | ⚡ Energía: ___ | 🤕 Dolor: ___\n\n🔥 DÍA 4 (UPPER B - Militar)\n\nA. Press Militar\n🎯 1x5 @ RPE 8 | 2x5 @ RPE 7\n📊 [ ] Top Set: Real ___kg x ___reps\n\nB. Press Inclinado\n🎯 3x8 @ RPE 8\n\nC. Remo Pecho Apoyado\n🎯 3x8 @ RPE 8\n\nD. Curl Bíceps\n🎯 2x10 @ RPE 8", 
+         d5: "🚶‍♂️ DESCANSO ACTIVO (Pasos diarios: 6k-10k)", 
+         d6: "💤 DESCANSO TOTAL (SNC)", 
+         d7: "💤 DESCANSO TOTAL (SNC)" 
+       },
+    2: { 
+         phase: "Déficit Calórico", 
+         focus: "Mantener Intensidad", 
+         d1: "🔥 DÍA 1 (LOWER A)\nA. Sentadilla: 1x4 @ RPE 8.5 | 2x4 @ RPE 7.5\nB. P. Muerto Rumano: 3x6 @ RPE 8.5\nC. Curl Femoral: 2x10 @ RPE 8.5", 
+         d2: "🔥 DÍA 2 (UPPER A)\nA. Press Banca: 1x4 @ RPE 8.5 | 2x4 @ RPE 7.5\nB. Fondos Lastrados: 3x6 @ RPE 8.5\nC. Remo Barra: 3x6-8 @ RPE 8.5\nD. Laterales: 2x12 @ RPE 8.5", 
+         d3: "🔥 DÍA 3 (LOWER B)\nA. Peso Muerto: 1x3 @ RPE 8.5 | 2x3 @ RPE 7.5\nB. Sentadilla Frontal: 3x6 @ RPE 8.5\nC. Hip Thrust: 2x8 @ RPE 8.5", 
+         d4: "🔥 DÍA 4 (UPPER B)\nA. Press Militar: 1x5 @ RPE 8.5 | 2x5 @ RPE 7.5\nB. Press Inclinado: 3x8 @ RPE 8.5\nC. Remo Pecho Apoyado: 3x8 @ RPE 8.5\nD. Curl Bíceps: 2x10 @ RPE 8.5", 
+         d5: "🚶‍♂️ DESCANSO ACTIVO", d6: "💤 DESCANSO TOTAL", d7: "💤 DESCANSO TOTAL" 
+       },
+    3: { 
+         phase: "Déficit Calórico", 
+         focus: "Semana Pesada (Peak Intensidad)", 
+         d1: "🔥 DÍA 1 (LOWER A)\nA. Sentadilla: 1x3 @ RPE 9 | 2x3 @ RPE 8\nB. P. Muerto Rumano: 3x5 @ RPE 9\nC. Curl Femoral: 2x8 @ RPE 9", 
+         d2: "🔥 DÍA 2 (UPPER A)\nA. Press Banca: 1x3 @ RPE 9 | 2x3 @ RPE 8\nB. Fondos Lastrados: 3x5 @ RPE 9\nC. Remo Barra: 3x6 @ RPE 9\nD. Laterales: 2x10 @ RPE 9", 
+         d3: "🔥 DÍA 3 (LOWER B)\nA. Peso Muerto: 1x2 @ RPE 9 | 2x2 @ RPE 8\nB. Sentadilla Frontal: 3x5 @ RPE 9\nC. Hip Thrust: 2x6 @ RPE 9", 
+         d4: "🔥 DÍA 4 (UPPER B)\nA. Press Militar: 1x4 @ RPE 9 | 2x4 @ RPE 8\nB. Press Inclinado: 3x6 @ RPE 9\nC. Remo Pecho Apoyado: 3x6 @ RPE 9\nD. Curl Bíceps: 2x8 @ RPE 9", 
+         d5: "🚶‍♂️ DESCANSO ACTIVO", d6: "💤 DESCANSO TOTAL", d7: "💤 DESCANSO TOTAL" 
+       },
+    4: { 
+         phase: "Descarga", 
+         focus: "Deload (Bajar volumen)", 
+         d1: "🔥 DÍA 1 (LOWER A)\nA. Sentadilla: 2x4 @ RPE 6-7\nB. P. Muerto Rumano: 2x6 @ RPE 6-7", 
+         d2: "🔥 DÍA 2 (UPPER A)\nA. Press Banca: 2x4 @ RPE 6-7\nB. Remo Barra: 2x6 @ RPE 6-7", 
+         d3: "🔥 DÍA 3 (LOWER B)\nA. Peso Muerto: 2x3 @ RPE 6-7\nB. Sentadilla Frontal: 2x5 @ RPE 6-7", 
+         d4: "🔥 DÍA 4 (UPPER B)\nA. Press Militar: 2x5 @ RPE 6-7\nB. Press Inclinado: 2x6 @ RPE 6-7\n🏆 BLOQUE COMPLETADO. SNC reseteado.", 
+         d5: "🚶‍♂️ DESCANSO ACTIVO", d6: "💤 DESCANSO TOTAL", d7: "💤 DESCANSO TOTAL" 
        }
   }
 };
@@ -329,6 +377,20 @@ export default function AdminOrdersPage() {
                   routine_d5: templateHipertrofia.annual_plan[1].d5,
                   routine_d6: templateHipertrofia.annual_plan[1].d6,
                   routine_d7: templateHipertrofia.annual_plan[1].d7,
+              };
+          } else if (order.plan_id === 'mesociclo-definicion-4-semanas') {
+              updatePayload = {
+                  ...updatePayload,
+                  is_onboarded: true, // BYPASS DE FICHA TÉCNICA
+                  macrocycle: templateDefinicion.macrocycle, mesocycle: templateDefinicion.mesocycle, microcycle: templateDefinicion.microcycle,
+                  annual_plan: templateDefinicion.annual_plan,
+                  routine_d1: `SEMANA 1\n${templateDefinicion.annual_plan[1].d1}\n\nSEMANA 2\n${templateDefinicion.annual_plan[2].d1}\n\nSEMANA 3\n${templateDefinicion.annual_plan[3].d1}\n\nSEMANA 4\n${templateDefinicion.annual_plan[4].d1}`,
+                  routine_d2: `SEMANA 1\n${templateDefinicion.annual_plan[1].d2}\n\nSEMANA 2\n${templateDefinicion.annual_plan[2].d2}\n\nSEMANA 3\n${templateDefinicion.annual_plan[3].d2}\n\nSEMANA 4\n${templateDefinicion.annual_plan[4].d2}`,
+                  routine_d3: `SEMANA 1\n${templateDefinicion.annual_plan[1].d3}\n\nSEMANA 2\n${templateDefinicion.annual_plan[2].d3}\n\nSEMANA 3\n${templateDefinicion.annual_plan[3].d3}\n\nSEMANA 4\n${templateDefinicion.annual_plan[4].d3}`,
+                  routine_d4: `SEMANA 1\n${templateDefinicion.annual_plan[1].d4}\n\nSEMANA 2\n${templateDefinicion.annual_plan[2].d4}\n\nSEMANA 3\n${templateDefinicion.annual_plan[3].d4}\n\nSEMANA 4\n${templateDefinicion.annual_plan[4].d4}`,
+                  routine_d5: templateDefinicion.annual_plan[1].d5,
+                  routine_d6: templateDefinicion.annual_plan[1].d6,
+                  routine_d7: templateDefinicion.annual_plan[1].d7,
               };
           }
 
@@ -562,7 +624,7 @@ export default function AdminOrdersPage() {
            
            <div className="flex-1 relative z-10 w-full text-center md:text-left">
               <h3 className="text-sm md:text-base font-black text-white uppercase tracking-widest mb-3 md:mb-4 border-b border-indigo-500/30 pb-3 md:pb-4 inline-block md:block">
-                 Flash de Fatiga Global
+                  Flash de Fatiga Global
               </h3>
               {loadingRadar ? (
                  <div className="flex items-center justify-center md:justify-start gap-4 mt-2">

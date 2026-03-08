@@ -93,7 +93,7 @@ const PRICING_MATRIX: PricingMatrix = {
     },
   ],
   static: [
-    {
+{
       id: "static-fuerza",
       title: "Fuerza Base",
       subtitle: "4 SEMANAS • PLANO CRUDO",
@@ -105,6 +105,18 @@ const PRICING_MATRIX: PricingMatrix = {
       idealFor: "Autodidactas enfocados en fuerza",
       actionLabel: "🔒 Modo Independiente",
     },
+    {
+      id: "mesociclo-definicion-4-semanas",
+      title: "Definición (Cut)",
+      subtitle: "4 SEMANAS • PLANO CRUDO",
+      price: 35000,
+      description:
+        "Bloque estático para definición. Protocolo BII para perder grasa reteniendo el 100% de fuerza máxima.",
+      features: ["Protocolo Déficit Calórico", "✗ Sin revisión de videos", "✗ Sin Tujague AI", "✗ Sin contacto con el Coach"],
+      highlight: true,
+      idealFor: "Autodidactas / Pérdida de grasa",
+      actionLabel: "🔥 Nuevo / Independiente",
+    }, // <--- ¡ESTA ES LA COMA MÁGICA QUE FALTABA!
     {
       id: "static-hipertrofia",
       title: "Mutación",

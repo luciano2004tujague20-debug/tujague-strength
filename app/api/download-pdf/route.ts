@@ -7,6 +7,7 @@ import { PDFDocument, rgb, degrees } from 'pdf-lib';
 const ALLOWED_PRODUCTS: Record<string, { file: string; title: string }> = {
   'static-fuerza': { file: 'mesociclo-fuerza.pdf', title: 'FUERZA' },
   'static-hipertrofia': { file: 'mesociclo-hipertrofia.pdf', title: 'HIPERTROFIA' },
+  'mesociclo-definicion-4-semanas': { file: 'mesociclo-definicion.pdf', title: 'DEFINICION' }, // ✅ NUEVO GORILA
 };
 
 // Respaldo por si alguna orden vieja solo tiene el título
@@ -14,6 +15,8 @@ const FALLBACK_TITLES: Record<string, string> = {
   'protocolo fuerza base': 'static-fuerza',
   'mutación hipertrófica': 'static-hipertrofia',
   'mutacion hipertrofica': 'static-hipertrofia', 
+  'definición (cut)': 'mesociclo-definicion-4-semanas', // ✅ NUEVO
+  'definicion (cut)': 'mesociclo-definicion-4-semanas',
 };
 
 export async function POST(request: Request) {
@@ -77,7 +80,7 @@ export async function POST(request: Request) {
 
     const { data: fileData, error: fileError } = await supabaseAdmin
       .storage
-      .from('private-pdfs')
+      .from('pdfs-premium') // 🚨 ACÁ ESTÁ EL NOMBRE DE TU CARPETA EN SUPABASE
       .download(fileName);
 
     if (fileError || !fileData) {

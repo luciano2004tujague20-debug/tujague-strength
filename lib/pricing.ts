@@ -5,6 +5,7 @@
 export type PlanCode =
   | "static-fuerza"
   | "static-hipertrofia"
+  | "mesociclo-definicion-4-semanas" // ✅ NUEVO
   | "semanal-3-4"
   | "semanal-5-6"
   | "semanal-7"
@@ -15,7 +16,7 @@ export type PlanCode =
 export type PlanGroup = "static" | "sprint" | "monthly";
 
 export const PLAN_GROUPS: Record<PlanGroup, PlanCode[]> = {
-  static: ["static-fuerza", "static-hipertrofia"],
+  static: ["static-fuerza", "static-hipertrofia", "mesociclo-definicion-4-semanas"], // ✅ NUEVO
   sprint: ["semanal-3-4", "semanal-5-6", "semanal-7"],
   monthly: ["mensual-3-4", "mensual-5-6", "mensual-7"],
 };
@@ -36,6 +37,10 @@ export const PLAN_COPY: Record<
   },
   "static-hipertrofia": {
     title: "Mutación Hipertrófica",
+    subtitle: "Para el atleta independiente",
+  },
+  "mesociclo-definicion-4-semanas": { // ✅ NUEVO
+    title: "Definición (Cut)",
     subtitle: "Para el atleta independiente",
   },
   "semanal-3-4": {

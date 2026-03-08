@@ -132,27 +132,41 @@ const PRICING_MATRIX: PricingMatrix = {
   static: [
     {
       id: "static-fuerza",
-      title: "PROTOCOLO FUERZA BASE",
-      subtitle: "4 Semanas (PDF / Panel)",
+      title: "Fuerza Base",
+      subtitle: "4 SEMANAS • PLANO CRUDO",
       price: 35000,
-      description: "Bloque estático para fuerza: estructura pura, sin soporte.",
-      features: ["Estructura exacta", "✗ Sin revisión de videos", "✗ Sin Tujague AI", "✗ Sin contacto Coach"],
+      description:
+        "Bloque estático para fuerza. Estructura pura BII-Vintage, sin soporte personalizado.",
+      features: ["Estructura exacta BII", "✗ Sin revisión de videos", "✗ Sin Tujague AI", "✗ Sin contacto con el Coach"],
       highlight: false,
-      idealFor: "Autodidacta / fuerza",
-      actionLabel: "🔒 Modo independiente"
+      idealFor: "Autodidactas enfocados en fuerza",
+      actionLabel: "🔒 Modo Independiente",
     },
     {
-      id: "static-hipertrofia",
-      title: "MUTACIÓN HIPERTRÓFICA",
-      subtitle: "4 Semanas (PDF / Panel)",
+      id: "mesociclo-definicion-4-semanas",
+      title: "Definición (Cut)",
+      subtitle: "4 SEMANAS • PLANO CRUDO",
       price: 35000,
-      description: "Bloque estático para hipertrofia: volumen + técnicas, sin soporte.",
-      features: ["Selección de accesorios", "✗ Sin revisión de videos", "✗ Sin Tujague AI", "✗ Sin contacto Coach"],
+      description:
+        "Bloque estático para definición. Protocolo BII para perder grasa reteniendo el 100% de fuerza máxima.",
+      features: ["Protocolo Déficit Calórico", "✗ Sin revisión de videos", "✗ Sin Tujague AI", "✗ Sin contacto con el Coach"],
+      highlight: true,
+      idealFor: "Autodidactas / Pérdida de grasa",
+      actionLabel: "🔥 Nuevo / Independiente",
+    }, // <--- ¡ESTA ES LA COMA MÁGICA QUE FALTABA!
+    {
+      id: "static-hipertrofia",
+      title: "Mutación",
+      subtitle: "4 SEMANAS • PLANO CRUDO",
+      price: 35000,
+      description:
+        "Bloque estático para hipertrofia. Volumen y técnicas de intensidad pre-armadas.",
+      features: ["Selección de accesorios", "✗ Sin revisión de videos", "✗ Sin Tujague AI", "✗ Sin contacto con el Coach"],
       highlight: false,
-      idealFor: "Autodidacta / estética",
-      actionLabel: "🔒 Modo independiente"
-    }
-  ]
+      idealFor: "Autodidactas enfocados en estética",
+      actionLabel: "🔒 Modo Independiente",
+    },
+  ],
 };
 
 

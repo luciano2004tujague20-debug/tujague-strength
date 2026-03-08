@@ -137,10 +137,15 @@ export async function POST(req: Request) {
           );
         }
 
-        // 4) Validar monto
-        if (Number(verifiedPayment.transaction_amount) !== Number(order.total_amount)) {
+// 4) Validar monto (Escudo estricto: no se acepta menos del valor real)
+        const pagoReal = Number(verifiedPayment.transaction_amount);
+        const pagoEsperado = Number(order.total_amount);
+        
+        // Toleramos 1 peso de diferencia máximo solo por si Mercado Pago redondea los decimales, 
+        // pero si paga menos que eso, la orden se rechaza por fraude.
+        if (pagoReal < (pagoEsperado - 1)) {
           throw new Error(
-            `Monto inválido. Pagó ${verifiedPayment.transaction_amount} y la orden vale ${order.total_amount}.`
+            `Alerta de Fraude: El cliente pagó ${pagoReal} pero la orden vale ${pagoEsperado}.`
           );
         }
 

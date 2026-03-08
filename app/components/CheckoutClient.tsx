@@ -62,8 +62,8 @@ export default function CheckoutClient({
 
   const abandonIdRef = useRef<string | null>(null);
 
-  // 🔥 CANDADO DE SEGURIDAD: Bloquear UpSells si es un plan estático
-  const isStaticPlan = selectedPlan.id.startsWith("static");
+  // 🔥 CANDADO DE SEGURIDAD ACTUALIZADO PARA INCLUIR DEFINICIÓN 🔥
+  const isStaticPlan = selectedPlan.id.startsWith("static") || selectedPlan.id === "mesociclo-definicion-4-semanas";
   const finalExtraVideo = isStaticPlan ? false : extraVideo;
 
   const captureAbandon = async () => {
@@ -169,7 +169,7 @@ export default function CheckoutClient({
   const originalConversions = (getConversions as any)(subtotal);
   const conversions = (getConversions as any)(totalAmount);
 
-const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (
@@ -226,16 +226,17 @@ const handleSubmit = async (e: React.FormEvent) => {
         usd: "international_usd",
       };
 
-// 🔥 ACÁ ESTÁ LA MAGIA: DECIDIMOS A QUÉ MOTOR MANDAR LA ORDEN 🔥
+      // 🔥 ACÁ ESTÁ LA MAGIA: DECIDIMOS A QUÉ MOTOR MANDAR LA ORDEN 🔥
       if (isStaticPlan && paymentMethod === "mercadopago") {
         // ----------------------------------------------------
         // MOTOR NUEVO (PRODUCTOS DIGITALES - MESOCICLOS PDF)
         // ----------------------------------------------------
         
-        // 1. Buscamos el ID real en la base de datos usando el slug
+        // 1. Buscamos el ID real en la base de datos usando el slug ACTUALIZADO
         let productSlug = "";
         if (selectedPlan.id === "static-fuerza") productSlug = "mesociclo-fuerza-4-semanas";
         if (selectedPlan.id === "static-hipertrofia") productSlug = "mesociclo-hipertrofia-4-semanas";
+        if (selectedPlan.id === "mesociclo-definicion-4-semanas") productSlug = "mesociclo-definicion-4-semanas";
 
         const { data: dbProduct, error: productError } = await supabase
           .from("commerce_products")

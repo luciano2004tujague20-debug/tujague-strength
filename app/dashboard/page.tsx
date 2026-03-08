@@ -183,21 +183,34 @@ const fetchDashboardData = async () => {
         .order("created_at", { ascending: false })
         .limit(1);
 
-// 2. Buscar en el sistema NUEVO (Mesociclos PDF)
-      const { data: newEntitlements } = await supabase
-        .from("commerce_user_entitlements")
-        .select("product_id")
+// 2. Buscar en el sistema NUEVO leyendo los recibos de compra pagados
+      const { data: newOrders } = await supabase
+        .from("commerce_orders")
+        .select(`
+          id,
+          items:commerce_order_items (
+            product_snapshot
+          )
+        `)
         .eq("user_id", user.id)
-        .eq("status", "active");
+        .eq("status", "paid");
 
       const hasOldOrder = oldOrders && oldOrders.length > 0;
-      const hasNewProduct = newEntitlements && newEntitlements.length > 0;
+      const hasNewProduct = newOrders && newOrders.length > 0;
 
-      // Saber qué PDFs tiene exactamente para mostrar solo esos botones
-      if (hasNewProduct) {
-        const productIds = newEntitlements.map(e => e.product_id);
-        const { data: prods } = await supabase.from('commerce_products').select('slug').in('id', productIds);
-        if (prods) setMyProducts(prods.map(p => p.slug));
+      // Extraemos exactamente el nombre del PDF que compró (el slug)
+      if (hasNewProduct && newOrders) {
+        const boughtSlugs: string[] = [];
+        newOrders.forEach((o: any) => {
+          if (o.items) {
+            o.items.forEach((i: any) => {
+              if (i.product_snapshot && i.product_snapshot.slug) {
+                boughtSlugs.push(i.product_snapshot.slug);
+              }
+            });
+          }
+        });
+        setMyProducts(boughtSlugs);
       }
 
       // Si no tiene nada de nada, cortamos acá
@@ -635,8 +648,20 @@ const handleDownloadSecureMeso = async () => {
         const link = document.createElement('a');
         link.href = url;
         
-        const isFuerza = (order.plan_id || "").includes("fuerza") || (order.plan_title || "").toLowerCase().includes("fuerza");
-        link.download = `Tujague_${isFuerza ? 'Fuerza_Base' : 'Hipertrofia'}_Oficial.pdf`;
+// 🔥 LÓGICA ACTUALIZADA PARA LOS 3 GORILAS 🔥
+        const planId = (order.plan_id || "").toLowerCase();
+        const planTitle = (order.plan_title || "").toLowerCase();
+        
+        let pdfFileName = 'Mesociclo';
+        if (planId.includes("fuerza") || planTitle.includes("fuerza")) {
+            pdfFileName = 'Fuerza_Base';
+        } else if (planId.includes("hipertrofia") || planTitle.includes("hipertrofia")) {
+            pdfFileName = 'Mutacion_Hipertrofica';
+        } else if (planId.includes("definicion") || planTitle.includes("definicion") || planTitle.includes("cut")) {
+            pdfFileName = 'Definicion_Cut';
+        }
+
+        link.download = `Tujague_${pdfFileName}_Oficial.pdf`;
         
         document.body.appendChild(link);
         link.click();
@@ -986,6 +1011,7 @@ const handleDownloadSecureMeso = async () => {
 // 🔥 NUEVO: Pantalla que detecta si no tiene plan viejo, pero SÍ tiene productos nuevos 🔥
 // 🔥 NUEVO: Pantalla que detecta si no tiene plan viejo, pero SÍ tiene productos nuevos 🔥
 // 🔥 NUEVO: Pantalla que detecta si no tiene plan viejo, pero SÍ tiene productos nuevos 🔥
+// 🔥 NUEVO: Pantalla que detecta si no tiene plan viejo, pero SÍ tiene productos nuevos 🔥
   if (!order) {
     return (
       <div className="min-h-screen bg-[#050505] text-white flex flex-col items-center justify-center p-6 text-center selection:bg-emerald-500 selection:text-black relative overflow-hidden">
@@ -998,34 +1024,47 @@ const handleDownloadSecureMeso = async () => {
            <span className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-6 inline-block shadow-inner">
              Bóveda de Atleta
            </span>
-           <h2 className="text-4xl md:text-6xl font-black italic mb-4 uppercase tracking-tighter drop-shadow-md">
+           <h2 className="text-4xl md:text-6xl font-black italic mb-8 uppercase tracking-tighter drop-shadow-md">
              Mis <span className="text-emerald-500">Recursos</span>
            </h2>
-           <p className="text-zinc-400 mb-12 max-w-md mx-auto text-sm md:text-base font-medium">
-             Accedé a tus estructuras y mesociclos adquiridos. Listos para descargar y aplicar en tu próximo entrenamiento.
-           </p>
 
-           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-12">
-             
-             {/* BOTÓN FUERZA (Solo aparece si lo compró) */}
-             {myProducts.includes("mesociclo-fuerza-4-semanas") && (
-               <Link href="/dashboard/producto/mesociclo-fuerza-4-semanas" className="w-full sm:w-auto bg-gradient-to-br from-emerald-950/40 to-black border border-emerald-500/50 hover:border-emerald-400 text-white px-10 py-8 rounded-3xl transition-all duration-300 shadow-[0_0_40px_rgba(16,185,129,0.15)] hover:shadow-[0_0_60px_rgba(16,185,129,0.3)] hover:-translate-y-2 group flex flex-col items-center justify-center gap-3">
-                 <span className="text-5xl group-hover:scale-110 transition-transform drop-shadow-md mb-2 block">🦍</span>
-                 <span className="font-black text-sm md:text-base uppercase tracking-widest text-white">Mesociclo de Fuerza</span>
-                 <span className="text-[10px] text-emerald-400 uppercase font-black tracking-[0.2em] mt-1 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">Descargar PDF oficial →</span>
-               </Link>
-             )}
+           {/* SI TIENE PRODUCTOS COMPRADOS, LE MOSTRAMOS SOLO EL QUE COMPRÓ */}
+           {myProducts.length > 0 ? (
+             <>
+               <p className="text-zinc-400 mb-12 max-w-md mx-auto text-sm md:text-base font-medium">
+                 Accedé a tus estructuras y mesociclos adquiridos. Listos para descargar y aplicar en tu próximo entrenamiento.
+               </p>
+               <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-12">
+                 
+                 {myProducts.includes("mesociclo-fuerza-4-semanas") && (
+                   <Link href="/dashboard/producto/mesociclo-fuerza-4-semanas" className="w-full sm:w-auto bg-gradient-to-br from-emerald-950/40 to-black border border-emerald-500/50 hover:border-emerald-400 text-white px-10 py-8 rounded-3xl transition-all duration-300 shadow-[0_0_40px_rgba(16,185,129,0.15)] hover:shadow-[0_0_60px_rgba(16,185,129,0.3)] hover:-translate-y-2 group flex flex-col items-center justify-center gap-3">
+                     <span className="text-5xl group-hover:scale-110 transition-transform drop-shadow-md mb-2 block">🦍</span>
+                     <span className="font-black text-sm md:text-base uppercase tracking-widest text-white">Mesociclo de Fuerza</span>
+                     <span className="text-[10px] text-emerald-400 uppercase font-black tracking-[0.2em] mt-1 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">Descargar PDF oficial →</span>
+                   </Link>
+                 )}
 
-             {/* BOTÓN HIPERTROFIA (Solo aparece si lo compró) */}
-             {myProducts.includes("mesociclo-hipertrofia-4-semanas") && (
-               <Link href="/dashboard/producto/mesociclo-hipertrofia-4-semanas" className="w-full sm:w-auto bg-gradient-to-br from-emerald-950/40 to-black border border-emerald-500/50 hover:border-emerald-400 text-white px-10 py-8 rounded-3xl transition-all duration-300 shadow-[0_0_40px_rgba(16,185,129,0.15)] hover:shadow-[0_0_60px_rgba(16,185,129,0.3)] hover:-translate-y-2 group flex flex-col items-center justify-center gap-3">
-                 <span className="text-5xl group-hover:scale-110 transition-transform drop-shadow-md mb-2 block">🧬</span>
-                 <span className="font-black text-sm md:text-base uppercase tracking-widest text-white">Mutación Hipertrófica</span>
-                 <span className="text-[10px] text-emerald-400 uppercase font-black tracking-[0.2em] mt-1 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">Descargar PDF oficial →</span>
-               </Link>
-             )}
+                 {myProducts.includes("mesociclo-hipertrofia-4-semanas") && (
+                   <Link href="/dashboard/producto/mesociclo-hipertrofia-4-semanas" className="w-full sm:w-auto bg-gradient-to-br from-emerald-950/40 to-black border border-emerald-500/50 hover:border-emerald-400 text-white px-10 py-8 rounded-3xl transition-all duration-300 shadow-[0_0_40px_rgba(16,185,129,0.15)] hover:shadow-[0_0_60px_rgba(16,185,129,0.3)] hover:-translate-y-2 group flex flex-col items-center justify-center gap-3">
+                     <span className="text-5xl group-hover:scale-110 transition-transform drop-shadow-md mb-2 block">🧬</span>
+                     <span className="font-black text-sm md:text-base uppercase tracking-widest text-white">Mutación Hipertrófica</span>
+                     <span className="text-[10px] text-emerald-400 uppercase font-black tracking-[0.2em] mt-1 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">Descargar PDF oficial →</span>
+                   </Link>
+                 )}
 
-           </div>
+               </div>
+             </>
+           ) : (
+             /* SI TODAVÍA NO SE LE APROBÓ EL PAGO O ESTÁ CARGANDO */
+             <div className="mb-12 bg-zinc-900/50 border border-zinc-800 p-8 rounded-[2rem] max-w-lg mx-auto shadow-inner">
+               <span className="text-5xl block mb-4 animate-bounce">⏳</span>
+               <h3 className="text-xl font-black text-white uppercase tracking-widest mb-3">Aguardando Confirmación</h3>
+               <p className="text-zinc-400 text-sm font-medium leading-relaxed">
+                 Si acabás de pagar con Mercado Pago, el sistema está validando la transacción. <strong className="text-emerald-400">Actualizá la página en unos segundos.</strong><br/><br/>
+                 Si pagaste por Transferencia, el Coach habilitará tu acceso en breve.
+               </p>
+             </div>
+           )}
 
            <button onClick={handleLogout} className="border border-zinc-700 text-zinc-400 hover:text-white hover:bg-zinc-900/50 px-8 py-4 rounded-xl text-[10px] font-black tracking-widest uppercase transition-colors w-full sm:w-auto">
              Cerrar Sesión
