@@ -227,7 +227,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       };
 
 // 🔥 ACÁ ESTÁ LA MAGIA: DECIDIMOS A QUÉ MOTOR MANDAR LA ORDEN 🔥
-      if (isStaticPlan) {
+      if (isStaticPlan && paymentMethod === "mercadopago") {
         // ----------------------------------------------------
         // MOTOR NUEVO (PRODUCTOS DIGITALES - MESOCICLOS PDF)
         // ----------------------------------------------------
