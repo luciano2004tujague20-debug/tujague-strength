@@ -226,25 +226,37 @@ const handleSubmit = async (e: React.FormEvent) => {
         usd: "international_usd",
       };
 
-      // 🔥 ACÁ ESTÁ LA MAGIA: DECIDIMOS A QUÉ MOTOR MANDAR LA ORDEN 🔥
 // 🔥 ACÁ ESTÁ LA MAGIA: DECIDIMOS A QUÉ MOTOR MANDAR LA ORDEN 🔥
       if (isStaticPlan) {
         // ----------------------------------------------------
         // MOTOR NUEVO (PRODUCTOS DIGITALES - MESOCICLOS PDF)
         // ----------------------------------------------------
         
+        // 1. Buscamos el ID real en la base de datos usando el slug
         let productSlug = "";
         if (selectedPlan.id === "static-fuerza") productSlug = "mesociclo-fuerza-4-semanas";
         if (selectedPlan.id === "static-hipertrofia") productSlug = "mesociclo-hipertrofia-4-semanas";
 
-        // ARMAMOS EL PAQUETE EXACTAMENTE COMO LO PIDE LA API
+        const { data: dbProduct, error: productError } = await supabase
+          .from("commerce_products")
+          .select("id")
+          .eq("slug", productSlug)
+          .single();
+
+        if (productError || !dbProduct) {
+           throw new Error("No pudimos encontrar el producto en la base de datos. Avisá al Coach.");
+        }
+
+        // 2. Generamos una llave de seguridad única (idempotency key)
+        const idempotencyKey = `checkout_${cleanEmail}_${Date.now()}`;
+
+        // 3. ARMAMOS EL PAQUETE EXACTAMENTE COMO LO PIDE LA API (productIds y idempotencyKey)
         const response = await fetch('/api/commerce/checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            items: [
-              { slug: productSlug, quantity: 1 }
-            ] 
+            productIds: [dbProduct.id],
+            idempotencyKey: idempotencyKey
           })
         });
 
@@ -256,8 +268,8 @@ const handleSubmit = async (e: React.FormEvent) => {
           await supabase.from("abandoned_checkouts").delete().eq("id", abandonIdRef.current);
         }
 
-        if (data.init_point) {
-          window.location.href = data.init_point;
+        if (data.initPoint) { // Nota: la API devuelve initPoint con P mayúscula, no init_point
+          window.location.href = data.initPoint;
         }
 
       } else {
