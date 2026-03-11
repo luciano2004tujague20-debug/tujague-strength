@@ -79,6 +79,56 @@ export async function GET() {
         includes: ["Entrenamiento Diario", "Ahorrás $37.000", "Planificación Competitiva"],
         highlight: "Ahorro del 24%"
       }
+    },
+
+    // ─── 🔥 PRODUCTOS DIGITALES ESTÁTICOS (PDFs) 🔥 ───
+    {
+      id: "static-fuerza",
+      code: "static-fuerza",
+      name: "Mesociclo de Fuerza Base",
+      cadence: "monthly", 
+      days: 4,
+      price_ars: 35000,
+      benefits: {
+        includes: ["Rutina PDF 4 Semanas", "Acceso de por vida", "Generador dinámico"],
+        highlight: "Compra Única"
+      }
+    },
+    {
+      id: "static-hipertrofia",
+      code: "static-hipertrofia",
+      name: "Mesociclo de Hipertrofia",
+      cadence: "monthly",
+      days: 5,
+      price_ars: 35000,
+      benefits: {
+        includes: ["Rutina PDF 4 Semanas", "Acceso de por vida", "Generador dinámico"],
+        highlight: "Compra Única"
+      }
+    },
+    {
+      id: "mesociclo-definicion-4-semanas",
+      code: "mesociclo-definicion-4-semanas",
+      name: "Mesociclo de Definición",
+      cadence: "monthly",
+      days: 5,
+      price_ars: 35000,
+      benefits: {
+        includes: ["Rutina PDF 4 Semanas", "Acceso de por vida", "Generador dinámico"],
+        highlight: "Compra Única"
+      }
+    },
+    {
+      id: "especializacion-brazos-mutantes",
+      code: "especializacion-brazos-mutantes",
+      name: "Especialización Brazos Mutantes",
+      cadence: "monthly",
+      days: 2,
+      price_ars: 8500,
+      benefits: {
+        includes: ["Módulo Plug-in", "Protocolo 4 Semanas", "Acceso de por vida PDF"],
+        highlight: "Módulo Extra"
+      }
     }
   ];
 

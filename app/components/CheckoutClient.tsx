@@ -62,9 +62,17 @@ export default function CheckoutClient({
 
   const abandonIdRef = useRef<string | null>(null);
 
-  // 🔥 CANDADO DE SEGURIDAD ACTUALIZADO PARA INCLUIR DEFINICIÓN 🔥
-  const isStaticPlan = selectedPlan.id.startsWith("static") || selectedPlan.id === "mesociclo-definicion-4-semanas";
+  // 🔥 CANDADO DE SEGURIDAD ACTUALIZADO PARA INCLUIR DEFINICIÓN Y BRAZOS 🔥
+  const isStaticPlan = 
+    selectedPlan.id.startsWith("static") || 
+    selectedPlan.id === "mesociclo-definicion-4-semanas" ||
+    selectedPlan.id === "especializacion-brazos-mutantes"; // <--- ESTO ACTIVA LA VENTA
+  
   const finalExtraVideo = isStaticPlan ? false : extraVideo;
+
+  // 🔥 NUEVO: ESTADO DEL ORDER BUMP 🔥
+  const ORDER_BUMP_PRICE = 10000;
+  const [orderBump, setOrderBump] = useState(false);
 
   const captureAbandon = async () => {
     if (!formData.email && !formData.phone) return;
@@ -158,11 +166,9 @@ export default function CheckoutClient({
     }
   };
 
-  // Cálculo matemático del total
-  const subtotal = selectedPlan.price + (finalExtraVideo ? extraPrice : 0);
-  const discountMultiplier = discountApplied
-    ? 1 - discountApplied.percentage / 100
-    : 1;
+  // 🔥 ACTUALIZADO: Cálculo matemático del total sumando el ORDER BUMP 🔥
+  const subtotal = selectedPlan.price + (finalExtraVideo ? extraPrice : 0) + (orderBump ? ORDER_BUMP_PRICE : 0);
+  const discountMultiplier = discountApplied ? 1 - discountApplied.percentage / 100 : 1;
   const totalAmount = Math.round(subtotal * discountMultiplier);
 
   // 🔥 SALVAVIDAS PARA VERCEL
@@ -237,6 +243,7 @@ export default function CheckoutClient({
         if (selectedPlan.id === "static-fuerza") productSlug = "mesociclo-fuerza-4-semanas";
         if (selectedPlan.id === "static-hipertrofia") productSlug = "mesociclo-hipertrofia-4-semanas";
         if (selectedPlan.id === "mesociclo-definicion-4-semanas") productSlug = "mesociclo-definicion-4-semanas";
+        if (selectedPlan.id === "especializacion-brazos-mutantes") productSlug = "especializacion-brazos-mutantes"; // <--- ESTO CONECTA CON LA BASE DE DATOS
 
         const { data: dbProduct, error: productError } = await supabase
           .from("commerce_products")
@@ -251,13 +258,14 @@ export default function CheckoutClient({
         // 2. Generamos una llave de seguridad única (idempotency key)
         const idempotencyKey = `checkout_${cleanEmail}_${Date.now()}`;
 
-        // 3. ARMAMOS EL PAQUETE EXACTAMENTE COMO LO PIDE LA API (productIds y idempotencyKey)
+        // 3. ARMAMOS EL PAQUETE EXACTAMENTE COMO LO PIDE LA API Y LE MANDAMOS EL ORDER BUMP
         const response = await fetch('/api/commerce/checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             productIds: [dbProduct.id],
-            idempotencyKey: idempotencyKey
+            idempotencyKey: idempotencyKey,
+            hasOrderBump: orderBump // Le avisamos a la API si lo compró
           })
         });
 
@@ -288,6 +296,7 @@ export default function CheckoutClient({
             password: formData.password,
             customerRef: formData.instagram.trim() || null,
             extraVideo: finalExtraVideo,
+            hasOrderBump: orderBump, // Le avisamos a la API vieja si lo compró
             referredBy: discountApplied?.code || null,
             finalPrice: totalAmount,
             onboardingData: {
@@ -608,6 +617,51 @@ export default function CheckoutClient({
             </p>
           </div>
 
+          {/* 🔥 SECCIÓN DE ORDER BUMP: LA CAJA PERSUASIVA 🔥 */}
+          <div
+            className={`relative mb-8 rounded-2xl border-2 p-5 sm:p-6 cursor-pointer transition-all duration-300 shadow-xl
+            ${
+              orderBump
+                ? "border-emerald-500 bg-emerald-950/40"
+                : "border-dashed border-zinc-600 bg-zinc-950 hover:border-emerald-500/50 hover:bg-zinc-900/80"
+            }`}
+            onClick={() => setOrderBump(!orderBump)}
+          >
+            <div className="absolute -top-3 sm:-top-4 left-4 sm:left-6 bg-red-600 text-white text-[9px] sm:text-[10px] font-black px-3 sm:px-4 py-1 sm:py-1.5 rounded-full uppercase tracking-widest shadow-lg">
+              🔥 Oferta única antes de pagar
+            </div>
+
+            <div className="flex items-start gap-4">
+              <input
+                type="checkbox"
+                checked={orderBump}
+                onChange={() => setOrderBump(!orderBump)}
+                className="mt-1 w-5 h-5 sm:w-6 sm:h-6 accent-emerald-500 cursor-pointer shrink-0"
+              />
+              <div>
+                <p className="font-black text-sm sm:text-base italic tracking-tight mb-1 text-white leading-tight">
+                  Sí, quiero blindar mi cuerpo y potenciar mis resultados
+                </p>
+                <div className="flex items-center gap-3 mt-1 mb-2">
+                  <span className="line-through text-zinc-500 text-xs sm:text-sm font-bold">
+                    $25.000
+                  </span>
+                  <span className="text-emerald-400 font-black text-sm sm:text-base tracking-widest">
+                    + $10.000 ARS
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed font-medium">
+                  Agrega el protocolo exacto de 8 minutos para evitar lesiones bajo la barra, suplementación científica y nutrición peri-entreno.
+                  <br />
+                  <span className="text-[10px] text-zinc-500 uppercase tracking-widest mt-2 block">
+                    *Material informativo. No incluye asesoría.
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+          {/* 🔥 FIN ORDER BUMP 🔥 */}
+
           <div className="space-y-4 mb-8 border-y border-zinc-800/80 py-6">
             <div className="flex justify-between items-center text-sm">
               <span className="text-zinc-300 font-medium">
@@ -635,6 +689,23 @@ export default function CheckoutClient({
                     : paymentMethod === "crypto"
                     ? `${getConversions(extraPrice).usdt} USDT`
                     : `+$${extraPrice.toLocaleString()}`}
+                </span>
+              </div>
+            )}
+            
+            {/* ITEM DEL ORDER BUMP EN EL RESUMEN */}
+            {orderBump && (
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-emerald-400 font-medium flex items-center gap-2">
+                  <span className="bg-emerald-500/20 px-1.5 rounded font-black">+</span>
+                  Kit Acelerador BII
+                </span>
+                <span className="text-emerald-400 font-mono text-lg">
+                  {paymentMethod === "usd"
+                    ? `U$D ${getConversions(ORDER_BUMP_PRICE).usd}`
+                    : paymentMethod === "crypto"
+                    ? `${getConversions(ORDER_BUMP_PRICE).usdt} USDT`
+                    : `+$${ORDER_BUMP_PRICE.toLocaleString()}`}
                 </span>
               </div>
             )}

@@ -12,6 +12,13 @@ function generateReferralCode(name: string) {
     return `${firstName}${randomNum}`;
 }
 
+// 🔥 PASE VIP PARA PLANES ESTÁTICOS (Evita que tire error 404 al buscar en la tabla vieja) 🔥
+const STATIC_PLANS: Record<string, { code: string, name: string, price: number }> = {
+  "static-fuerza": { code: "static-fuerza", name: "Fuerza Base", price: 35000 },
+  "static-hipertrofia": { code: "static-hipertrofia", name: "Mutación Hipertrófica", price: 35000 },
+  "mesociclo-definicion-4-semanas": { code: "mesociclo-definicion-4-semanas", name: "Definición (Cut)", price: 35000 }
+};
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -28,14 +35,19 @@ export async function POST(req: Request) {
       finalPrice    // ✅ NUEVO: El precio real que debe pagar (con descuento aplicado)
     } = body;
     
-    // 1. Buscamos el plan en la base de datos por su código
-    const { data: plan, error: planErr } = await supabaseAdmin
-      .from("plans")
-      .select("*")
-      .eq("code", planCode)
-      .single();
+    // 1. Buscamos el plan. Si es estático, usa el PASE VIP. Si no, lo busca en la DB.
+    let plan = STATIC_PLANS[planCode];
 
-    if (planErr || !plan) return NextResponse.json({ error: "Plan no encontrado" }, { status: 404 });
+    if (!plan) {
+        const { data: dbPlan, error: planErr } = await supabaseAdmin
+          .from("plans")
+          .select("*")
+          .eq("code", planCode)
+          .single();
+
+        if (planErr || !dbPlan) return NextResponse.json({ error: "Plan no encontrado" }, { status: 404 });
+        plan = dbPlan;
+    }
 
     // Si viene un finalPrice desde el frontend (con descuento), usamos ese. 
     // Si no (por si acaso alguien intenta hackear o falla algo), calculamos el normal.

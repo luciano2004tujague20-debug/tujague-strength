@@ -15,11 +15,11 @@ export type PricingPlan = {
   actionLabel?: string;
 };
 
-type TabType = "weekly" | "monthly" | "static";
+type TabType = "weekly" | "monthly";
 
 type PricingMatrix = Record<TabType, PricingPlan[]>;
 
-// ─── DATA HARDCODEADA (Mantenida intacta) ───
+// ─── DATA HARDCODEADA (Solo VIP: Semanal y Mensual) ───
 const PRICING_MATRIX: PricingMatrix = {
   weekly: [
     {
@@ -92,44 +92,6 @@ const PRICING_MATRIX: PricingMatrix = {
       actionLabel: "👑 Nivel Máximo",
     },
   ],
-  static: [
-{
-      id: "static-fuerza",
-      title: "Fuerza Base",
-      subtitle: "4 SEMANAS • PLANO CRUDO",
-      price: 35000,
-      description:
-        "Bloque estático para fuerza. Estructura pura BII-Vintage, sin soporte personalizado.",
-      features: ["Estructura exacta BII", "✗ Sin revisión de videos", "✗ Sin Tujague AI", "✗ Sin contacto con el Coach"],
-      highlight: false,
-      idealFor: "Autodidactas enfocados en fuerza",
-      actionLabel: "🔒 Modo Independiente",
-    },
-    {
-      id: "mesociclo-definicion-4-semanas",
-      title: "Definición (Cut)",
-      subtitle: "4 SEMANAS • PLANO CRUDO",
-      price: 35000,
-      description:
-        "Bloque estático para definición. Protocolo BII para perder grasa reteniendo el 100% de fuerza máxima.",
-      features: ["Protocolo Déficit Calórico", "✗ Sin revisión de videos", "✗ Sin Tujague AI", "✗ Sin contacto con el Coach"],
-      highlight: true,
-      idealFor: "Autodidactas / Pérdida de grasa",
-      actionLabel: "🔥 Nuevo / Independiente",
-    }, // <--- ¡ESTA ES LA COMA MÁGICA QUE FALTABA!
-    {
-      id: "static-hipertrofia",
-      title: "Mutación",
-      subtitle: "4 SEMANAS • PLANO CRUDO",
-      price: 35000,
-      description:
-        "Bloque estático para hipertrofia. Volumen y técnicas de intensidad pre-armadas.",
-      features: ["Selección de accesorios", "✗ Sin revisión de videos", "✗ Sin Tujague AI", "✗ Sin contacto con el Coach"],
-      highlight: false,
-      idealFor: "Autodidactas enfocados en estética",
-      actionLabel: "🔒 Modo Independiente",
-    },
-  ],
 };
 
 // ─── COMPONENTE PRINCIPAL ───
@@ -160,31 +122,30 @@ export default function PricingV2({ onSelectPlan, defaultTab = "monthly" }: Pric
       <div className="max-w-7xl mx-auto text-center">
         {/* HEADER */}
         <div className="mb-10 sm:mb-14">
-          <span className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-4 inline-block shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-            Catálogo de Estructuras
+          <span className="bg-amber-500/10 text-amber-500 border border-amber-500/20 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-4 inline-block shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+            Catálogo de Estructuras VIP
           </span>
           <h2 className="text-4xl sm:text-5xl md:text-7xl font-black italic text-white tracking-tighter drop-shadow-md">
-            ELEGÍ TU <span className="text-emerald-500">CAMINO</span>
+            ELEGÍ TU <span className="text-amber-500">CAMINO</span>
           </h2>
           <p className="text-zinc-400 text-sm sm:text-base font-medium mt-4 max-w-3xl mx-auto">
             Elegí por frecuencia, presupuesto y nivel de soporte. Acá no hay “planes genéricos”: hay estructura.
           </p>
         </div>
 
-        {/* TABS */}
+        {/* TABS (Solo Semanal y Mensual VIP) */}
         <div className="inline-flex flex-col sm:flex-row bg-[#0a0a0c] sm:backdrop-blur-xl p-2 rounded-3xl sm:rounded-[2rem] border border-zinc-800 mb-10 sm:mb-16 shadow-2xl w-full sm:w-auto">
           {[
             { id: "weekly", label: "Semanales" },
             { id: "monthly", label: "Mensuales VIP" },
-            { id: "static", label: "Estáticos" },
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as TabType)}
               aria-label={`Ver planes ${tab.label}`}
-              className={`px-6 sm:px-10 py-4 sm:py-5 rounded-2xl sm:rounded-3xl text-[11px] sm:text-xs font-black transition-all duration-300 tracking-[0.2em] uppercase focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 w-full sm:w-auto ${
+              className={`px-6 sm:px-10 py-4 sm:py-5 rounded-2xl sm:rounded-3xl text-[11px] sm:text-xs font-black transition-all duration-300 tracking-[0.2em] uppercase focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 w-full sm:w-auto ${
                 activeTab === tab.id
-                  ? "bg-emerald-500 text-black shadow-[0_0_30px_rgba(16,185,129,0.4)]"
+                  ? "bg-amber-500 text-black shadow-[0_0_30px_rgba(245,158,11,0.4)]"
                   : "text-zinc-500 hover:text-white hover:bg-zinc-900/50"
               }`}
             >
@@ -204,12 +165,12 @@ export default function PricingV2({ onSelectPlan, defaultTab = "monthly" }: Pric
               key={plan.id}
               className={`relative flex flex-col p-8 sm:p-10 rounded-[2rem] sm:rounded-[2.5rem] border backdrop-blur-md text-left transition-all duration-500 group ${
                 plan.highlight
-                  ? "bg-[#0a0a0c] border-emerald-500 hover:shadow-[0_20px_60px_rgba(16,185,129,0.2)] md:-translate-y-4"
+                  ? "bg-[#0a0a0c] border-amber-500 hover:shadow-[0_20px_60px_rgba(245,158,11,0.2)] md:-translate-y-4"
                   : "bg-zinc-900/40 border-zinc-800 hover:border-zinc-500 hover:bg-zinc-900/80 hover:shadow-2xl"
               }`}
             >
               {plan.highlight && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-400 to-emerald-600 text-black text-[9px] sm:text-[10px] font-black px-6 py-2 rounded-full tracking-[0.2em] shadow-[0_0_20px_rgba(16,185,129,0.5)] whitespace-nowrap z-10 border border-emerald-300">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-400 to-amber-600 text-black text-[9px] sm:text-[10px] font-black px-6 py-2 rounded-full tracking-[0.2em] shadow-[0_0_20px_rgba(245,158,11,0.5)] whitespace-nowrap z-10 border border-amber-300">
                   RECOMENDADO POR EL COACH
                 </div>
               )}
@@ -218,7 +179,7 @@ export default function PricingV2({ onSelectPlan, defaultTab = "monthly" }: Pric
                 <h3 className="text-2xl sm:text-3xl font-black italic text-white uppercase tracking-tight mb-1">
                   {plan.title}
                 </h3>
-                <p className="text-emerald-500 font-bold tracking-[0.2em] text-[9px] sm:text-[10px] uppercase">
+                <p className="text-amber-500 font-bold tracking-[0.2em] text-[9px] sm:text-[10px] uppercase">
                   {plan.subtitle}
                 </p>
               </div>
@@ -229,19 +190,19 @@ export default function PricingV2({ onSelectPlan, defaultTab = "monthly" }: Pric
                   {plan.price.toLocaleString("es-AR")}
                 </span>
                 <span className="text-xs sm:text-sm font-bold text-zinc-500 tracking-widest uppercase mb-1">
-                  /{activeTab === "weekly" ? "SEM" : activeTab === "monthly" ? "MES" : "ÚNICO"}
+                  /{activeTab === "weekly" ? "SEM" : "MES"}
                 </span>
               </div>
 
               <div className="inline-flex items-center gap-2 bg-black/50 border border-zinc-800 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-300 mb-6 self-start">
-                <span className={`w-2 h-2 rounded-full ${plan.highlight ? "bg-emerald-500 animate-pulse" : "bg-blue-500"}`} />
+                <span className={`w-2 h-2 rounded-full ${plan.highlight ? "bg-amber-500 animate-pulse" : "bg-blue-500"}`} />
                 {plan.actionLabel}
               </div>
 
               <p className="text-zinc-400 text-sm leading-relaxed font-medium mb-6">{plan.description}</p>
 
               <div className="bg-zinc-950/80 border border-zinc-800/80 p-4 rounded-2xl mb-8">
-                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-1">
+                <p className="text-[9px] font-black text-amber-500 uppercase tracking-[0.2em] mb-1">
                   🎯 Ideal para:
                 </p>
                 <p className="text-xs sm:text-sm text-zinc-200 font-bold">{plan.idealFor}</p>
@@ -254,7 +215,7 @@ export default function PricingV2({ onSelectPlan, defaultTab = "monthly" }: Pric
                   const isAI = clean.toLowerCase().includes("tujague ai");
                   return (
                     <li key={idx} className="flex items-start gap-3">
-                      <span className={`font-black mt-0.5 text-sm ${isNegative ? "text-red-500/70" : "text-emerald-500"}`}>
+                      <span className={`font-black mt-0.5 text-sm ${isNegative ? "text-red-500/70" : "text-amber-500"}`}>
                         {isNegative ? "✕" : "✓"}
                       </span>
                       <span
@@ -274,9 +235,9 @@ export default function PricingV2({ onSelectPlan, defaultTab = "monthly" }: Pric
               <button
                 onClick={() => onSelectPlan(plan)}
                 aria-label={`Seleccionar plan ${plan.title}`}
-                className={`w-full py-5 rounded-2xl font-black tracking-[0.2em] text-[10px] sm:text-xs transition-all duration-300 uppercase flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 active:scale-95 ${
+                className={`w-full py-5 rounded-2xl font-black tracking-[0.2em] text-[10px] sm:text-xs transition-all duration-300 uppercase flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 active:scale-95 ${
                   plan.highlight
-                    ? "bg-emerald-500 text-black hover:bg-emerald-400 shadow-[0_10px_30px_rgba(16,185,129,0.3)]"
+                    ? "bg-amber-500 text-black hover:bg-amber-400 shadow-[0_10px_30px_rgba(245,158,11,0.3)]"
                     : "bg-zinc-900 border border-zinc-700 text-white hover:bg-white hover:text-black hover:border-white"
                 }`}
               >
@@ -287,7 +248,7 @@ export default function PricingV2({ onSelectPlan, defaultTab = "monthly" }: Pric
               </button>
 
               <p className="text-[9px] sm:text-[10px] text-zinc-500 font-medium text-center uppercase tracking-widest mt-4">
-                {activeTab === "static" ? "Descarga Inmediata" : "Respuesta en 24-48hs • Sin Humo"}
+                Respuesta en 24-48hs • Sin Humo
               </p>
             </div>
           ))}
@@ -300,13 +261,12 @@ export default function PricingV2({ onSelectPlan, defaultTab = "monthly" }: Pric
           {/* 1) TABLA COMPARATIVA */}
           <div className="text-left">
             <h3 className="text-3xl sm:text-4xl font-black italic text-white tracking-tighter uppercase mb-2">
-              Comparativa de <span className="text-emerald-500">Sistemas</span>
+              Comparativa de <span className="text-amber-500">Sistemas</span>
             </h3>
             <p className="text-zinc-400 text-sm mb-8 font-medium">
               Entendé exactamente qué nivel de soporte se adapta a tu presupuesto y disciplina.
             </p>
 
-            {/* FIX CLIP: sin badge con -top. Todo dentro del header. */}
             <div className="overflow-x-auto overflow-y-visible pb-4 custom-scrollbar">
               <table className="w-full text-left border-collapse min-w-[760px]">
                 <thead>
@@ -319,17 +279,17 @@ export default function PricingV2({ onSelectPlan, defaultTab = "monthly" }: Pric
                       Semanales
                     </th>
 
-                    <th className="p-4 border-b-2 border-emerald-500 bg-emerald-950/20 font-black text-xs text-center w-1/5 rounded-t-xl">
+                    <th className="p-4 border-b-2 border-amber-500 bg-amber-950/20 font-black text-xs text-center w-1/5 rounded-t-xl">
                       <div className="flex flex-col items-center justify-end gap-2">
-                        <span className="bg-emerald-500 text-black text-[8px] px-3 py-1 rounded-full font-black tracking-widest whitespace-nowrap shadow-[0_0_18px_rgba(16,185,129,0.35)]">
+                        <span className="bg-amber-500 text-black text-[8px] px-3 py-1 rounded-full font-black tracking-widest whitespace-nowrap shadow-[0_0_18px_rgba(245,158,11,0.35)]">
                           MEJOR VALOR
                         </span>
-                        <span className="text-emerald-400 uppercase tracking-widest">Mensuales VIP</span>
+                        <span className="text-amber-400 uppercase tracking-widest">Mensuales VIP</span>
                       </div>
                     </th>
 
                     <th className="p-4 border-b border-zinc-800 font-black text-xs text-zinc-600 uppercase tracking-widest text-center w-1/5">
-                      Estáticos
+                      Estáticos (Bóveda)
                     </th>
                   </tr>
                 </thead>
@@ -354,7 +314,7 @@ export default function PricingV2({ onSelectPlan, defaultTab = "monthly" }: Pric
                       <td className="p-4 text-center text-zinc-400">
                         {typeof row.s === "boolean" ? (
                           row.s ? (
-                            <span className="text-emerald-500 font-bold">✓</span>
+                            <span className="text-amber-500 font-bold">✓</span>
                           ) : (
                             <span className="text-red-500/50 font-bold">✕</span>
                           )
@@ -363,15 +323,15 @@ export default function PricingV2({ onSelectPlan, defaultTab = "monthly" }: Pric
                         )}
                       </td>
 
-                      <td className="p-4 text-center bg-emerald-950/10 border-x border-emerald-900/20">
+                      <td className="p-4 text-center bg-amber-950/10 border-x border-amber-900/20">
                         {typeof row.m === "boolean" ? (
                           row.m ? (
-                            <span className="text-emerald-400 font-black text-lg">✓</span>
+                            <span className="text-amber-400 font-black text-lg">✓</span>
                           ) : (
                             <span className="text-red-500/50 font-bold">✕</span>
                           )
                         ) : (
-                          <span className="text-emerald-400 font-black text-xs uppercase tracking-widest">
+                          <span className="text-amber-400 font-black text-xs uppercase tracking-widest">
                             {row.m}
                           </span>
                         )}
@@ -380,7 +340,7 @@ export default function PricingV2({ onSelectPlan, defaultTab = "monthly" }: Pric
                       <td className="p-4 text-center text-zinc-600">
                         {typeof row.e === "boolean" ? (
                           row.e ? (
-                            <span className="text-emerald-500/50 font-bold">✓</span>
+                            <span className="text-amber-500/50 font-bold">✓</span>
                           ) : (
                             <span className="text-zinc-700 font-bold">✕</span>
                           )
@@ -402,9 +362,9 @@ export default function PricingV2({ onSelectPlan, defaultTab = "monthly" }: Pric
           {/* 2) Por qué VIP + Mini guía */}
           <div className="grid lg:grid-cols-12 gap-10 lg:gap-16 text-left">
             <div className="lg:col-span-5 bg-gradient-to-br from-[#0a0a0c] to-zinc-900/40 p-8 sm:p-10 rounded-[2rem] border border-white/5 shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[50px] rounded-full" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 blur-[50px] rounded-full" />
               <h4 className="text-2xl font-black italic uppercase text-white mb-6 tracking-tight relative z-10">
-                Por qué el <span className="text-emerald-500">VIP funciona</span>
+                Por qué el <span className="text-amber-500">VIP funciona</span>
               </h4>
               <ul className="space-y-5 relative z-10">
                 {[
@@ -426,7 +386,7 @@ export default function PricingV2({ onSelectPlan, defaultTab = "monthly" }: Pric
                   },
                 ].map((x, idx) => (
                   <li key={idx} className="flex items-start gap-4 text-sm text-zinc-300 font-medium">
-                    <span className="text-emerald-500 font-black text-lg mt-[-2px]">⚡</span>
+                    <span className="text-amber-500 font-black text-lg mt-[-2px]">⚡</span>
                     <span>
                       <strong>{x.t}:</strong> {x.d}
                     </span>
@@ -463,17 +423,17 @@ export default function PricingV2({ onSelectPlan, defaultTab = "monthly" }: Pric
                     icon: "🐺",
                     t: "Soy autodidacta",
                     d: "Querés el mapa, sin acompañamiento.",
-                    s: "👉 Sugerido: Estáticos (PDF)",
+                    s: "👉 Sugerido: Bóveda Estática",
                   },
                 ].map((card, idx) => (
                   <div
                     key={idx}
-                    className="bg-[#0a0a0c] border border-zinc-800 p-6 rounded-[1.5rem] hover:border-emerald-500/50 transition-colors"
+                    className="bg-[#0a0a0c] border border-zinc-800 p-6 rounded-[1.5rem] hover:border-amber-500/50 transition-colors"
                   >
                     <span className="text-2xl block mb-3">{card.icon}</span>
                     <p className="font-black text-white uppercase text-sm mb-1">{card.t}</p>
                     <p className="text-xs text-zinc-400 font-medium mb-3">{card.d}</p>
-                    <p className="text-[10px] font-black tracking-widest text-emerald-500 uppercase">{card.s}</p>
+                    <p className="text-[10px] font-black tracking-widest text-amber-500 uppercase">{card.s}</p>
                   </div>
                 ))}
               </div>
@@ -491,14 +451,14 @@ export default function PricingV2({ onSelectPlan, defaultTab = "monthly" }: Pric
               <br className="hidden sm:block" />
               Estáticos = modo autodidacta sin soporte. VIP = ajustes + control + corrección.
               <br className="hidden sm:block" />
-              VIP demora <span className="text-emerald-400 font-bold">24 a 48hs hábiles</span> tras tu alta clínica.
-              Estáticos = <span className="text-emerald-400 font-bold">acceso inmediato</span>.
+              VIP demora <span className="text-amber-400 font-bold">24 a 48hs hábiles</span> tras tu alta clínica.
+              Estáticos = <span className="text-amber-400 font-bold">acceso inmediato</span>.
             </p>
           </div>
 
           {/* 4) CTA Final */}
-          <div className="text-center bg-[#0a0a0c] border border-emerald-900/50 p-10 sm:p-16 rounded-[3rem] shadow-[0_0_80px_rgba(16,185,129,0.1)] relative overflow-hidden">
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[320px] h-[320px] bg-emerald-500/10 blur-[90px] pointer-events-none" />
+          <div className="text-center bg-[#0a0a0c] border border-amber-900/50 p-10 sm:p-16 rounded-[3rem] shadow-[0_0_80px_rgba(245,158,11,0.1)] relative overflow-hidden">
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[320px] h-[320px] bg-amber-500/10 blur-[90px] pointer-events-none" />
             <h3 className="text-4xl sm:text-5xl font-black italic text-white uppercase tracking-tighter mb-4 relative z-10">
               ¿Listo para entrenar en serio?
             </h3>
@@ -510,7 +470,7 @@ export default function PricingV2({ onSelectPlan, defaultTab = "monthly" }: Pric
               <button
                 onClick={scrollToGrid}
                 aria-label="Volver arriba para elegir plan"
-                className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-black px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-[0_10px_30px_rgba(16,185,129,0.3)] hover:scale-105 active:scale-95"
+                className="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-black px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-[0_10px_30px_rgba(245,158,11,0.3)] hover:scale-105 active:scale-95"
               >
                 Elegir Mi Plan Ahora
               </button>
@@ -518,7 +478,7 @@ export default function PricingV2({ onSelectPlan, defaultTab = "monthly" }: Pric
               <button
                 onClick={handleRecommendPlan}
                 aria-label="Seleccionar plan recomendado"
-                className="w-full sm:w-auto bg-transparent border border-zinc-700 hover:border-emerald-500 text-zinc-300 hover:text-emerald-400 px-8 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                className="w-full sm:w-auto bg-transparent border border-zinc-700 hover:border-amber-500 text-zinc-300 hover:text-amber-400 px-8 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
               >
                 Recomiéndame Uno
               </button>

@@ -26,7 +26,7 @@ type ExistingOrder = {
   status: string;
   external_reference: string;
   provider_preference_id: string | null;
-  metadata: { init_point?: string } | null;
+  metadata: { init_point?: string; has_order_bump?: boolean } | null;
   currency: string | null;
   items: ExistingOrderItem[];
 };
@@ -44,9 +44,12 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const { productIds, idempotencyKey } = body as {
+  
+  // 🔥 1. RECIBIMOS EL AVISO DEL ORDER BUMP DESDE EL FRONTEND
+  const { productIds, idempotencyKey, hasOrderBump } = body as {
     productIds: string[];
     idempotencyKey: string;
+    hasOrderBump?: boolean;
   };
 
   if (!Array.isArray(productIds) || productIds.length === 0) {
@@ -83,7 +86,6 @@ export async function POST(req: Request) {
   }
 
   try {
-    // 1) Asegurar perfil commerce para usuarios ya existentes
     const { error: profileError } = await supabase.from("commerce_profiles").upsert(
       {
         user_id: user.id,
@@ -97,7 +99,6 @@ export async function POST(req: Request) {
       throw new Error(`No se pudo asegurar commerce_profiles: ${profileError.message}`);
     }
 
-    // 2) Buscar orden previa por idempotencia
     const { data: existingOrder, error: existingOrderError } = await supabase
       .from("commerce_orders")
       .select(`
@@ -120,8 +121,9 @@ export async function POST(req: Request) {
       throw new Error(`No se pudo consultar la orden previa: ${existingOrderError.message}`);
     }
 
-    let currentOrder: Pick<ExistingOrder, "id" | "external_reference"> | ExistingOrder | null = null;
+    let currentOrder: Pick<ExistingOrder, "id" | "external_reference" | "metadata"> | ExistingOrder | null = null;
     let productsForMP: CommerceProduct[] = [];
+    let orderHasBump = false;
 
     if (existingOrder) {
       if (existingOrder.status === "paid") {
@@ -152,8 +154,8 @@ export async function POST(req: Request) {
       productsForMP = existingOrder.items.map(
         (item: ExistingOrderItem) => item.product_snapshot
       );
+      orderHasBump = !!existingOrder.metadata?.has_order_bump;
     } else {
-      // 3) Validar productos reales desde BD
       const uniqueProductIds = Array.from(new Set(productIds));
 
       const { data: products, error: productsError } = await supabase
@@ -192,13 +194,19 @@ export async function POST(req: Request) {
         }
       }
 
-      const totalAmount = products.reduce(
+      // 🔥 2. SUMAMOS EL PRECIO SI EL CLIENTE ELIGIÓ EL ORDER BUMP 🔥
+      let totalAmount = products.reduce(
         (acc: number, product: CommerceProduct) => acc + Number(product.price),
         0
       );
 
+      if (hasOrderBump) {
+        totalAmount += 10000;
+      }
+
       const orderExternalRef = `ORD-COMM-${crypto.randomUUID()}`;
 
+      // 🔥 3. GUARDAMOS EN SUPABASE EL "METADATA" PARA QUE EL DASHBOARD SEPA QUE LO COMPRÓ 🔥
       const { data: newOrder, error: newOrderError } = await supabase
         .from("commerce_orders")
         .insert({
@@ -208,10 +216,10 @@ export async function POST(req: Request) {
           currency: firstCurrency,
           external_reference: orderExternalRef,
           idempotency_key: idempotencyKey,
-          metadata: {},
+          metadata: { has_order_bump: !!hasOrderBump },
         })
-        .select("id, external_reference")
-        .single<{ id: string; external_reference: string }>();
+        .select("id, external_reference, metadata")
+        .single<{ id: string; external_reference: string; metadata: any }>();
 
       if (newOrderError) {
         throw new Error(`No se pudo crear la orden: ${newOrderError.message}`);
@@ -236,6 +244,7 @@ export async function POST(req: Request) {
 
       currentOrder = newOrder;
       productsForMP = products;
+      orderHasBump = !!hasOrderBump;
     }
 
     if (!currentOrder) {
@@ -249,14 +258,25 @@ export async function POST(req: Request) {
       );
     }
 
-    // 4) Crear preferencia real en Mercado Pago
-    const mpPayload = {
-      items: productsForMP.map((product: CommerceProduct) => ({
-        title: product.name,
+    // 🔥 4. CREAMOS LA FACTURA DE MERCADO PAGO AÑADIENDO EL KIT ACELERADOR 🔥
+    const mpItems = productsForMP.map((product: CommerceProduct) => ({
+      title: product.name,
+      quantity: 1,
+      unit_price: Number(product.price),
+      currency_id: product.currency,
+    }));
+
+    if (orderHasBump) {
+      mpItems.push({
+        title: "Kit Acelerador BII (Extras y Suplementación)",
         quantity: 1,
-        unit_price: Number(product.price),
-        currency_id: product.currency,
-      })),
+        unit_price: 10000,
+        currency_id: productsForMP[0].currency,
+      });
+    }
+
+    const mpPayload = {
+      items: mpItems,
       external_reference: currentOrder.external_reference,
       notification_url: `${siteUrl}/api/commerce/webhook`,
       back_urls: {
@@ -284,12 +304,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // 5) Guardar datos de Mercado Pago en la orden
     const { error: updateOrderError } = await supabase
       .from("commerce_orders")
       .update({
         provider_preference_id: mpData.id,
         metadata: {
+          ...currentOrder.metadata,
           init_point: mpData.init_point,
         },
       })

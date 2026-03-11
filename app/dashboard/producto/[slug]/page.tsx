@@ -8,7 +8,7 @@ type ProductMetadata = {
   delivery_type?: string;
   includes?: string[];
   important_notes?: string[];
-  pdf_url?: string | null;
+  pdf_url?: string | null; 
 };
 
 type PageProps = {
@@ -17,13 +17,28 @@ type PageProps = {
   }>;
 };
 
+// 👇 LINKS DE DESCARGA DE LOS PRODUCTOS ESTÁTICOS 👇
+const LINK_DEL_KIT_ACELERADOR = "https://tiziowezshcdkzxabjso.supabase.co/storage/v1/object/public/material-vip/kit_acelerador_bii_vintage.pdf";
+const LINK_BRAZOS_MUTANTES = "https://tiziowezshcdkzxabjso.supabase.co/storage/v1/object/public/material-vip/especializacion-brazos-mutantes.pdf"; // LINK AGREGADO
+
+// 2. MAPA DE ENTITLEMENTS (Seguridad)
 function getEntitlementCodeFromSlug(slug: string) {
   const map: Record<string, string> = {
     "mesociclo-fuerza-4-semanas": "STATIC_STRENGTH_MESO_ACCESS",
     "mesociclo-hipertrofia-4-semanas": "STATIC_HYPERTROPHY_MESO_ACCESS",
+    "mesociclo-definicion-4-semanas": "STATIC_CUT_MESO_ACCESS", 
+    "especializacion-brazos-mutantes": "STATIC_ARMS_ACCESS", // LLAVE AGREGADA AL MAPA
   };
 
   return map[slug] ?? null;
+}
+
+// 3. MAPA: TRADUCTOR PARA EL MOTOR DE PDF
+function getPlanTypeFromSlug(slug: string) {
+  if (slug.includes("fuerza")) return "fuerza";
+  if (slug.includes("hipertrofia")) return "hipertrofia";
+  if (slug.includes("definicion")) return "definicion";
+  return "definicion"; // Por defecto
 }
 
 export default async function ProductoDinamicoPage({ params }: PageProps) {
@@ -56,23 +71,11 @@ export default async function ProductoDinamicoPage({ params }: PageProps) {
     .eq("code", entitlementCode)
     .maybeSingle();
 
-  if (entitlementError) {
+  if (entitlementError || !entitlement) {
     return (
       <main className="min-h-screen bg-black text-white p-10">
         <h1 className="text-2xl font-bold mb-4">Error interno</h1>
         <p>No se pudo consultar el entitlement.</p>
-        <pre className="mt-6 bg-zinc-900 p-4 rounded-xl border border-zinc-800 text-sm overflow-x-auto">
-          {entitlementError.message}
-        </pre>
-      </main>
-    );
-  }
-
-  if (!entitlement) {
-    return (
-      <main className="min-h-screen bg-black text-white p-10">
-        <h1 className="text-2xl font-bold mb-4">Entitlement no encontrado</h1>
-        <p>No existe el entitlement <strong>{entitlementCode}</strong>.</p>
       </main>
     );
   }
@@ -92,9 +95,6 @@ export default async function ProductoDinamicoPage({ params }: PageProps) {
       <main className="min-h-screen bg-black text-white p-10">
         <h1 className="text-2xl font-bold mb-4">Error interno</h1>
         <p>No se pudo consultar el acceso del usuario.</p>
-        <pre className="mt-6 bg-zinc-900 p-4 rounded-xl border border-zinc-800 text-sm overflow-x-auto">
-          {userEntitlementError.message}
-        </pre>
       </main>
     );
   }
@@ -104,6 +104,17 @@ export default async function ProductoDinamicoPage({ params }: PageProps) {
     new Date(userEntitlement.expires_at).getTime() < Date.now();
 
   const hasAccess = !!userEntitlement && !isExpired;
+
+  // 🔥 MAGIA NUEVA: VERIFICAMOS SI COMPRÓ EL ORDER BUMP 🔥
+  const { data: orderData } = await supabase
+    .from("commerce_orders")
+    .select("metadata")
+    .eq("user_id", user.id)
+    .eq("status", "paid")
+    .order("created_at", { ascending: false });
+
+  // Busca en sus órdenes pagas si alguna tiene la etiqueta secreta del Order Bump
+  const boughtOrderBump = orderData?.some(order => order.metadata?.has_order_bump === true) || false;
 
   const { data: product, error: productError } = await supabase
     .from("commerce_products")
@@ -115,10 +126,6 @@ export default async function ProductoDinamicoPage({ params }: PageProps) {
     return (
       <main className="min-h-screen bg-black text-white p-10">
         <h1 className="text-2xl font-bold mb-4">Producto no encontrado</h1>
-        <p>No se pudo consultar el producto.</p>
-        <pre className="mt-6 bg-zinc-900 p-4 rounded-xl border border-zinc-800 text-sm overflow-x-auto">
-          {productError?.message || "Producto no encontrado"}
-        </pre>
       </main>
     );
   }
@@ -129,6 +136,7 @@ export default async function ProductoDinamicoPage({ params }: PageProps) {
     ? metadata.important_notes
     : [];
 
+  // PANTALLA BLOQUEADA
   if (!hasAccess) {
     return (
       <main className="min-h-screen bg-[#050505] text-white p-8 md:p-12">
@@ -136,30 +144,21 @@ export default async function ProductoDinamicoPage({ params }: PageProps) {
           <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-black mb-3">
             Acceso bloqueado
           </p>
-
           <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter mb-4">
             {metadata.headline || product.name} no habilitado
           </h1>
-
           <p className="text-zinc-400 text-sm md:text-base leading-relaxed">
             Tu usuario todavía no tiene acceso activo a este producto.
           </p>
 
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             <div className="rounded-2xl border border-zinc-800 bg-black/40 p-5">
-              <p className="text-xs text-zinc-500 uppercase tracking-[0.2em] font-black mb-2">
-                Producto
-              </p>
+              <p className="text-xs text-zinc-500 uppercase tracking-[0.2em] font-black mb-2">Producto</p>
               <p className="text-sm text-white">{product.name}</p>
             </div>
-
             <div className="rounded-2xl border border-zinc-800 bg-black/40 p-5">
-              <p className="text-xs text-zinc-500 uppercase tracking-[0.2em] font-black mb-2">
-                Precio
-              </p>
-              <p className="text-sm text-white">
-                ${Number(product.price).toLocaleString()} {product.currency}
-              </p>
+              <p className="text-xs text-zinc-500 uppercase tracking-[0.2em] font-black mb-2">Precio</p>
+              <p className="text-sm text-white">${Number(product.price).toLocaleString()} {product.currency}</p>
             </div>
           </div>
         </div>
@@ -167,6 +166,10 @@ export default async function ProductoDinamicoPage({ params }: PageProps) {
     );
   }
 
+  // Obtenemos qué plan tiene que abrir el PDF
+  const planType = getPlanTypeFromSlug(slug);
+
+  // PANTALLA DESBLOQUEADA
   return (
     <main className="min-h-screen bg-[#050505] text-white p-8 md:p-12">
       <div className="max-w-5xl mx-auto border border-emerald-500/20 bg-zinc-900/50 rounded-[2rem] p-8 md:p-10">
@@ -184,56 +187,22 @@ export default async function ProductoDinamicoPage({ params }: PageProps) {
 
         <div className="grid gap-4 md:grid-cols-2 mb-8">
           <div className="rounded-2xl border border-zinc-800 bg-black/40 p-5">
-            <p className="text-xs text-zinc-500 uppercase tracking-[0.2em] font-black mb-2">
-              Usuario
-            </p>
+            <p className="text-xs text-zinc-500 uppercase tracking-[0.2em] font-black mb-2">Usuario</p>
             <p className="text-sm text-white">{user.email}</p>
           </div>
-
           <div className="rounded-2xl border border-zinc-800 bg-black/40 p-5">
-            <p className="text-xs text-zinc-500 uppercase tracking-[0.2em] font-black mb-2">
-              Duración
-            </p>
+            <p className="text-xs text-zinc-500 uppercase tracking-[0.2em] font-black mb-2">Duración</p>
             <p className="text-sm text-white">{metadata.duration || "—"}</p>
-          </div>
-
-          <div className="rounded-2xl border border-zinc-800 bg-black/40 p-5">
-            <p className="text-xs text-zinc-500 uppercase tracking-[0.2em] font-black mb-2">
-              Precio
-            </p>
-            <p className="text-sm text-white">
-              ${Number(product.price).toLocaleString()} {product.currency}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-zinc-800 bg-black/40 p-5">
-            <p className="text-xs text-zinc-500 uppercase tracking-[0.2em] font-black mb-2">
-              Entitlement
-            </p>
-            <p className="text-sm text-emerald-400 font-bold">{entitlement.code}</p>
-          </div>
-
-          <div className="rounded-2xl border border-zinc-800 bg-black/40 p-5">
-            <p className="text-xs text-zinc-500 uppercase tracking-[0.2em] font-black mb-2">
-              Estado
-            </p>
-            <p className="text-sm text-white">{userEntitlement.status}</p>
           </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
           <div className="rounded-2xl border border-zinc-800 bg-black/40 p-6">
-            <p className="text-xs text-zinc-500 uppercase tracking-[0.2em] font-black mb-4">
-              Qué incluye
-            </p>
-
+            <p className="text-xs text-zinc-500 uppercase tracking-[0.2em] font-black mb-4">Qué incluye</p>
             <div className="space-y-3">
               {includes.length > 0 ? (
                 includes.map((item, index) => (
-                  <div
-                    key={index}
-                    className="text-sm text-zinc-200 border border-zinc-800 rounded-xl p-3"
-                  >
+                  <div key={index} className="text-sm text-zinc-200 border border-zinc-800 rounded-xl p-3">
                     {item}
                   </div>
                 ))
@@ -244,17 +213,11 @@ export default async function ProductoDinamicoPage({ params }: PageProps) {
           </div>
 
           <div className="rounded-2xl border border-zinc-800 bg-black/40 p-6">
-            <p className="text-xs text-zinc-500 uppercase tracking-[0.2em] font-black mb-4">
-              Notas importantes
-            </p>
-
+            <p className="text-xs text-zinc-500 uppercase tracking-[0.2em] font-black mb-4">Notas importantes</p>
             <div className="space-y-3">
               {importantNotes.length > 0 ? (
                 importantNotes.map((item, index) => (
-                  <div
-                    key={index}
-                    className="text-sm text-zinc-200 border border-zinc-800 rounded-xl p-3"
-                  >
+                  <div key={index} className="text-sm text-zinc-200 border border-zinc-800 rounded-xl p-3">
                     {item}
                   </div>
                 ))
@@ -265,27 +228,73 @@ export default async function ProductoDinamicoPage({ params }: PageProps) {
           </div>
         </div>
 
-        <div className="mt-8 rounded-2xl border border-zinc-800 bg-black/40 p-6">
-          <p className="text-xs text-zinc-500 uppercase tracking-[0.2em] font-black mb-3">
-            Entrega
-          </p>
-
-          {metadata.pdf_url ? (
-            <a
-              href={metadata.pdf_url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center justify-center px-5 py-3 rounded-xl bg-emerald-500 text-black font-black uppercase tracking-[0.15em]"
-            >
-              Abrir contenido
-            </a>
+        {/* ACÁ ESTÁ LA MAGIA DE LOS BOTONES */}
+        <div className="mt-8 grid gap-4 md:grid-cols-2">
+          
+          {/* LÓGICA DE BOTÓN DIFERENCIADA */}
+          {slug === "especializacion-brazos-mutantes" ? (
+            <div className="rounded-2xl border border-blue-500/30 bg-black/40 p-6 flex flex-col items-center sm:items-start justify-between relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-[40px] pointer-events-none"></div>
+              <div className="w-full relative z-10">
+                <p className="text-xs text-blue-400 uppercase tracking-[0.2em] font-black mb-4">
+                  Material Descargable
+                </p>
+              </div>
+              <a
+                href={LINK_BRAZOS_MUTANTES}
+                target="_blank"
+                rel="noreferrer"
+                className="relative z-10 inline-flex items-center justify-center w-full px-8 py-4 rounded-xl bg-blue-600 text-white font-black uppercase tracking-[0.1em] text-sm hover:bg-blue-500 hover:scale-105 transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)]"
+              >
+                📥 Descargar Especialización
+              </a>
+            </div>
           ) : (
-            <p className="text-sm text-zinc-400">
-              Todavía no cargaste un{" "}
-              <span className="text-emerald-400 font-bold">pdf_url</span> real en el producto.
-            </p>
+            <div className="rounded-2xl border border-emerald-500/30 bg-black/40 p-6 flex flex-col items-center sm:items-start justify-between">
+              <div className="w-full">
+                <p className="text-xs text-emerald-500 uppercase tracking-[0.2em] font-black mb-4">
+                  Tu Material Principal
+                </p>
+              </div>
+              <a
+                href={`/pdf?plan=${planType}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center w-full px-8 py-4 rounded-xl bg-emerald-500 text-black font-black uppercase tracking-[0.1em] text-sm hover:bg-emerald-400 hover:scale-105 transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+              >
+                🖨️ Generar Rutina (PDF)
+              </a>
+              <p className="text-[10px] text-zinc-500 mt-3 font-semibold uppercase text-center sm:text-left">
+                * El documento se generará con tu email como licencia.
+              </p>
+            </div>
           )}
+
+          {/* BOTÓN 2: KIT ACELERADOR (Solo visible si compró el Order Bump) */}
+          {boughtOrderBump && (
+            <div className="rounded-2xl border border-amber-500/30 bg-black/40 p-6 flex flex-col items-center sm:items-start justify-between relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-[50px] pointer-events-none"></div>
+              <div className="w-full relative z-10">
+                <p className="text-xs text-amber-500 uppercase tracking-[0.2em] font-black mb-4 flex items-center gap-2">
+                  <span className="text-base">🎁</span> Bonus Exclusivo Adquirido
+                </p>
+              </div>
+              <a
+                href={LINK_DEL_KIT_ACELERADOR}
+                target="_blank"
+                rel="noreferrer"
+                className="relative z-10 inline-flex items-center justify-center w-full px-8 py-4 rounded-xl bg-amber-500 text-black font-black uppercase tracking-[0.1em] text-sm hover:bg-amber-400 hover:scale-105 transition-all shadow-[0_0_20px_rgba(245,158,11,0.2)]"
+              >
+                ⚡ Descargar Kit BII
+              </a>
+              <p className="text-[10px] text-zinc-500 mt-3 font-semibold uppercase text-center sm:text-left relative z-10">
+                * Protocolo articular y suplementación.
+              </p>
+            </div>
+          )}
+
         </div>
+
       </div>
     </main>
   );

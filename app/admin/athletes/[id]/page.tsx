@@ -582,7 +582,7 @@ export default function TrainerDashboard() {
                 macrocycle: cycles.macro, mesocycle: cycles.meso, microcycle: cycles.micro,
                 annual_plan: annualPlan,
                 ai_draft_text: aiDraftText, 
-                coach_decision: coachDecision, // ✅ GUARDA LA DECISIÓN DEL COACH
+                coach_decision: coachDecision,
                 sub_status: subStatus,
                 expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
                 customer_phone: customerPhone
@@ -598,12 +598,12 @@ export default function TrainerDashboard() {
     }
   }
 
-  if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-emerald-500 font-black animate-pulse uppercase tracking-widest">Cargando Atleta...</div>;
+  if (loading) return <div className="min-h-screen bg-[#000000] flex items-center justify-center text-amber-500 font-black animate-pulse uppercase tracking-widest">Cargando Atleta...</div>;
   
   if (!order) return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4">
+    <div className="min-h-screen bg-[#000000] text-white flex flex-col items-center justify-center gap-4">
         <p>Atleta no encontrado.</p>
-        <Link href="/admin/orders" className="text-emerald-500 underline">Volver a la lista</Link>
+        <Link href="/admin/orders" className="text-amber-500 underline">Volver a la lista</Link>
     </div>
   );
 
@@ -618,24 +618,23 @@ export default function TrainerDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white font-sans pb-20 selection:bg-emerald-500 selection:text-black">
-      
+<div className="min-h-screen bg-transparent text-white font-sans pb-20 selection:bg-amber-500 selection:text-black relative">      
       {/* BARRA SUPERIOR */}
-      <div className="w-full bg-[#050505] border-b border-white/10 mb-8 pb-4">
+      <div className="w-full bg-[#0a0a0c]/90 backdrop-blur-xl border-b border-zinc-800/80 mb-8 pb-4 sticky top-0 z-50">
          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 p-5 md:px-8">
             <div className="flex items-center gap-6 w-full md:w-auto">
-                <Link href="/admin/athletes" className="bg-zinc-900 border border-zinc-700 hover:bg-emerald-500 hover:text-black w-10 h-10 flex items-center justify-center rounded-xl transition-all font-black text-lg">←</Link>
+                <Link href="/admin/athletes" className="bg-[#050505] border border-zinc-800 hover:bg-amber-500 hover:text-black w-10 h-10 flex items-center justify-center rounded-xl transition-all font-black text-lg shadow-inner shrink-0">←</Link>
                 <div>
                     <div className="flex items-center gap-3">
-                       <h1 className="text-2xl font-black italic uppercase tracking-tighter text-white">{order.customer_name}</h1>
+                       <h1 className="text-2xl font-black italic uppercase tracking-tighter text-white drop-shadow-md">{order.customer_name}</h1>
                        {subStatus === 'active' ? (
-                          <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border border-emerald-500/50">Activo</span>
+                          <span className="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border border-emerald-500/30">Activo</span>
                        ) : (
-                          <span className="bg-red-500/20 text-red-400 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border border-red-500/50">Vencido</span>
+                          <span className="bg-red-500/10 text-red-400 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border border-red-500/30">Vencido</span>
                        )}
                     </div>
                     <Link href="/">
-                      <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest hover:underline cursor-pointer">
+                      <p className="text-amber-500 text-[10px] font-black uppercase tracking-widest hover:underline cursor-pointer mt-1">
                           TUJAGUE STRENGTH
                       </p>
                     </Link>
@@ -645,49 +644,49 @@ export default function TrainerDashboard() {
             <button 
                 onClick={handleSave}
                 disabled={saving}
-                className="w-full md:w-auto bg-emerald-500 hover:bg-emerald-400 text-black font-black px-8 py-3 rounded-xl uppercase tracking-widest shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all disabled:opacity-50 text-xs flex items-center justify-center gap-2"
+                className="w-full md:w-auto bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-black font-black px-8 py-3 rounded-xl uppercase tracking-widest shadow-[0_10px_30px_rgba(245,158,11,0.3)] transition-all disabled:opacity-50 text-xs flex items-center justify-center gap-2 active:scale-95 border border-amber-200"
             >
-                {saving ? "Registrando Datos..." : "💾 Guardar Modificaciones y Publicar"}
+                {saving ? "Registrando Datos..." : "💾 Guardar Modificaciones"}
             </button>
          </div>
       </div>
 
       <div className="max-w-7xl mx-auto p-6 md:p-8">
         
-        {/* 🔥 NUEVO: RADAR DE FATIGA Y DECISIÓN DEL COACH 🔥 */}
-        <div className="mb-10 bg-zinc-950 border border-zinc-800 rounded-[2rem] p-6 md:p-8 shadow-xl relative overflow-hidden flex flex-col lg:flex-row gap-8 items-start lg:items-center justify-between">
-           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none"></div>
+        {/* 🔥 RADAR DE FATIGA Y DECISIÓN DEL COACH 🔥 */}
+        <div className="mb-10 bg-[#0a0a0c] border border-zinc-800/80 rounded-[2rem] p-6 md:p-8 shadow-xl relative overflow-hidden flex flex-col lg:flex-row gap-8 items-start lg:items-center justify-between">
+           <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-[80px] pointer-events-none"></div>
            
            <div className="flex-1 w-full relative z-10">
               <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-4 flex items-center gap-2"><span>📡</span> Radar Clínico (Último Check-In)</h3>
               
               {order.checkin_history && order.checkin_history.length > 0 ? (
                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                    <div className="bg-black border border-zinc-800 p-3 rounded-xl text-center">
+                    <div className="bg-[#050505] border border-zinc-800 p-3 rounded-xl text-center shadow-inner">
                        <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Peso</p>
                        <p className="text-white font-black">{order.checkin_weight || '-'} kg</p>
                     </div>
-                    <div className="bg-black border border-zinc-800 p-3 rounded-xl text-center">
+                    <div className="bg-[#050505] border border-zinc-800 p-3 rounded-xl text-center shadow-inner">
                        <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Adherencia</p>
                        <p className={`font-black ${Number(order.checkin_adherence) < 80 ? 'text-red-400' : 'text-emerald-400'}`}>{order.checkin_adherence || '-'}%</p>
                     </div>
-                    <div className="bg-black border border-zinc-800 p-3 rounded-xl text-center">
+                    <div className="bg-[#050505] border border-zinc-800 p-3 rounded-xl text-center shadow-inner">
                        <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Sueño</p>
                        <p className={`font-black ${Number(order.checkin_sleep) < 6 ? 'text-red-400' : 'text-emerald-400'}`}>{order.checkin_sleep || '-'} hrs</p>
                     </div>
-                    <div className="bg-black border border-zinc-800 p-3 rounded-xl text-center">
+                    <div className="bg-[#050505] border border-zinc-800 p-3 rounded-xl text-center shadow-inner">
                        <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Estrés</p>
                        <p className={`font-black ${Number(order.checkin_stress) >= 8 ? 'text-red-400' : 'text-emerald-400'}`}>{order.checkin_stress || '-'}/10</p>
                     </div>
-                    <div className="bg-black border border-zinc-800 p-3 rounded-xl text-center">
+                    <div className="bg-[#050505] border border-zinc-800 p-3 rounded-xl text-center shadow-inner">
                        <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Energía</p>
                        <p className="text-yellow-400 font-black">{order.checkin_energy || '-'}/10</p>
                     </div>
-                    <div className="bg-black border border-zinc-800 p-3 rounded-xl text-center">
+                    <div className="bg-[#050505] border border-zinc-800 p-3 rounded-xl text-center shadow-inner">
                        <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Recuperación</p>
                        <p className="text-blue-400 font-black">{order.checkin_recovery || '-'}/10</p>
                     </div>
-                    <div className="bg-black border border-zinc-800 p-3 rounded-xl text-center col-span-2 md:col-span-1">
+                    <div className="bg-[#050505] border border-zinc-800 p-3 rounded-xl text-center col-span-2 md:col-span-1 shadow-inner">
                        <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Dolor</p>
                        <p className={`font-black text-[10px] uppercase truncate ${order.checkin_joint_pain && order.checkin_joint_pain !== 'ninguno' ? 'text-red-500' : 'text-emerald-500'}`}>{order.checkin_joint_pain || 'Ninguno'}</p>
                     </div>
@@ -697,40 +696,41 @@ export default function TrainerDashboard() {
               )}
            </div>
 
-           <div className="w-full lg:w-72 bg-black/60 border border-zinc-800 p-5 rounded-2xl relative z-10 shrink-0">
-              <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-3">Decisión del Coach (Semana)</p>
+           <div className="w-full lg:w-72 bg-[#050505] border border-zinc-800 p-5 rounded-2xl relative z-10 shrink-0 shadow-inner group hover:border-amber-500/50 transition-colors">
+              <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-3">Decisión del Coach (Semana)</p>
               <select 
                  value={coachDecision} 
                  onChange={(e) => setCoachDecision(e.target.value)} 
-                 className={`w-full bg-transparent text-sm font-black uppercase tracking-widest outline-none transition-colors border-b-2 pb-2 ${coachDecision === 'sobrecargar' ? 'text-emerald-500 border-emerald-500/50' : coachDecision === 'descargar' ? 'text-blue-500 border-blue-500/50' : 'text-zinc-300 border-zinc-700'}`}
+                 className={`w-full bg-transparent text-sm font-black uppercase tracking-widest outline-none transition-colors border-b-2 pb-2 cursor-pointer appearance-none ${coachDecision === 'sobrecargar' ? 'text-emerald-500 border-emerald-500/50' : coachDecision === 'descargar' ? 'text-blue-500 border-blue-500/50' : 'text-amber-500 border-amber-500/50'}`}
               >
-                 <option value="mantener" className="bg-zinc-900 text-white">Mantener Cargas</option>
-                 <option value="sobrecargar" className="bg-zinc-900 text-emerald-500">Progresar (Sobrecarga)</option>
-                 <option value="descargar" className="bg-zinc-900 text-blue-500">Descarga SNC (Deload)</option>
+                 <option value="mantener" className="bg-[#050505] text-amber-500">Mantener Cargas</option>
+                 <option value="sobrecargar" className="bg-[#050505] text-emerald-500">Progresar (Sobrecarga)</option>
+                 <option value="descargar" className="bg-[#050505] text-blue-500">Descarga SNC (Deload)</option>
               </select>
            </div>
         </div>
 
-        {/* BOTONERA DE PESTAÑAS */}
-        <div className="flex gap-1 mb-8 bg-zinc-900/50 p-1 rounded-2xl w-fit border border-zinc-800">
-            <button onClick={() => setActiveTab('rutina')} className={`px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'rutina' ? 'bg-zinc-800 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}>Arquitectura de Entrenamiento</button>
-            <button onClick={() => setActiveTab('videos')} className={`px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'videos' ? 'bg-zinc-800 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}>Auditoría Biomecánica 🤖</button>
-            <button onClick={() => setActiveTab('datos')} className={`px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'datos' ? 'bg-zinc-800 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}>Administración Financiera</button>
+        {/* BOTONERA DE PESTAÑAS (MANTIENE TUS 3 PESTAÑAS ORIGINALES) */}
+        <div className="flex gap-1 mb-8 bg-[#0a0a0c] p-1.5 rounded-2xl w-fit border border-zinc-800/80 shadow-xl overflow-x-auto custom-scrollbar">
+            <button onClick={() => setActiveTab('rutina')} className={`px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all whitespace-nowrap ${activeTab === 'rutina' ? 'bg-zinc-800 text-white shadow-md border border-zinc-700' : 'text-zinc-500 hover:text-white hover:bg-[#050505]'}`}>Arquitectura de Entrenamiento</button>
+            <button onClick={() => setActiveTab('videos')} className={`px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all whitespace-nowrap flex items-center justify-center gap-2 ${activeTab === 'videos' ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] border border-blue-500' : 'text-blue-500/50 hover:text-blue-400 hover:bg-blue-900/10'}`}>Auditoría Biomecánica 🤖</button>
+            <button onClick={() => setActiveTab('datos')} className={`px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all whitespace-nowrap ${activeTab === 'datos' ? 'bg-zinc-800 text-white shadow-md border border-zinc-700' : 'text-zinc-500 hover:text-white hover:bg-[#050505]'}`}>Administración Financiera</button>
         </div>
+
         {/* ─── PESTAÑA RUTINA Y LABORATORIO IA ─── */}
         {activeTab === 'rutina' && (
             <div className="animate-in fade-in duration-500">
-                <div className="flex flex-wrap items-center justify-between gap-4 mb-8 border-b border-zinc-800 pb-4">
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-8 border-b border-zinc-800/80 pb-4">
                     <div className="flex gap-4">
                         <button 
                            onClick={() => setRoutineView('macro')}
-                           className={`flex items-center gap-2 pb-2 text-sm font-black uppercase tracking-widest transition-all ${routineView === 'macro' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-zinc-500 hover:text-white'}`}
+                           className={`flex items-center gap-2 pb-2 text-sm font-black uppercase tracking-widest transition-all ${routineView === 'macro' ? 'text-amber-500 border-b-2 border-amber-500' : 'text-zinc-500 hover:text-white'}`}
                         >
                             🗓️ Macro-Planificador
                         </button>
                         <button 
                            onClick={() => setRoutineView('micro')}
-                           className={`flex items-center gap-2 pb-2 text-sm font-black uppercase tracking-widest transition-all ${routineView === 'micro' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-zinc-500 hover:text-white'}`}
+                           className={`flex items-center gap-2 pb-2 text-sm font-black uppercase tracking-widest transition-all ${routineView === 'micro' ? 'text-amber-500 border-b-2 border-amber-500' : 'text-zinc-500 hover:text-white'}`}
                         >
                             ⚡ Consola Microciclo
                         </button>
@@ -740,7 +740,7 @@ export default function TrainerDashboard() {
                     <button 
                         onClick={handleLupaAnalysis}
                         disabled={loadingLupa}
-                        className="bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/50 text-amber-500 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+                        className="bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/50 text-amber-500 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(245,158,11,0.2)] active:scale-95"
                     >
                         {loadingLupa ? "Procesando Perfil..." : "🔍 Auditar Bitácora Atleta"}
                     </button>
@@ -748,16 +748,17 @@ export default function TrainerDashboard() {
 
                 {/* 🔍 REPORTE DE LA LUPA */}
                 {lupaReport && (
-                    <div className="mb-8 bg-amber-950/30 border border-amber-500/50 p-6 rounded-2xl relative animate-in slide-in-from-top-4">
-                        <button onClick={() => setLupaReport(null)} className="absolute top-4 right-4 text-amber-500 hover:text-white font-bold">✕</button>
-                        <h4 className="text-amber-400 font-black italic uppercase tracking-widest text-sm mb-3 flex items-center gap-2">
-                           <span className="text-xl">🔍</span> Reporte Clínico Automatizado
+                    <div className="mb-8 bg-[#0a0a0c] border border-amber-500/50 p-6 md:p-8 rounded-[2rem] relative animate-in slide-in-from-top-4 shadow-xl">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-[40px] pointer-events-none"></div>
+                        <button onClick={() => setLupaReport(null)} className="absolute top-6 right-6 text-amber-500 hover:text-white font-bold text-xl">✕</button>
+                        <h4 className="text-amber-400 font-black italic uppercase tracking-widest text-sm mb-4 flex items-center gap-3 relative z-10 border-b border-amber-500/20 pb-3">
+                           <span className="text-2xl">🔍</span> Reporte Clínico Automatizado
                         </h4>
-                        <p className="text-sm text-amber-50 font-medium leading-relaxed whitespace-pre-wrap">{lupaReport}</p>
+                        <p className="text-sm md:text-base text-amber-50/90 font-medium leading-relaxed whitespace-pre-wrap relative z-10">{lupaReport}</p>
                     </div>
                 )}
 
-                {/* 🔥 NUEVO DISEÑO DIVIDIDO (SIEMPRE MUESTRA EL BUZÓN IA A LA DERECHA) 🔥 */}
+                {/* 🔥 DISEÑO DIVIDIDO (SIEMPRE MUESTRA EL BUZÓN IA A LA DERECHA) 🔥 */}
                 <div className="grid lg:grid-cols-3 gap-6 relative items-start h-[75vh]">
                     
                     {/* COLUMNA IZQUIERDA (El Área de Trabajo: Macro o Micro) */}
@@ -765,48 +766,49 @@ export default function TrainerDashboard() {
                         
                         {/* 1. MODO MACRO-PLANIFICADOR (La Grilla de Meses) */}
                         {routineView === 'macro' && (
-                           <div className="bg-[#09090b] border border-zinc-800 rounded-[2rem] p-6 shadow-2xl relative overflow-hidden flex-1 flex flex-col">
-                               <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none -mr-20 -mt-20"></div>
-                               <div className="mb-6 relative z-10 flex justify-between items-center">
+                           <div className="bg-[#0a0a0c] border border-zinc-800/80 rounded-[2rem] p-6 md:p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden flex-1 flex flex-col">
+                               <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/5 rounded-full blur-[100px] pointer-events-none -mr-20 -mt-20"></div>
+                               <div className="mb-8 relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                                    <div>
-                                       <h2 className="text-2xl font-black italic text-white mb-2 uppercase">Planificador Anual BII</h2>
-                                       <p className="text-zinc-400 text-xs font-medium">Arquitectura estructural. Copia el texto del Buzón IA (Derecha) a la semana correspondiente.</p>
+                                       <h2 className="text-2xl md:text-3xl font-black italic text-white mb-2 uppercase tracking-tighter drop-shadow-md">Planificador Anual BII</h2>
+                                       <p className="text-zinc-400 text-xs md:text-sm font-medium">Arquitectura estructural. Copia el texto del Buzón IA (Derecha) a la semana correspondiente.</p>
                                    </div>
-                                   <div className="bg-emerald-950/50 border border-emerald-500/30 px-4 py-2 rounded-xl text-center">
-                                       <p className="text-[8px] font-black uppercase tracking-widest text-emerald-500">Diseño Actual</p>
-                                       <p className="font-mono font-bold text-white">Semana {currentDesignWeek}</p>
+                                   <div className="bg-[#050505] border border-amber-500/30 px-5 py-3 rounded-xl text-center shadow-inner">
+                                       <p className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-amber-500 mb-1">Diseño Actual</p>
+                                       <p className="font-mono font-bold text-white text-lg">Semana {currentDesignWeek}</p>
                                    </div>
                                </div>
-                               <div className="grid sm:grid-cols-2 gap-6 overflow-y-auto pr-4 custom-scrollbar relative z-10 flex-1">
+                               
+                               <div className="grid sm:grid-cols-2 gap-6 overflow-y-auto pr-2 md:pr-4 custom-scrollbar relative z-10 flex-1">
                                    {MONTHS_STRUCTURE.map((month, idx) => (
-                                       <div key={idx} className="bg-black/50 border border-zinc-800 rounded-3xl p-6 h-fit">
-                                           <h3 className="text-emerald-500 font-black italic uppercase text-xl border-b border-zinc-800/50 pb-3 mb-4">{month.name}</h3>
+                                       <div key={idx} className="bg-[#050505] border border-zinc-800 rounded-[1.5rem] p-5 h-fit shadow-inner">
+                                           <h3 className="text-amber-500 font-black italic uppercase text-lg border-b border-zinc-800 pb-3 mb-4">{month.name}</h3>
                                            <div className="space-y-4">
                                                {month.weeks.map(weekNum => (
-                                                   <div key={weekNum} className={`bg-[#050505] rounded-2xl border transition-all overflow-hidden ${expandedWeek === weekNum ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/30' : 'border-zinc-800/50 hover:border-zinc-700'}`}>
+                                                   <div key={weekNum} className={`bg-[#0a0a0c] rounded-xl border transition-all overflow-hidden ${expandedWeek === weekNum ? 'border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/30' : 'border-zinc-800 hover:border-zinc-700'}`}>
                                                        <div 
-                                                          className="p-4 cursor-pointer flex justify-between items-center bg-zinc-900/40 hover:bg-zinc-800 transition-colors"
+                                                          className="p-4 cursor-pointer flex justify-between items-center hover:bg-zinc-900/50 transition-colors"
                                                           onClick={() => {
                                                             setExpandedWeek(expandedWeek === weekNum ? null : weekNum);
                                                             setActiveMacroDay('d1'); 
                                                           }}
                                                        >
-                                                           <span className={`text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition-colors ${expandedWeek === weekNum ? 'bg-emerald-500 text-black' : 'bg-zinc-800 text-white'}`}>
+                                                           <span className={`text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition-colors ${expandedWeek === weekNum ? 'bg-amber-500 text-black' : 'bg-[#050505] text-zinc-300 border border-zinc-800'}`}>
                                                                Semana {weekNum}
                                                            </span>
                                                            <div className="flex items-center gap-3">
-                                                              {annualPlan[weekNum]?.phase && <span className="text-[10px] text-emerald-400 font-bold uppercase">{annualPlan[weekNum].phase}</span>}
+                                                              {annualPlan[weekNum]?.phase && <span className="text-[9px] md:text-[10px] text-amber-400 font-bold uppercase hidden md:inline-block truncate max-w-[100px]">{annualPlan[weekNum].phase}</span>}
                                                               <span className="text-zinc-500 text-xs">{expandedWeek === weekNum ? '▲' : '▼'}</span>
                                                            </div>
                                                        </div>
 
                                                        {expandedWeek === weekNum && (
-                                                           <div className="p-5 border-t border-zinc-800 bg-[#09090b] space-y-5 animate-in slide-in-from-top-2 duration-200">
+                                                           <div className="p-5 border-t border-zinc-800 bg-[#050505] space-y-5 animate-in slide-in-from-top-2 duration-200">
                                                                <div className="flex flex-col gap-3">
                                                                    <select 
                                                                        value={annualPlan[weekNum]?.phase || ""}
                                                                        onChange={(e) => updateAnnualWeek(weekNum, 'phase', e.target.value)}
-                                                                       className="w-full bg-black border border-zinc-700 text-zinc-300 text-xs font-bold uppercase rounded-xl px-4 py-3 outline-none focus:border-emerald-500"
+                                                                       className="w-full bg-[#0a0a0c] border border-zinc-800 text-zinc-300 text-xs font-bold uppercase rounded-xl px-4 py-3 outline-none focus:border-amber-500 appearance-none cursor-pointer"
                                                                    >
                                                                        <option value="">-- Fase Fisiológica --</option>
                                                                        <option value="Adaptacion">Adaptación Anatómica</option>
@@ -821,29 +823,29 @@ export default function TrainerDashboard() {
                                                                       placeholder="Énfasis Biomecánico"
                                                                       value={annualPlan[weekNum]?.focus || ""}
                                                                       onChange={(e) => updateAnnualWeek(weekNum, 'focus', e.target.value)}
-                                                                      className="w-full bg-black border border-zinc-700 text-zinc-300 text-xs font-bold rounded-xl px-4 py-3 outline-none focus:border-emerald-500 placeholder:text-zinc-700"
+                                                                      className="w-full bg-[#0a0a0c] border border-zinc-800 text-zinc-300 text-xs font-bold rounded-xl px-4 py-3 outline-none focus:border-amber-500 placeholder:text-zinc-600"
                                                                    />
                                                                </div>
 
-                                                               <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar border-b border-zinc-800">
+                                                               <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar border-b border-zinc-800/80">
                                                                   {['d1','d2','d3','d4','d5','d6','d7'].map(d => (
                                                                       <button 
                                                                          key={d}
                                                                          onClick={() => setActiveMacroDay(d)}
-                                                                         className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-t-xl transition-colors whitespace-nowrap ${activeMacroDay === d ? 'bg-zinc-800 text-emerald-400 border-b-2 border-emerald-500' : 'text-zinc-500 hover:text-white hover:bg-zinc-900'}`}
+                                                                         className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-t-xl transition-colors whitespace-nowrap ${activeMacroDay === d ? 'bg-zinc-800 text-amber-400 border-b-2 border-amber-500' : 'text-zinc-500 hover:text-white hover:bg-zinc-900/50'}`}
                                                                       >
                                                                          {d.replace('d', 'Día ')}
-                                                                         {annualPlan[weekNum]?.[d] && <span className="ml-1.5 w-1.5 h-1.5 inline-block bg-emerald-500 rounded-full"></span>}
+                                                                         {annualPlan[weekNum]?.[d] && <span className="ml-1.5 w-1.5 h-1.5 inline-block bg-amber-500 rounded-full"></span>}
                                                                       </button>
                                                                   ))}
                                                                </div>
 
-                                                               <div className="bg-black border border-zinc-800 rounded-2xl p-4 relative">
+                                                               <div className="bg-[#0a0a0c] border border-zinc-800 rounded-2xl p-4 relative shadow-inner">
                                                                   <div className="flex justify-between items-center mb-3">
                                                                       <span className="text-xs font-black text-white uppercase tracking-widest">{activeMacroDay.replace('d', 'Día ')}</span>
                                                                   </div>
                                                                   <textarea 
-                                                                      className="w-full h-40 bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-zinc-300 font-mono text-xs leading-relaxed resize-none outline-none focus:border-emerald-500/50 custom-scrollbar placeholder:text-zinc-700"
+                                                                      className="w-full h-40 bg-[#050505] border border-zinc-800/80 rounded-xl p-4 text-zinc-300 font-mono text-xs md:text-sm leading-relaxed resize-none outline-none focus:border-amber-500/50 custom-scrollbar placeholder:text-zinc-700 shadow-inner"
                                                                       placeholder={`Pegue o escriba aquí la rutina del ${activeMacroDay.replace('d', 'Día ')}...`}
                                                                       value={annualPlan[weekNum]?.[activeMacroDay] || ""}
                                                                       onChange={(e) => updateAnnualWeek(weekNum, activeMacroDay, e.target.value)}
@@ -853,7 +855,7 @@ export default function TrainerDashboard() {
 
                                                                <button 
                                                                   onClick={() => pushToMicrocycle(weekNum)}
-                                                                  className="w-full bg-emerald-500 hover:bg-emerald-400 text-black py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)] flex justify-center items-center gap-2"
+                                                                  className="w-full bg-amber-500 hover:bg-amber-400 text-black py-4 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(245,158,11,0.2)] flex justify-center items-center gap-2 active:scale-95"
                                                                >
                                                                   ⚡ Transferir al Dashboard del Atleta
                                                                </button>
@@ -870,70 +872,70 @@ export default function TrainerDashboard() {
 
                         {/* 2. MODO MICROCICLO (Los 7 Días Actuales) */}
                         {routineView === 'micro' && (
-                           <div className="flex-1 flex flex-col h-full gap-4">
-                              <div className="bg-zinc-900/50 border border-zinc-800 rounded-[2rem] p-6 shrink-0">
-                                 <h3 className="text-xs font-black italic text-emerald-500 uppercase tracking-widest mb-4">Etiquetado Estructural (Vista del Atleta)</h3>
+                           <div className="flex-1 flex flex-col h-full gap-6">
+                              <div className="bg-[#0a0a0c] border border-zinc-800/80 rounded-[2rem] p-6 md:p-8 shrink-0 shadow-xl">
+                                 <h3 className="text-xs font-black italic text-amber-500 uppercase tracking-widest mb-4 border-b border-zinc-800/80 pb-3">Etiquetado Estructural (Vista del Atleta)</h3>
                                  <div className="grid md:grid-cols-3 gap-4">
-                                    <div className="bg-black/50 p-4 rounded-xl border border-zinc-800 focus-within:border-emerald-500/50 transition-colors">
-                                       <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-2">Macrociclo</p>
-                                       <input type="text" className="bg-transparent text-sm font-bold text-white w-full outline-none placeholder:text-zinc-700" value={cycles.macro} placeholder="Ej: Temporada Pre-Competitiva" onChange={(e) => setCycles({...cycles, macro: e.target.value})} />
+                                    <div className="bg-[#050505] p-4 rounded-xl border border-zinc-800 focus-within:border-amber-500/50 transition-colors shadow-inner">
+                                       <p className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Macrociclo</p>
+                                       <input type="text" className="bg-transparent text-sm md:text-base font-bold text-white w-full outline-none placeholder:text-zinc-700" value={cycles.macro} placeholder="Ej: Temporada Pre-Competitiva" onChange={(e) => setCycles({...cycles, macro: e.target.value})} />
                                     </div>
-                                    <div className="bg-black/50 p-4 rounded-xl border border-zinc-800 focus-within:border-emerald-500/50 transition-colors">
-                                       <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-2">Mesociclo</p>
-                                       <input type="text" className="bg-transparent text-sm font-bold text-white w-full outline-none placeholder:text-zinc-700" value={cycles.meso} placeholder="Ej: Bloque 1 - Fuerza Base" onChange={(e) => setCycles({...cycles, meso: e.target.value})} />
+                                    <div className="bg-[#050505] p-4 rounded-xl border border-zinc-800 focus-within:border-amber-500/50 transition-colors shadow-inner">
+                                       <p className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Mesociclo</p>
+                                       <input type="text" className="bg-transparent text-sm md:text-base font-bold text-white w-full outline-none placeholder:text-zinc-700" value={cycles.meso} placeholder="Ej: Bloque 1 - Fuerza Base" onChange={(e) => setCycles({...cycles, meso: e.target.value})} />
                                     </div>
-                                    <div className="bg-emerald-950/20 p-4 rounded-xl border border-emerald-500/30 focus-within:border-emerald-500 transition-colors shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-                                       <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-2 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Microciclo</p>
-                                       <input type="text" className="bg-transparent text-sm font-black text-emerald-400 w-full outline-none placeholder:text-emerald-900" value={cycles.micro} placeholder="Ej: Semana 3 - Descarga" onChange={(e) => setCycles({...cycles, micro: e.target.value})} />
+                                    <div className="bg-amber-950/20 p-4 rounded-xl border border-amber-500/30 focus-within:border-amber-500 transition-colors shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                                       <p className="text-[9px] md:text-[10px] font-black text-amber-500 uppercase tracking-widest mb-2 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Microciclo</p>
+                                       <input type="text" className="bg-transparent text-sm md:text-base font-black text-amber-400 w-full outline-none placeholder:text-amber-900" value={cycles.micro} placeholder="Ej: Semana 3 - Descarga" onChange={(e) => setCycles({...cycles, micro: e.target.value})} />
                                     </div>
                                  </div>
                               </div>
 
-                              <div className="grid lg:grid-cols-3 gap-4 flex-1 min-h-0">
-                                  <div className="lg:col-span-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
+                              <div className="grid lg:grid-cols-3 gap-6 flex-1 min-h-0">
+                                  <div className="lg:col-span-1 space-y-3 overflow-y-auto pr-2 custom-scrollbar bg-[#0a0a0c] p-4 rounded-[2rem] border border-zinc-800/80 shadow-xl">
                                       {['d1','d2','d3','d4','d5','d6','d7'].map(day => (
-                                          <button key={day} onClick={() => setActiveDay(day)} className={`w-full text-left px-5 py-4 rounded-xl border font-black uppercase text-xs tracking-widest transition-all flex justify-between items-center ${activeDay === day ? 'bg-emerald-500 text-black border-emerald-500' : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-zinc-700'}`}>
+                                          <button key={day} onClick={() => setActiveDay(day)} className={`w-full text-left px-5 py-4 md:py-5 rounded-xl font-black uppercase text-xs md:text-sm tracking-widest transition-all flex justify-between items-center border ${activeDay === day ? 'bg-amber-500 text-black border-amber-400 shadow-md' : 'bg-[#050505] text-zinc-400 border-zinc-800 hover:border-zinc-600 shadow-inner'}`}>
                                               {day.replace('d', 'Día ')}
                                               <div className="flex items-center gap-2">
-                                                 {logs[day] && <span title="Bitácora registrada" className="text-sm">📓</span>}
-                                                 {routine[day] && <span className={`text-[8px] px-2 py-0.5 rounded-full ${activeDay === day ? 'bg-black/20 text-black' : 'bg-emerald-500/20 text-emerald-500'}`}>OK</span>}
+                                                 {logs[day] && <span title="Bitácora registrada" className="text-sm md:text-base drop-shadow-md">📓</span>}
+                                                 {routine[day] && <span className={`text-[8px] md:text-[9px] px-2 py-0.5 rounded-md border ${activeDay === day ? 'bg-black/20 text-black border-black/30' : 'bg-zinc-800 text-zinc-500 border-zinc-700'}`}>OK</span>}
                                               </div>
                                           </button>
                                       ))}
                                   </div>
 
-                                  <div className="lg:col-span-2 h-full flex flex-col gap-4">
-                                      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex-1 flex flex-col shadow-2xl relative overflow-hidden">
-                                          <div className="absolute top-0 right-0 w-full h-40 bg-gradient-to-b from-indigo-900/10 to-transparent pointer-events-none"></div>
+                                  <div className="lg:col-span-2 h-full flex flex-col gap-6">
+                                      <div className="bg-[#0a0a0c] border border-zinc-800/80 rounded-[2rem] p-6 md:p-8 flex-1 flex flex-col shadow-2xl relative overflow-hidden">
+                                          <div className="absolute top-0 right-0 w-full h-40 bg-gradient-to-b from-blue-900/10 to-transparent pointer-events-none"></div>
                                           
                                           {/* CONSOLA DE DISEÑO CLÍNICA (IA MASTER) */}
-                                          <div className="bg-zinc-950 border border-indigo-500/40 rounded-2xl p-5 mb-6 relative z-10 shadow-lg">
-                                             <div className="flex justify-between items-center mb-4 border-b border-zinc-800 pb-3">
-                                                <span className="text-xs font-black uppercase tracking-widest text-indigo-400 flex items-center gap-2">
-                                                   <span className="text-xl">🧬</span> Consola IA BII-Vintage
+                                          <div className="bg-[#050505] border border-blue-500/40 rounded-2xl p-5 md:p-6 mb-6 relative z-10 shadow-inner">
+                                             <div className="flex justify-between items-center mb-5 border-b border-zinc-800 pb-3">
+                                                <span className="text-xs md:text-sm font-black uppercase tracking-widest text-blue-400 flex items-center gap-2">
+                                                   <span className="text-xl md:text-2xl">🧬</span> Consola IA BII-Vintage
                                                 </span>
                                              </div>
                                              
                                              <div className="grid md:grid-cols-3 gap-4 mb-5">
                                                 <div>
-                                                   <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest mb-1 block">Metodología</label>
-                                                   <select value={aiParams.methodology} onChange={(e) => setAiParams({...aiParams, methodology: e.target.value})} className="w-full bg-black border border-zinc-800 text-white text-[10px] font-bold rounded-lg px-2 py-2 outline-none focus:border-indigo-500">
+                                                   <label className="text-[8px] md:text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 block">Metodología</label>
+                                                   <select value={aiParams.methodology} onChange={(e) => setAiParams({...aiParams, methodology: e.target.value})} className="w-full bg-[#0a0a0c] border border-zinc-800 text-white text-[10px] md:text-xs font-bold rounded-xl px-3 py-2.5 outline-none focus:border-blue-500 appearance-none cursor-pointer">
                                                       <option>Top Set + Backoffs</option>
                                                       <option>Progresión Lineal</option>
                                                       <option>Heavy Duty</option>
                                                    </select>
                                                 </div>
                                                 <div>
-                                                   <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest mb-1 block">Foco</label>
-                                                   <select value={aiParams.focus} onChange={(e) => setAiParams({...aiParams, focus: e.target.value})} className="w-full bg-black border border-zinc-800 text-white text-[10px] font-bold rounded-lg px-2 py-2 outline-none focus:border-indigo-500">
+                                                   <label className="text-[8px] md:text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 block">Foco</label>
+                                                   <select value={aiParams.focus} onChange={(e) => setAiParams({...aiParams, focus: e.target.value})} className="w-full bg-[#0a0a0c] border border-zinc-800 text-white text-[10px] md:text-xs font-bold rounded-xl px-3 py-2.5 outline-none focus:border-blue-500 appearance-none cursor-pointer">
                                                       <option>Hipertrofia</option>
                                                       <option>Fuerza Max</option>
                                                       <option>Bombeo</option>
                                                    </select>
                                                 </div>
                                                 <div>
-                                                   <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest mb-1 block">RPE</label>
-                                                   <select value={aiParams.rpe} onChange={(e) => setAiParams({...aiParams, rpe: e.target.value})} className="w-full bg-black border border-zinc-800 text-white text-[10px] font-bold rounded-lg px-2 py-2 outline-none focus:border-indigo-500">
+                                                   <label className="text-[8px] md:text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 block">RPE</label>
+                                                   <select value={aiParams.rpe} onChange={(e) => setAiParams({...aiParams, rpe: e.target.value})} className="w-full bg-[#0a0a0c] border border-zinc-800 text-white text-[10px] md:text-xs font-bold rounded-xl px-3 py-2.5 outline-none focus:border-blue-500 appearance-none cursor-pointer">
                                                       <option>RPE 8-9</option>
                                                       <option>RPE 10</option>
                                                       <option>RPE 6 (Descarga)</option>
@@ -941,27 +943,33 @@ export default function TrainerDashboard() {
                                                 </div>
                                              </div>
                                              
-                                             <div className="flex flex-col md:flex-row gap-3">
-                                                <button onClick={handleCopilot} disabled={generatingCopilot || generatingWeek} className={`flex-1 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg border ${generatingCopilot ? 'bg-zinc-900 border-zinc-800 text-zinc-600' : 'bg-zinc-950 border-indigo-500/50 text-indigo-400 hover:bg-indigo-900/30'}`}>
+                                             <div className="flex flex-col sm:flex-row gap-3">
+                                                <button onClick={handleCopilot} disabled={generatingCopilot || generatingWeek} className={`flex-1 py-3.5 md:py-4 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg border ${generatingCopilot ? 'bg-zinc-900 border-zinc-800 text-zinc-600' : 'bg-blue-950/40 border-blue-500/50 text-blue-400 hover:bg-blue-900/50'}`}>
                                                    {generatingCopilot ? "Procesando..." : "⚡ Sintetizar Día"}
                                                 </button>
-                                                <button onClick={handleGenerateFullWeek} disabled={generatingCopilot || generatingWeek} className={`flex-1 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${generatingWeek ? 'bg-zinc-900 text-zinc-600' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}`}>
+                                                <button onClick={handleGenerateFullWeek} disabled={generatingCopilot || generatingWeek} className={`flex-1 py-3.5 md:py-4 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 active:scale-95 ${generatingWeek ? 'bg-zinc-900 text-zinc-600' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)]'}`}>
                                                    {generatingWeek ? "Construyendo..." : "📅 Auto-Llenar Semana"}
                                                 </button>
                                              </div>
                                           </div>
 
-                                          <div className="flex flex-col md:flex-row justify-between mb-4 items-start md:items-center gap-4 relative z-10 border-b border-zinc-800/50 pb-4">
-                                              <div><h3 className="text-sm font-black italic uppercase text-white">Bloque Operativo: {activeDay.replace('d', 'Día ')}</h3></div>
+                                          <div className="flex flex-col md:flex-row justify-between mb-4 items-start md:items-center gap-4 relative z-10 border-b border-zinc-800/80 pb-4">
+                                              <div><h3 className="text-sm md:text-base font-black italic uppercase text-white tracking-tight">Bloque Operativo: <span className="text-amber-500">{activeDay.replace('d', 'Día ')}</span></h3></div>
                                               <div className="flex items-center gap-3 w-full md:w-auto">
-                                                 <select onChange={handleApplyTemplate} className="bg-black border border-zinc-700 hover:border-emerald-500 text-zinc-300 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 outline-none transition-all cursor-pointer shadow-lg w-full md:w-48 appearance-none" defaultValue="">
+                                                 <select onChange={handleApplyTemplate} className="bg-[#050505] border border-zinc-700 hover:border-amber-500 text-zinc-300 text-[10px] md:text-xs font-black uppercase tracking-widest rounded-xl px-4 py-2.5 outline-none transition-all cursor-pointer shadow-inner w-full md:w-auto appearance-none" defaultValue="">
                                                     <option value="" disabled>Inyectar Plantilla...</option>
                                                     {templates.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
                                                  </select>
                                               </div>
                                           </div>
 
-                                          <textarea className="w-full flex-1 bg-black border border-zinc-800 rounded-xl p-4 text-zinc-300 font-mono text-sm leading-relaxed focus:border-emerald-500 outline-none resize-none transition-all placeholder:text-zinc-800 relative z-10 custom-scrollbar" placeholder={`Espacio de diseño estructural...`} value={routine[activeDay]} onChange={(e) => setRoutine({...routine, [activeDay]: e.target.value})} spellCheck={false}></textarea>
+                                          <textarea 
+                                             className="w-full flex-1 bg-[#050505] border border-zinc-800 rounded-2xl p-5 md:p-6 text-zinc-200 font-mono text-sm md:text-base leading-relaxed focus:border-amber-500/50 outline-none resize-none transition-all placeholder:text-zinc-700 relative z-10 custom-scrollbar shadow-inner" 
+                                             placeholder={`Espacio de diseño estructural...`} 
+                                             value={routine[activeDay]} 
+                                             onChange={(e) => setRoutine({...routine, [activeDay]: e.target.value})} 
+                                             spellCheck={false}
+                                          ></textarea>
                                       </div>
                                   </div>
                               </div>
@@ -969,18 +977,18 @@ export default function TrainerDashboard() {
                         )}
                     </div>
 
-                    {/* COLUMNA DERECHA: 🔥 EL BUZÓN IA (SIEMPRE VISIBLE) 🔥 */}
+                    {/* COLUMNA DERECHA: 🔥 EL BUZÓN IA (SIEMPRE VISIBLE EN AZUL) 🔥 */}
                     <div className="lg:col-span-1 h-full flex flex-col">
-                        <div className="bg-indigo-950/10 border border-indigo-500/30 rounded-[2rem] p-6 shadow-2xl flex-1 flex flex-col relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none -mr-10 -mt-10"></div>
-                            <h3 className="text-indigo-400 text-sm font-black uppercase tracking-widest mb-2 flex items-center gap-2 border-b border-indigo-500/30 pb-4">
-                                <span className="text-xl">📥</span> Buzón de IA
+                        <div className="bg-[#0a0a0c] border border-blue-900/30 rounded-[2rem] p-6 md:p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)] flex-1 flex flex-col relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 rounded-full blur-[80px] pointer-events-none -mr-10 -mt-10"></div>
+                            <h3 className="text-blue-400 text-sm md:text-base font-black uppercase tracking-widest mb-3 flex items-center gap-2 border-b border-blue-900/50 pb-4 relative z-10">
+                                <span className="text-xl md:text-2xl">📥</span> Buzón de IA
                             </h3>
-                            <p className="text-[10px] text-zinc-400 font-medium mb-4 leading-relaxed">
+                            <p className="text-[10px] md:text-xs text-zinc-400 font-medium mb-6 leading-relaxed relative z-10">
                                 Textos generados en la pantalla de Órdenes. Copia de aquí y pega en las cajas de la izquierda. Este texto es PRIVADO y el atleta NO lo ve.
                             </p>
                             <textarea 
-                                className="w-full flex-1 bg-black/60 border border-indigo-500/20 rounded-xl p-4 text-zinc-300 font-mono text-[10px] md:text-xs leading-relaxed resize-none outline-none focus:border-indigo-500 custom-scrollbar"
+                                className="w-full flex-1 bg-[#050505] border border-blue-500/20 rounded-2xl p-5 text-zinc-300 font-mono text-[10px] md:text-xs leading-relaxed resize-none outline-none focus:border-blue-500 custom-scrollbar shadow-inner relative z-10"
                                 placeholder="Las rutinas de 4 semanas generadas por la IA aparecerán aquí..."
                                 value={aiDraftText}
                                 onChange={(e) => setAiDraftText(e.target.value)}
@@ -996,67 +1004,75 @@ export default function TrainerDashboard() {
         {/* ─── PESTAÑA VIDEOS Y DIAGNÓSTICO CLÍNICO ─── */}
         {activeTab === 'videos' && (
             <div className="space-y-8 animate-in fade-in duration-500">
-                <div className="bg-indigo-950/20 border border-indigo-500/30 p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                      <h3 className="text-indigo-400 font-black uppercase tracking-widest text-xs flex items-center gap-2">
-                         <span className="text-xl">🧠</span> Tujague AI: Biomecánica & Patologías de Movimiento
+                <div className="bg-blue-950/10 border border-blue-500/30 p-6 rounded-[2rem] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[50px] pointer-events-none"></div>
+                    <div className="relative z-10">
+                      <h3 className="text-blue-400 font-black uppercase tracking-widest text-sm flex items-center gap-2">
+                         <span className="text-2xl">🧠</span> Tujague AI: Biomecánica & Patologías de Movimiento
                       </h3>
-                      <p className="text-zinc-400 text-[11px] mt-1 uppercase font-bold tracking-tight">Utilice la matriz de Snippets para diagnósticos rápidos o el micrófono para dictados complejos.</p>
+                      <p className="text-zinc-400 text-[11px] mt-2 uppercase font-bold tracking-tight">Utilice la matriz de Snippets para diagnósticos rápidos o el micrófono para dictados complejos.</p>
                     </div>
                     {isRecording && (
-                       <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/50 text-red-500 px-4 py-2 rounded-full animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.4)]">
-                          <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                          <span className="text-[9px] font-black uppercase tracking-widest">Micrófono Activo</span>
+                       <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/50 text-red-500 px-5 py-2.5 rounded-full animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.4)] relative z-10">
+                          <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                          <span className="text-[10px] font-black uppercase tracking-widest">Micrófono Activo</span>
                        </div>
                     )}
                 </div>
 
                 <div className="grid grid-cols-1 gap-10">
                 {videoLifts.map(lift => (
-                    <div key={lift.id} className={`bg-[#0a0a0a] border ${isRecording === lift.id ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.15)]' : 'border-zinc-800'} rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col xl:flex-row min-h-[500px] transition-all`}>
-                        <div className="w-full xl:w-[450px] bg-black flex flex-col p-6 border-b xl:border-b-0 xl:border-r border-zinc-800 relative shrink-0">
-                            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-4">{lift.name}</span>
-                            <div className="flex-1 flex items-center justify-center bg-zinc-950 rounded-3xl border border-zinc-900 overflow-hidden relative">
+                    <div key={lift.id} className={`bg-[#0a0a0c] border ${isRecording === lift.id ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.15)]' : 'border-zinc-800/80'} rounded-[2.5rem] overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col xl:flex-row min-h-[500px] transition-all`}>
+                        <div className="w-full xl:w-[450px] bg-[#050505] flex flex-col p-6 border-b xl:border-b-0 xl:border-r border-zinc-800 relative shrink-0 shadow-inner">
+                            <span className="text-[10px] md:text-xs font-black text-amber-500 uppercase tracking-[0.2em] mb-4 border-b border-zinc-800 pb-3">{lift.name}</span>
+                            <div className="flex-1 flex items-center justify-center bg-black rounded-3xl border border-zinc-800 overflow-hidden relative shadow-inner">
                                 {order[`video_${lift.id}`] ? (
                                     <video src={order[`video_${lift.id}`]} controls className="w-full h-full object-contain" />
                                 ) : (
-                                    <div className="text-zinc-700 text-center uppercase font-black text-[10px]">Material Clínico Ausente</div>
+                                    <div className="text-zinc-700 text-center uppercase font-black text-[10px] flex flex-col items-center gap-2">
+                                        <span className="text-3xl opacity-50">🔒</span>
+                                        Material Clínico Ausente
+                                    </div>
                                 )}
                             </div>
                         </div>
 
-                        <div className="flex-1 p-6 md:p-8 flex flex-col gap-6 bg-[#0a0a0a] min-w-0">
+                        <div className="flex-1 p-6 md:p-10 flex flex-col gap-6 bg-[#0a0a0c] min-w-0">
                             <div className="grid lg:grid-cols-2 gap-8 h-full">
                                 
                                 {/* COLUMNA 1: APUNTES DEL COACH Y DIAGNÓSTICOS RÁPIDOS */}
                                 <div className="flex flex-col min-w-0 h-full">
-                                   <div className="flex justify-between items-center mb-3">
-                                      <label className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">1. Dictamen Base</label>
-                                      <button onClick={() => setAiNotes({...aiNotes, [lift.id]: ""})} className="text-[8px] text-zinc-600 hover:text-white uppercase font-bold transition-colors">Limpiar Base</button>
+                                   <div className="flex justify-between items-center mb-4">
+                                      <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-2">
+                                          <span className="text-base">✍️</span> 1. Dictamen Base
+                                      </label>
+                                      <button onClick={() => setAiNotes({...aiNotes, [lift.id]: ""})} className="text-[9px] text-zinc-500 hover:text-white uppercase font-bold transition-colors bg-zinc-900 px-3 py-1.5 rounded-lg border border-zinc-800">Limpiar</button>
                                    </div>
                                    
-                                   <div className="relative w-full h-32 group mb-3">
+                                   <div className="relative w-full h-40 group mb-4">
                                       <textarea 
-                                         className={`w-full h-full bg-zinc-900/50 border ${isRecording === lift.id ? 'border-red-500/50 text-red-100' : 'border-zinc-800 text-zinc-300'} rounded-2xl p-4 text-xs outline-none focus:border-indigo-500 transition-all resize-none custom-scrollbar`}
-                                         placeholder="Escriba o dicte el fallo biomecánico aquí..."
+                                         className={`w-full h-full bg-[#050505] border ${isRecording === lift.id ? 'border-red-500/50 text-red-100 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'border-zinc-800 text-zinc-300 focus:border-blue-500'} rounded-2xl p-5 text-xs outline-none transition-all resize-none custom-scrollbar shadow-inner`}
+                                         placeholder="Escriba o dicte el fallo biomecánico aquí. Ej: 'Butt wink en excéntrica, perder tensión en core...'"
                                          value={aiNotes[lift.id as keyof typeof aiNotes]}
                                          onChange={e => setAiNotes({...aiNotes, [lift.id]: e.target.value})}
                                       />
                                       <button 
                                          onClick={() => toggleRecording(lift.id)}
-                                         className={`absolute bottom-3 right-3 w-10 h-10 rounded-full flex items-center justify-center transition-all ${isRecording === lift.id ? 'bg-red-500 text-white animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.6)]' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'}`}
+                                         className={`absolute bottom-4 right-4 w-12 h-12 rounded-full flex items-center justify-center transition-all ${isRecording === lift.id ? 'bg-red-500 text-white animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.6)]' : 'bg-zinc-800 border border-zinc-700 text-zinc-400 hover:bg-blue-600 hover:text-white hover:border-blue-500'}`}
                                          title="Dictar notas por voz"
                                       >
-                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
                                       </button>
                                    </div>
 
                                    {/* ✅ EL SELECTOR DE DIAGNÓSTICOS RÁPIDOS (SNIPPETS) */}
                                    {(biomechanicalSnippets as any)[lift.id] && (
-                                       <div className="mb-4 bg-black border border-zinc-800 p-3 rounded-xl flex flex-col gap-2">
-                                           <span className="text-[8px] font-black uppercase text-zinc-500 tracking-widest">Matriz de Patologías (Auto-completar):</span>
+                                       <div className="mb-6 bg-[#050505] border border-zinc-800 p-4 rounded-xl flex flex-col gap-3 shadow-inner">
+                                           <span className="text-[9px] font-black uppercase text-zinc-500 tracking-widest flex items-center gap-2">
+                                               <span>🧩</span> Matriz de Patologías (Auto-completar):
+                                           </span>
                                            <select 
-                                              className="bg-zinc-900 border border-zinc-700 text-xs text-zinc-300 p-2 rounded-lg outline-none cursor-pointer"
+                                              className="bg-[#0a0a0c] border border-zinc-700 text-xs text-zinc-300 p-3 rounded-lg outline-none cursor-pointer appearance-none hover:border-blue-500 transition-colors"
                                               onChange={(e) => {
                                                   if(e.target.value) {
                                                       insertSnippet(lift.id, e.target.value);
@@ -1065,10 +1081,10 @@ export default function TrainerDashboard() {
                                               }}
                                               defaultValue=""
                                            >
-                                               <option value="" disabled>Seleccionar y pegar en Reporte Oficial...</option>
-                                               {(biomechanicalSnippets as any)[lift.id].map((snip: any, idx: number) => (
-                                                   <option key={idx} value={snip.text}>{snip.label}</option>
-                                               ))}
+                                              <option value="" disabled>Seleccionar e inyectar en Reporte Oficial...</option>
+                                              {(biomechanicalSnippets as any)[lift.id].map((snip: any, idx: number) => (
+                                                  <option key={idx} value={snip.text}>{snip.label}</option>
+                                              ))}
                                            </select>
                                        </div>
                                    )}
@@ -1076,35 +1092,38 @@ export default function TrainerDashboard() {
                                    <button 
                                       onClick={() => handleGenerateFeedback(lift.id)}
                                       disabled={generatingAi[lift.id as keyof typeof generatingAi] || !aiNotes[lift.id as keyof typeof aiNotes].trim() || isRecording === lift.id}
-                                      className="mt-auto bg-indigo-600 hover:bg-indigo-500 text-white py-3.5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all disabled:opacity-30 shadow-[0_0_15px_rgba(79,70,229,0.3)]"
+                                      className="mt-auto bg-blue-600 hover:bg-blue-500 text-white py-4 md:py-5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all disabled:opacity-30 shadow-[0_0_20px_rgba(37,99,235,0.3)] active:scale-95"
                                    >
-                                      {generatingAi[lift.id as keyof typeof generatingAi] ? 'Ampliando con Lenguaje Clínico...' : 'Refinar Texto con IA ⚡'}
+                                      {generatingAi[lift.id as keyof typeof generatingAi] ? 'AMPLIANDO CON LENGUAJE CLÍNICO...' : 'REFINAR TEXTO CON IA ⚡'}
                                    </button>
                                 </div>
 
                                 {/* COLUMNA 2: REPORTE OFICIAL AL ATLETA */}
                                 <div className="flex flex-col min-w-0 h-full">
-                                   <div className="flex justify-between items-center mb-3">
-                                      <label className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">2. Reporte Clínico Oficial</label>
-                                      <button onClick={() => setFeedback({...feedback, [lift.id]: ""})} className="text-[8px] text-red-500 hover:text-red-400 uppercase font-bold transition-colors">Limpiar Reporte</button>
+                                   <div className="flex justify-between items-center mb-4">
+                                      <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-2">
+                                          <span className="text-base">📨</span> 2. Reporte Clínico Oficial
+                                      </label>
+                                      <button onClick={() => setFeedback({...feedback, [lift.id]: ""})} className="text-[9px] text-zinc-500 hover:text-white uppercase font-bold transition-colors bg-zinc-900 px-3 py-1.5 rounded-lg border border-zinc-800">Limpiar Final</button>
                                    </div>
                                    <textarea 
-                                      className="w-full flex-1 min-h-[200px] bg-black border border-emerald-900/30 rounded-2xl p-4 text-xs text-white outline-none focus:border-emerald-500 transition-all resize-none custom-scrollbar leading-relaxed"
+                                      className="w-full flex-1 min-h-[250px] bg-[#050505] border border-amber-500/30 rounded-2xl p-5 text-sm text-white outline-none focus:border-amber-500 transition-all resize-none custom-scrollbar leading-relaxed shadow-inner"
                                       value={feedback[lift.id] || ""}
                                       onChange={(e) => setFeedback({...feedback, [lift.id]: e.target.value})}
                                       placeholder="El diagnóstico técnico final estructurado aparecerá aquí..."
                                    />
-                                   <p className="text-[8px] text-zinc-600 text-right mt-2 font-bold uppercase tracking-widest">Visible en el Dashboard del Atleta</p>
+                                   <p className="text-[8px] text-zinc-600 text-right mt-3 font-bold uppercase tracking-widest">Visible en el Dashboard del Atleta</p>
                                 </div>
                             </div>
                             
+                            {/* INSIGHTS OCULTOS DE LA IA PARA EL COACH */}
                             {aiInsights[lift.id as keyof typeof aiInsights] && (
-                               <div className="coach-insight-anim bg-indigo-950/20 border border-indigo-500/20 rounded-2xl p-5 relative">
-                                  <button onClick={() => setAiInsights({...aiInsights, [lift.id]: ""})} className="absolute top-4 right-4 text-indigo-500 hover:text-white font-bold">✕</button>
-                                  <p className="text-[9px] font-black uppercase tracking-widest text-indigo-400 mb-2 flex items-center gap-2">
-                                      <span>🛡️</span> Insight Privado para Head Coach
+                               <div className="coach-insight-anim bg-blue-950/20 border border-blue-500/30 rounded-2xl p-6 relative shadow-inner mt-4">
+                                  <button onClick={() => setAiInsights({...aiInsights, [lift.id]: ""})} className="absolute top-6 right-6 text-blue-500 hover:text-white font-bold bg-black/50 w-8 h-8 rounded-full flex items-center justify-center">✕</button>
+                                  <p className="text-[10px] font-black uppercase tracking-widest text-blue-400 mb-3 flex items-center gap-2 border-b border-blue-900/50 pb-3">
+                                      <span className="text-lg">🛡️</span> Insight Privado para Head Coach
                                   </p>
-                                  <p className="text-xs text-indigo-100/70 italic leading-relaxed">
+                                  <p className="text-xs md:text-sm text-blue-100/80 italic leading-relaxed">
                                       {aiInsights[lift.id as keyof typeof aiInsights]}
                                   </p>
                                </div>
@@ -1119,111 +1138,116 @@ export default function TrainerDashboard() {
         {/* ─── PESTAÑA DATOS (ADMINISTRATIVA) ─── */}
         {activeTab === 'datos' && (
             <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
-                 {/* ✅ SECCIÓN AGREGADA: DIRECTRICES DE RENDIMIENTO CON CARBOS Y GRASAS */}
-                 <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2.5rem] relative overflow-hidden">
-                    <div className="flex justify-between items-center mb-8 relative z-10">
-                        <h3 className="text-xl font-black italic uppercase text-white">Directrices de <span className="text-emerald-500">Rendimiento</span></h3>
-                        <span className="text-[9px] bg-zinc-800 text-zinc-400 px-3 py-1 rounded-full uppercase font-bold tracking-widest">Nutrición & SNC</span>
+                 
+                 {/* ✅ DIRECTRICES DE RENDIMIENTO CON CARBOS Y GRASAS */}
+                 <div className="bg-[#0a0a0c] border border-zinc-800/80 p-8 md:p-12 rounded-[2.5rem] relative overflow-hidden shadow-xl">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 relative z-10 gap-4 border-b border-zinc-800/80 pb-6">
+                        <h3 className="text-2xl font-black italic uppercase text-white">Directrices de <span className="text-amber-500">Rendimiento</span></h3>
+                        <span className="text-[9px] md:text-[10px] bg-amber-500/10 text-amber-500 border border-amber-500/30 px-3 md:px-4 py-1.5 md:py-2 rounded-full uppercase font-bold tracking-widest shadow-sm">Nutrición & SNC</span>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 relative z-10">
-                        <div className="bg-black/50 p-4 rounded-2xl border border-zinc-800 focus-within:border-emerald-500/50 transition-colors">
-                            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">Calorías</p>
-                            <input type="text" className="bg-transparent text-lg font-black text-white w-full outline-none placeholder:text-zinc-700" value={macros.calories} placeholder="Ej: 2800" onChange={(e) => setMacros({...macros, calories: e.target.value})} />
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6 relative z-10">
+                        <div className="bg-[#050505] p-5 rounded-2xl border border-zinc-800 focus-within:border-amber-500/50 transition-colors shadow-inner">
+                            <p className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">Calorías</p>
+                            <input type="text" className="bg-transparent text-xl md:text-2xl font-black text-white w-full outline-none placeholder:text-zinc-800 transition-colors focus:text-amber-400" value={macros.calories} placeholder="Ej: 2800" onChange={(e) => setMacros({...macros, calories: e.target.value})} />
                         </div>
-                        <div className="bg-black/50 p-4 rounded-2xl border border-zinc-800 focus-within:border-emerald-500/50 transition-colors">
-                            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">Proteínas</p>
-                            <input type="text" className="bg-transparent text-lg font-black text-white w-full outline-none placeholder:text-zinc-700" value={macros.protein} placeholder="Ej: 160g" onChange={(e) => setMacros({...macros, protein: e.target.value})} />
+                        <div className="bg-[#050505] p-5 rounded-2xl border border-zinc-800 focus-within:border-amber-500/50 transition-colors shadow-inner">
+                            <p className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">Proteínas</p>
+                            <input type="text" className="bg-transparent text-xl md:text-2xl font-black text-white w-full outline-none placeholder:text-zinc-800 transition-colors focus:text-amber-400" value={macros.protein} placeholder="Ej: 160g" onChange={(e) => setMacros({...macros, protein: e.target.value})} />
                         </div>
-                        <div className="bg-black/50 p-4 rounded-2xl border border-zinc-800 focus-within:border-emerald-500/50 transition-colors">
-                            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">Carbos</p>
-                            <input type="text" className="bg-transparent text-lg font-black text-white w-full outline-none placeholder:text-zinc-700" value={macros.carbs} placeholder="Ej: 300g" onChange={(e) => setMacros({...macros, carbs: e.target.value})} />
+                        <div className="bg-[#050505] p-5 rounded-2xl border border-zinc-800 focus-within:border-amber-500/50 transition-colors shadow-inner">
+                            <p className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">Carbos</p>
+                            <input type="text" className="bg-transparent text-xl md:text-2xl font-black text-white w-full outline-none placeholder:text-zinc-800 transition-colors focus:text-amber-400" value={macros.carbs} placeholder="Ej: 300g" onChange={(e) => setMacros({...macros, carbs: e.target.value})} />
                         </div>
-                        <div className="bg-black/50 p-4 rounded-2xl border border-zinc-800 focus-within:border-emerald-500/50 transition-colors">
-                            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">Grasas</p>
-                            <input type="text" className="bg-transparent text-lg font-black text-white w-full outline-none placeholder:text-zinc-700" value={macros.fats} placeholder="Ej: 70g" onChange={(e) => setMacros({...macros, fats: e.target.value})} />
+                        <div className="bg-[#050505] p-5 rounded-2xl border border-zinc-800 focus-within:border-amber-500/50 transition-colors shadow-inner">
+                            <p className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">Grasas</p>
+                            <input type="text" className="bg-transparent text-xl md:text-2xl font-black text-white w-full outline-none placeholder:text-zinc-800 transition-colors focus:text-amber-400" value={macros.fats} placeholder="Ej: 70g" onChange={(e) => setMacros({...macros, fats: e.target.value})} />
                         </div>
-                        <div className="bg-black/50 p-4 rounded-2xl border border-zinc-800 focus-within:border-emerald-500/50 transition-colors col-span-2 md:col-span-1">
-                            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">Hidratación</p>
-                            <input type="text" className="bg-transparent text-lg font-black text-white w-full outline-none placeholder:text-zinc-700" value={macros.water} placeholder="Ej: 3.5L" onChange={(e) => setMacros({...macros, water: e.target.value})} />
+                        <div className="bg-[#050505] p-5 rounded-2xl border border-zinc-800 focus-within:border-amber-500/50 transition-colors col-span-2 md:col-span-1 shadow-inner">
+                            <p className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">Hidratación</p>
+                            <input type="text" className="bg-transparent text-xl md:text-2xl font-black text-blue-400 w-full outline-none placeholder:text-zinc-800 transition-colors focus:text-blue-300 drop-shadow-md" value={macros.water} placeholder="Ej: 3.5L" onChange={(e) => setMacros({...macros, water: e.target.value})} />
                         </div>
                     </div>
                  </div>
 
-                 <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2.5rem] relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-64 h-64 bg-blue-500/5 rounded-full blur-[80px] pointer-events-none -ml-20 -mt-20"></div>
-                    <h3 className="text-xl font-black italic uppercase text-white mb-6">Gestión de <span className="text-blue-500">Suscripción</span></h3>
+                 <div className="bg-[#0a0a0c] border border-zinc-800/80 p-8 md:p-12 rounded-[2.5rem] relative overflow-hidden shadow-xl">
+                    <div className="absolute top-0 left-0 w-64 h-64 bg-amber-500/5 rounded-full blur-[80px] pointer-events-none -ml-20 -mt-20"></div>
+                    <h3 className="text-2xl font-black italic uppercase text-white mb-8 border-b border-zinc-800/80 pb-6 relative z-10">Gestión de <span className="text-amber-500">Suscripción</span></h3>
+                    
                     {daysLeftCalculated !== null && (
-                        <div className={`mb-6 p-4 rounded-xl border flex items-center gap-3 font-bold text-sm tracking-widest uppercase ${daysLeftCalculated < 0 ? 'bg-red-500/10 border-red-500/50 text-red-500' : daysLeftCalculated <= 3 ? 'bg-amber-500/10 border-amber-500/50 text-amber-500' : 'bg-blue-500/10 border-blue-500/30 text-blue-400'}`}>
-                           <span>⏱️</span> 
-                           {daysLeftCalculated < 0 ? `¡VENCIDO HACE ${Math.abs(daysLeftCalculated)} DÍAS!` : `LE QUEDAN ${daysLeftCalculated} DÍAS DE ACCESO`}
+                        <div className={`mb-8 p-5 rounded-2xl border flex items-center gap-4 font-black text-xs md:text-sm tracking-widest uppercase relative z-10 shadow-md ${daysLeftCalculated < 0 ? 'bg-red-500/10 border-red-500/50 text-red-500' : daysLeftCalculated <= 3 ? 'bg-orange-500/10 border-orange-500/50 text-orange-500 animate-pulse' : 'bg-amber-500/10 border-amber-500/30 text-amber-500'}`}>
+                           <span className="text-2xl">⏱️</span> 
+                           {daysLeftCalculated < 0 ? `¡VENCIDO HACE ${Math.abs(daysLeftCalculated)} DÍAS!` : `LE QUEDAN ${daysLeftCalculated} DÍAS DE ACCESO AL PANEL`}
                         </div>
                     )}
                     
-                    <div className="grid md:grid-cols-2 gap-6 mb-6 relative z-10">
-                        <div className="bg-black/50 p-5 rounded-2xl border border-zinc-800">
-                            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Estado del Acceso</p>
-                            <select value={subStatus} onChange={(e) => setSubStatus(e.target.value)} className={`w-full bg-transparent text-xl font-black outline-none transition-colors ${subStatus === 'active' ? 'text-emerald-400' : 'text-red-400'}`}>
-                                <option value="active" className="text-black">ACTIVO (Permitir Ingreso)</option>
-                                <option value="vencido" className="text-black">VENCIDO (Bloquear Panel)</option>
+                    <div className="grid md:grid-cols-2 gap-6 mb-8 relative z-10">
+                        <div className="bg-[#050505] p-6 rounded-2xl border border-zinc-800 shadow-inner">
+                            <p className="text-[10px] md:text-[11px] font-black text-zinc-500 uppercase tracking-widest mb-3">Estado del Acceso</p>
+                            <select value={subStatus} onChange={(e) => setSubStatus(e.target.value)} className={`w-full bg-transparent text-xl md:text-2xl font-black outline-none transition-colors cursor-pointer appearance-none ${subStatus === 'active' ? 'text-emerald-400' : 'text-red-400'}`}>
+                                <option value="active" className="bg-[#050505] text-emerald-500">ACTIVO (Permitir Ingreso)</option>
+                                <option value="vencido" className="bg-[#050505] text-red-500">VENCIDO (Bloquear Panel)</option>
                             </select>
                         </div>
-                        <div className="bg-black/50 p-5 rounded-2xl border border-zinc-800">
-                            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 flex justify-between"><span>Elegir Fecha Manual:</span></p>
-                            <input type="date" className="bg-transparent text-xl font-black text-white w-full outline-none color-scheme-dark cursor-pointer hover:text-emerald-400 transition-colors" value={expiresAt} onChange={(e) => handleManualDateChange(e.target.value)} />
+                        <div className="bg-[#050505] p-6 rounded-2xl border border-zinc-800 shadow-inner">
+                            <p className="text-[10px] md:text-[11px] font-black text-zinc-500 uppercase tracking-widest mb-3">Elegir Fecha Manual</p>
+                            <input type="date" className="bg-transparent text-xl md:text-2xl font-black text-white w-full outline-none color-scheme-dark cursor-pointer hover:text-amber-400 transition-colors" value={expiresAt} onChange={(e) => handleManualDateChange(e.target.value)} />
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-3 relative z-10">
-                        <button onClick={() => adjustDaysToExpire(30)} className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">+ Sumar 30 Días (Mes)</button>
-                        <button onClick={() => adjustDaysToExpire(7)} className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">+ Sumar 7 Días (Semana)</button>
-                        <button onClick={() => adjustDaysToExpire(-7)} className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ml-auto">- Restar 7 Días</button>
+                    <div className="flex flex-col sm:flex-row flex-wrap gap-3 md:gap-4 relative z-10 border-b border-zinc-800/80 pb-8 mb-8">
+                        <button onClick={() => adjustDaysToExpire(30)} className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-3.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all shadow-md active:scale-95">+ Sumar 30 Días</button>
+                        <button onClick={() => adjustDaysToExpire(7)} className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-3.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all shadow-md active:scale-95">+ Sumar 7 Días</button>
+                        <button onClick={() => adjustDaysToExpire(-7)} className="flex-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 px-4 py-3.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all active:scale-95">- Restar 7 Días</button>
                     </div>
 
-                    <div className="mt-8 pt-6 border-t border-zinc-800 relative z-10">
-                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">Protocolo de Retención Logística</p>
+                    <div className="relative z-10">
+                        <p className="text-[10px] md:text-xs font-black text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2"><span className="text-lg">💬</span> Protocolo de Retención Logística</p>
                         <div className="flex flex-col md:flex-row gap-4">
-                           <input type="text" placeholder="Ej: 5491123021760 (Sin el +)" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} className="flex-1 bg-black/50 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-500/50" />
-                           <a href={customerPhone ? `https://wa.me/${customerPhone}?text=Hola%20bestia!%20Faltan%20pocos%20días%20para%20que%20termine%20tu%20ciclo.%20Venís%20rindiendo%20excelente.%20¿Te%20genero%20el%20link%20del%20próximo%20mes%20así%20no%20perdemos%20el%20ritmo?` : "#"} target={customerPhone ? "_blank" : "_self"} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${customerPhone ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)]' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}>Enviar Aviso de Renovación 💬</a>
+                           <input type="text" placeholder="Teléfono. Ej: 5491123021760" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} className="flex-1 bg-[#050505] border border-zinc-800 rounded-xl px-5 py-4 text-white text-sm md:text-base font-bold outline-none focus:border-green-500 transition-colors shadow-inner" />
+                           <a href={customerPhone ? `https://wa.me/${customerPhone}?text=Hola%20bestia!%20Faltan%20pocos%20días%20para%20que%20termine%20tu%20ciclo.%20Venís%20rindiendo%20excelente.%20¿Te%20genero%20el%20link%20del%20próximo%20mes%20así%20no%20perdemos%20el%20ritmo?` : "#"} target={customerPhone ? "_blank" : "_self"} className={`px-8 py-4 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all shrink-0 ${customerPhone ? 'bg-[#25D366] hover:bg-[#20bd5a] text-black shadow-[0_0_20px_rgba(37,211,102,0.3)] active:scale-95' : 'bg-zinc-900 border border-zinc-800 text-zinc-600 cursor-not-allowed'}`}>Enviar Aviso WhatsApp</a>
                         </div>
                     </div>
                  </div>
 
-                 <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2.5rem] relative overflow-hidden">
-                    <div className="flex justify-between items-center mb-8 relative z-10">
-                        <h3 className="text-xl font-black italic uppercase text-white">Último <span className="text-emerald-500">Check-In</span></h3>
-                        <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full uppercase font-bold tracking-widest">Reporte de Fatiga</span>
+                 <div className="bg-[#0a0a0c] border border-zinc-800/80 p-8 md:p-12 rounded-[2.5rem] relative overflow-hidden shadow-xl">
+                    <div className="flex justify-between items-center mb-8 relative z-10 border-b border-zinc-800/80 pb-6">
+                        <h3 className="text-2xl font-black italic uppercase text-white">Último <span className="text-amber-500">Check-In</span></h3>
+                        <span className="text-[9px] md:text-[10px] bg-amber-500/10 text-amber-500 border border-amber-500/30 px-3 md:px-4 py-1.5 md:py-2 rounded-full uppercase font-bold tracking-widest shadow-sm">Reporte de Fatiga</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-6 mb-6 relative z-10">
-                        <div className="bg-black/50 p-6 rounded-3xl border border-zinc-800"><p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Peso Corporal</p><p className="text-3xl font-black text-white">{order.checkin_weight || '--'} <span className="text-xs text-zinc-600 ml-1">KG</span></p></div>
-                        <div className="bg-black/50 p-6 rounded-3xl border border-zinc-800"><p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Horas de Sueño</p><p className="text-3xl font-black text-white">{order.checkin_sleep || '--'} <span className="text-xs text-zinc-600 ml-1">HRS</span></p></div>
-                        <div className="bg-black/50 p-6 rounded-3xl border border-zinc-800"><p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Estrés General</p><p className="text-3xl font-black text-emerald-400">{order.checkin_stress || '--'} <span className="text-xs text-zinc-600 ml-1">/ 10</span></p></div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8 relative z-10">
+                        <div className="bg-[#050505] p-6 md:p-8 rounded-[2rem] border border-zinc-800 text-center shadow-inner"><p className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Peso Corporal</p><p className="text-4xl md:text-5xl font-black text-white">{order.checkin_weight || '--'} <span className="text-xs md:text-sm text-zinc-600 ml-1">KG</span></p></div>
+                        <div className="bg-[#050505] p-6 md:p-8 rounded-[2rem] border border-zinc-800 text-center shadow-inner"><p className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Horas de Sueño</p><p className="text-4xl md:text-5xl font-black text-white">{order.checkin_sleep || '--'} <span className="text-xs md:text-sm text-zinc-600 ml-1">HRS</span></p></div>
+                        <div className="bg-[#050505] p-6 md:p-8 rounded-[2rem] border border-zinc-800 text-center shadow-inner"><p className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Estrés General</p><p className="text-4xl md:text-5xl font-black text-amber-400 drop-shadow-md">{order.checkin_stress || '--'} <span className="text-xs md:text-sm text-zinc-600 ml-1">/ 10</span></p></div>
                     </div>
-                    <div className="bg-black/50 p-6 rounded-2xl border border-zinc-800 relative z-10">
-                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Notas del Atleta</p>
-                        <p className="text-sm text-zinc-300 italic font-medium">{order.checkin_notes || 'El atleta no dejó notas adicionales en su último reporte.'}</p>
+                    <div className="bg-[#050505] p-6 md:p-8 rounded-3xl border border-zinc-800 relative z-10 shadow-inner">
+                        <p className="text-[10px] md:text-xs font-black text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2"><span className="text-lg">📝</span> Notas del Atleta</p>
+                        <p className="text-sm md:text-base text-zinc-300 italic font-medium leading-relaxed">{order.checkin_notes || 'El atleta no dejó notas adicionales en su último reporte.'}</p>
                     </div>
                  </div>
 
-                 <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2.5rem]">
-                    <h3 className="text-xl font-black italic uppercase mb-8 text-center">Marcas Históricas (1RM)</h3>
+                 <div className="bg-[#0a0a0c] border border-zinc-800/80 p-8 md:p-12 rounded-[2.5rem] shadow-xl">
+                    <h3 className="text-2xl font-black italic uppercase mb-8 border-b border-zinc-800/80 pb-6 text-white">Marcas Históricas <span className="text-amber-500">(1RM)</span></h3>
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6">
                         {[ { id: 'squat', name: 'Sentadilla' }, { id: 'bench', name: 'Banca' }, { id: 'deadlift', name: 'P. Muerto' }, { id: 'military', name: 'Militar' }, { id: 'dips', name: 'Fondos' } ].map(lift => (
-                            <div key={lift.id} className="bg-black p-4 md:p-6 rounded-3xl border border-zinc-800 text-center relative group">
-                                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4">{lift.name}</p>
+                            <div key={lift.id} className="bg-[#050505] p-4 md:p-6 rounded-3xl border border-zinc-800 text-center relative group hover:border-amber-500/50 transition-colors shadow-inner">
+                                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4 group-hover:text-amber-400 transition-colors">{lift.name}</p>
                                 <div className="relative">
-                                    <input type="text" className="bg-transparent text-center text-3xl md:text-4xl font-black text-white w-full outline-none z-10 relative" value={rms[lift.id as keyof typeof rms]} placeholder="0" onChange={(e) => setRms({...rms, [lift.id]: e.target.value})} />
-                                    <span className="absolute top-1/2 -translate-y-1/2 right-2 md:right-4 text-zinc-700 text-[10px] md:text-xs font-black">KG</span>
+                                    <input type="text" className="bg-transparent text-center text-3xl md:text-4xl font-black text-white w-full outline-none z-10 relative focus:text-amber-400 transition-colors placeholder:text-zinc-800" value={rms[lift.id as keyof typeof rms]} placeholder="0" onChange={(e) => setRms({...rms, [lift.id]: e.target.value})} />
+                                    <span className="absolute top-1/2 -translate-y-1/2 right-0 md:right-2 text-zinc-700 text-[10px] md:text-xs font-black">KG</span>
                                 </div>
                             </div>
                         ))}
                     </div>
                  </div>
                  
-                 <div className="bg-zinc-900/30 border border-zinc-800/50 p-8 rounded-[2rem]">
-                    <h3 className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-6">Credenciales de Acceso</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-black p-4 rounded-xl border border-zinc-800"><p className="text-[9px] text-zinc-500 uppercase mb-1">Usuario</p><p className="text-sm font-bold text-white break-all">{order.customer_email}</p></div>
-                        <div className="bg-black p-4 rounded-xl border border-zinc-800"><p className="text-[9px] text-zinc-500 uppercase mb-1">Contraseña</p><p className="text-sm font-mono text-emerald-400">{order.password || '••••••'}</p></div>
+                 <div className="bg-black border border-zinc-800 p-8 md:p-10 rounded-[2.5rem] shadow-inner text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div>
+                       <h3 className="text-xs md:text-sm font-black text-zinc-500 uppercase tracking-widest mb-2">Credenciales de Acceso</h3>
+                       <p className="text-xs text-zinc-600 font-medium">Información de login del atleta.</p>
+                    </div>
+                    <div className="flex gap-4 w-full md:w-auto">
+                        <div className="flex-1 md:flex-none bg-[#0a0a0c] px-6 py-4 rounded-2xl border border-zinc-800"><p className="text-[8px] md:text-[9px] text-zinc-500 uppercase font-black tracking-widest mb-1">Usuario</p><p className="text-sm font-bold text-white break-all">{order.customer_email}</p></div>
+                        <div className="flex-1 md:flex-none bg-[#0a0a0c] px-6 py-4 rounded-2xl border border-zinc-800"><p className="text-[8px] md:text-[9px] text-zinc-500 uppercase font-black tracking-widest mb-1">Contraseña</p><p className="text-sm font-mono text-amber-400">{order.password || '••••••'}</p></div>
                     </div>
                  </div>
 
@@ -1232,9 +1256,10 @@ export default function TrainerDashboard() {
       </div>
 
       <style dangerouslySetInnerHTML={{__html: `
-        .custom-scrollbar::-webkit-scrollbar { width: 3px; height: 3px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #10b981; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(245, 158, 11, 0.4); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(245, 158, 11, 0.8); }
         
         textarea {
            white-space: pre-wrap !important; 

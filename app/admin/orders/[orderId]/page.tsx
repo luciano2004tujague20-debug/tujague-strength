@@ -304,48 +304,51 @@ export default function AdminOrderPaymentPage() {
       { id: 'military', label: 'Press Militar' }
   ];
 
-  if (loading) return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-emerald-500 font-black animate-pulse uppercase tracking-widest text-xs md:text-sm">Cargando Ficha del Atleta...</div>;
-  if (!order) return <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center font-black text-xl">Orden no encontrada.</div>;
+  if (loading) return <div className="min-h-screen bg-[#000000] flex items-center justify-center text-amber-500 font-black animate-pulse uppercase tracking-widest text-xs md:text-sm">Cargando Ficha del Atleta...</div>;
+  if (!order) return <div className="min-h-screen bg-[#000000] text-white flex items-center justify-center font-black text-xl">Orden no encontrada.</div>;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white font-sans pb-20 selection:bg-emerald-500 selection:text-black">
+    <div className="min-h-screen bg-[#000000] text-white font-sans pb-20 selection:bg-amber-500 selection:text-black relative">
       
+      {/* Fondo Glow VIP */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-amber-500/5 rounded-full blur-[150px] pointer-events-none"></div>
+
       {/* ─── NAVBAR SUPERIOR ─── */}
-      <div className="sticky top-0 z-50 bg-[#0a0a0c]/90 backdrop-blur-xl border-b border-white/5 px-4 md:px-8 py-4 flex items-center justify-between shadow-lg">
+      <div className="sticky top-0 z-50 bg-[#0a0a0c]/95 backdrop-blur-2xl border-b border-zinc-800/80 px-4 md:px-8 py-4 flex items-center justify-between shadow-lg">
           <div className="flex items-center gap-4">
-              <Link href="/admin/orders" className="bg-zinc-900 border border-zinc-800 hover:bg-emerald-500 hover:text-black hover:border-emerald-500 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-xl transition-all font-bold shadow-md shrink-0">
+              <Link href="/admin/orders" className="bg-[#050505] border border-zinc-800 hover:bg-amber-500 hover:text-black hover:border-amber-500 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-xl transition-all font-bold shadow-md shrink-0">
                   ←
               </Link>
               <div>
-                  <h1 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter leading-none">
-                      Perfil del <span className="text-emerald-500">Atleta</span>
+                  <h1 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter leading-none text-white drop-shadow-md">
+                      Perfil del <span className="text-amber-500">Atleta</span>
                   </h1>
                   <p className="text-[10px] md:text-xs text-zinc-500 font-mono tracking-widest mt-1">ID: {order.order_id.slice(0,12)}...</p>
               </div>
           </div>
           
-          <span className={`text-[9px] md:text-[10px] font-black uppercase px-3 py-1.5 md:px-4 md:py-2 rounded-lg tracking-widest shadow-inner ${
-              order.status === 'paid' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 
-              order.status === 'rejected' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 
-              'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 animate-pulse'
+          <span className={`text-[9px] md:text-[10px] font-black uppercase px-3 py-1.5 md:px-4 md:py-2 rounded-lg tracking-widest shadow-inner border ${
+              order.status === 'paid' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 
+              order.status === 'rejected' ? 'bg-red-500/10 text-red-400 border-red-500/30' : 
+              'bg-yellow-500/10 text-yellow-400 border-yellow-500/30 animate-pulse'
           }`}>
               {order.status === 'paid' ? 'PAGO APROBADO' : order.status === 'rejected' ? 'RECHAZADO' : 'PENDIENTE VERIFICACIÓN'}
           </span>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 md:px-8 mt-8">
+      <div className="max-w-6xl mx-auto px-4 md:px-8 mt-8 relative z-10">
         
         {/* ─── PESTAÑAS DE NAVEGACIÓN PRINCIPAL ─── */}
-        <div className="flex bg-[#0a0a0c] p-2 rounded-[1.5rem] border border-zinc-800 mb-10 shadow-xl overflow-x-auto custom-scrollbar">
+        <div className="flex bg-[#0a0a0c] p-2 rounded-[1.5rem] border border-zinc-800/80 mb-10 shadow-xl overflow-x-auto custom-scrollbar">
             <button 
                 onClick={() => setActiveTab('finanzas')}
-                className={`flex-1 py-4 md:py-5 px-6 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'finanzas' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50'}`}
+                className={`flex-1 py-4 md:py-5 px-6 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'finanzas' ? 'bg-zinc-800 text-white shadow-md border border-zinc-700' : 'text-zinc-500 hover:text-zinc-300 hover:bg-[#050505]'}`}
             >
                 💰 Módulo Administrativo
             </button>
             <button 
                 onClick={() => setActiveTab('coaching')}
-                className={`flex-1 py-4 md:py-5 px-6 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all whitespace-nowrap flex items-center justify-center gap-2 ${activeTab === 'coaching' ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)]' : 'text-zinc-500 hover:text-blue-400 hover:bg-blue-900/10'}`}
+                className={`flex-1 py-4 md:py-5 px-6 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all whitespace-nowrap flex items-center justify-center gap-2 ${activeTab === 'coaching' ? 'bg-zinc-800 text-white shadow-md border border-zinc-700' : 'text-zinc-500 hover:text-white hover:bg-[#050505]'}`}
             >
                 <span className="text-base">🏋️‍♂️</span> Centro de Coaching & IA
             </button>
@@ -361,9 +364,9 @@ export default function AdminOrderPaymentPage() {
                 <div className="lg:col-span-2 space-y-6 md:space-y-8">
                     
                     {/* DATOS CLIENTE */}
-                    <div className="bg-[#0a0a0c] border border-white/5 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-xl relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-[60px] pointer-events-none"></div>
-                        <h3 className="text-emerald-500 text-[10px] md:text-xs font-black uppercase tracking-widest mb-6 md:mb-8 flex items-center justify-between border-b border-zinc-800/80 pb-4">
+                    <div className="bg-[#0a0a0c] border border-zinc-800/80 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-[60px] pointer-events-none"></div>
+                        <h3 className="text-amber-500 text-[10px] md:text-xs font-black uppercase tracking-widest mb-6 md:mb-8 flex items-center justify-between border-b border-zinc-800/80 pb-4">
                             <span>👤 Datos Personales</span>
                             {order.onboarding_data?.phone && (
                                 <a 
@@ -378,19 +381,19 @@ export default function AdminOrderPaymentPage() {
                         </h3>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 relative z-10">
-                            <div className="bg-black/40 p-4 md:p-5 rounded-2xl border border-zinc-800/50">
+                            <div className="bg-[#050505] p-4 md:p-5 rounded-2xl border border-zinc-800/80 shadow-inner">
                                 <p className="text-[9px] md:text-[10px] text-zinc-500 uppercase font-bold mb-1">Nombre Completo</p>
                                 <p className="text-lg md:text-xl font-black text-white capitalize truncate">{order.customer_name}</p>
                             </div>
-                            <div className="bg-black/40 p-4 md:p-5 rounded-2xl border border-zinc-800/50">
+                            <div className="bg-[#050505] p-4 md:p-5 rounded-2xl border border-zinc-800/80 shadow-inner">
                                 <p className="text-[9px] md:text-[10px] text-zinc-500 uppercase font-bold mb-1">Email de Acceso</p>
                                 <p className="text-xs md:text-sm font-mono text-zinc-300 truncate">{order.customer_email}</p>
                             </div>
-                            <div className="bg-black/40 p-4 md:p-5 rounded-2xl border border-zinc-800/50">
+                            <div className="bg-[#050505] p-4 md:p-5 rounded-2xl border border-zinc-800/80 shadow-inner">
                                 <p className="text-[9px] md:text-[10px] text-zinc-500 uppercase font-bold mb-1">Instagram</p>
                                 <p className="text-xs md:text-sm font-bold text-white truncate">{order.customer_instagram || '-'}</p>
                             </div>
-                            <div className="bg-black/40 p-4 md:p-5 rounded-2xl border border-zinc-800/50">
+                            <div className="bg-[#050505] p-4 md:p-5 rounded-2xl border border-zinc-800/80 shadow-inner">
                                 <p className="text-[9px] md:text-[10px] text-zinc-500 uppercase font-bold mb-2">Contraseña de Plataforma</p>
                                 <p className="text-xs font-mono text-zinc-400 bg-zinc-900 px-3 py-1.5 rounded-lg inline-block border border-zinc-800">
                                     {order.password || 'No asignada'}
@@ -400,18 +403,18 @@ export default function AdminOrderPaymentPage() {
                     </div>
 
                     {/* BII-AFFILIATES */}
-                    <div className="bg-gradient-to-br from-emerald-950/20 to-[#0a0a0c] border border-emerald-900/30 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] relative overflow-hidden shadow-xl">
-                        <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-500/5 rounded-full blur-[60px] pointer-events-none"></div>
-                        <h3 className="text-emerald-400 text-[10px] md:text-xs font-black uppercase tracking-widest mb-6 md:mb-8 flex items-center gap-2 border-b border-emerald-900/50 pb-4">
+                    <div className="bg-gradient-to-br from-amber-950/20 to-[#0a0a0c] border border-amber-900/30 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] relative overflow-hidden shadow-xl">
+                        <div className="absolute top-0 right-0 w-40 h-40 bg-amber-500/5 rounded-full blur-[60px] pointer-events-none"></div>
+                        <h3 className="text-amber-400 text-[10px] md:text-xs font-black uppercase tracking-widest mb-6 md:mb-8 flex items-center gap-2 border-b border-amber-900/50 pb-4">
                             🤝 BII-Affiliates (Programa de Referidos)
                         </h3>
                         
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 relative z-10">
-                            <div className="bg-black/60 p-5 md:p-6 rounded-2xl border border-zinc-800 shadow-inner">
+                            <div className="bg-[#050505] p-5 md:p-6 rounded-2xl border border-zinc-800 shadow-inner">
                                 <div className="flex justify-between items-center mb-3">
                                     <p className="text-[9px] md:text-[10px] text-zinc-500 uppercase font-black tracking-widest">Código Propio</p>
                                     {!isEditingCode && (
-                                        <button onClick={() => setIsEditingCode(true)} className="text-[9px] md:text-[10px] text-emerald-500 hover:text-emerald-400 font-bold uppercase underline">
+                                        <button onClick={() => setIsEditingCode(true)} className="text-[9px] md:text-[10px] text-amber-500 hover:text-amber-400 font-bold uppercase underline">
                                             Editar
                                         </button>
                                     )}
@@ -425,12 +428,12 @@ export default function AdminOrderPaymentPage() {
                                                 value={newReferralCode} 
                                                 onChange={(e) => setNewReferralCode(e.target.value.toUpperCase())}
                                                 placeholder="Ej: MARCOS20"
-                                                className="w-full bg-zinc-900 border border-zinc-700 text-white font-mono text-xs md:text-sm p-3 rounded-xl outline-none focus:border-emerald-500 transition-colors"
+                                                className="w-full bg-zinc-900 border border-zinc-700 text-white font-mono text-xs md:text-sm p-3 rounded-xl outline-none focus:border-amber-500 transition-colors"
                                             />
                                             <button onClick={autoGenerateCode} className="text-xl md:text-2xl hover:scale-110 transition-transform" title="Generar Automático">🎲</button>
                                         </div>
                                         <div className="flex gap-2">
-                                            <button onClick={saveReferralCode} disabled={savingCode} className="flex-1 bg-emerald-500 text-black text-[9px] font-black uppercase py-2.5 rounded-lg hover:bg-emerald-400 transition-colors">
+                                            <button onClick={saveReferralCode} disabled={savingCode} className="flex-1 bg-amber-500 text-black text-[9px] font-black uppercase py-2.5 rounded-lg hover:bg-amber-400 transition-colors">
                                                 {savingCode ? '...' : 'Guardar'}
                                             </button>
                                             <button onClick={() => setIsEditingCode(false)} className="flex-1 bg-zinc-800 text-zinc-400 text-[9px] font-black uppercase py-2.5 rounded-lg hover:text-white transition-colors">
@@ -447,14 +450,14 @@ export default function AdminOrderPaymentPage() {
                                 )}
                             </div>
                             
-                            <div className="bg-black/60 p-5 md:p-6 rounded-2xl border border-zinc-800 shadow-inner">
+                            <div className="bg-[#050505] p-5 md:p-6 rounded-2xl border border-zinc-800 shadow-inner">
                                 <p className="text-[9px] md:text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-2">Vino Referido Por</p>
                                 <p className="text-sm md:text-base font-mono font-bold text-orange-400">{order.referred_by || 'ORGÁNICO (Nadie)'}</p>
                             </div>
                             
-                            <div className="bg-emerald-500/10 p-5 md:p-6 rounded-2xl border border-emerald-500/30 shadow-inner flex flex-col justify-center">
-                                <p className="text-[9px] md:text-[10px] text-emerald-500 uppercase font-black tracking-widest mb-1">Billetera Virtual</p>
-                                <p className="text-3xl md:text-4xl font-black italic text-emerald-400 tracking-tighter drop-shadow-md">${Number(order.wallet_balance || 0).toLocaleString()}</p>
+                            <div className="bg-amber-500/10 p-5 md:p-6 rounded-2xl border border-amber-500/30 shadow-inner flex flex-col justify-center">
+                                <p className="text-[9px] md:text-[10px] text-amber-500 uppercase font-black tracking-widest mb-1">Billetera Virtual</p>
+                                <p className="text-3xl md:text-4xl font-black italic text-amber-400 tracking-tighter drop-shadow-md">${Number(order.wallet_balance || 0).toLocaleString()}</p>
                             </div>
                         </div>
                     </div>
@@ -473,7 +476,7 @@ export default function AdminOrderPaymentPage() {
                             <p className="text-sm md:text-base font-black text-white mb-5 uppercase tracking-tight">{order.plans?.name || 'Plan Personalizado'}</p>
                             
                             <p className="text-[9px] md:text-[10px] text-zinc-500 uppercase font-bold mb-1.5">Monto a Cobrar</p>
-                            <p className="text-4xl md:text-5xl font-black italic text-emerald-400 tracking-tighter drop-shadow-md">
+                            <p className="text-4xl md:text-5xl font-black italic text-amber-400 tracking-tighter drop-shadow-md">
                                 ${Number(order.amount_ars).toLocaleString()} <span className="text-sm md:text-base text-zinc-500 not-italic font-bold ml-1">ARS</span>
                             </p>
                             {order.referred_by && (
@@ -489,8 +492,8 @@ export default function AdminOrderPaymentPage() {
                                 disabled={updating || order.status === 'paid'}
                                 className={`py-4 md:py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs transition-all shadow-lg w-full ${
                                     order.status === 'paid' 
-                                    ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 cursor-not-allowed shadow-none' 
-                                    : 'bg-emerald-500 hover:bg-emerald-400 text-black hover:scale-[1.02] active:scale-95 shadow-[0_0_20px_rgba(16,185,129,0.3)]'
+                                    ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20 cursor-not-allowed shadow-none' 
+                                    : 'bg-gradient-to-r from-amber-500 to-amber-400 text-black hover:scale-[1.02] active:scale-95 shadow-[0_0_20px_rgba(245,158,11,0.3)]'
                                 }`}
                             >
                                 {order.status === 'paid' ? '✓ Pago Aprobado' : '✅ Aprobar Pago'}
@@ -499,7 +502,7 @@ export default function AdminOrderPaymentPage() {
                             <button 
                                 onClick={() => updateStatus('rejected')}
                                 disabled={updating || order.status === 'rejected'}
-                                className="w-full bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 border border-yellow-500/20 py-4 md:py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs transition-all active:scale-95"
+                                className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 py-4 md:py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs transition-all active:scale-95"
                             >
                                 🚫 Rechazar
                             </button>
@@ -512,7 +515,7 @@ export default function AdminOrderPaymentPage() {
                                     href={getWhatsAppApprovalLink()}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-black py-4 md:py-5 rounded-2xl font-black uppercase tracking-widest text-[9px] md:text-[10px] transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(37,211,102,0.3)] animate-pulse active:scale-95 hover:animate-none"
+                                    className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-black py-4 md:py-5 rounded-2xl font-black uppercase tracking-widest text-[9px] md:text-[10px] transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(37,211,102,0.3)] active:scale-95"
                                 >
                                     <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 .001 5.383.001 12.029c0 2.124.553 4.195 1.603 6.012L.002 24l6.108-1.601c1.745.952 3.738 1.454 5.92 1.454 6.645 0 12.028-5.383 12.028-12.029C24.059 5.383 18.677 0 12.031 0zm0 20.31c-1.801 0-3.56-.484-5.11-1.401l-.367-.217-3.793.995.998-3.7-.238-.378c-.99-1.583-1.514-3.418-1.514-5.313 0-5.46 4.444-9.905 9.904-9.905 5.46 0 9.906 4.445 9.906 9.905s-4.445 9.905-9.906 9.905zm5.438-7.44c-.298-.15-1.765-.87-2.038-.97-.273-.1-.473-.15-.67.15-.199.298-.771.97-.946 1.17-.174.199-.348.225-.646.075-2.025-.97-3.488-2.613-4.048-3.585-.175-.298-.019-.46.13-.609.135-.135.298-.348.448-.523.15-.175.199-.298.298-.498.1-.199.05-.373-.025-.523-.075-.15-.67-1.611-.918-2.206-.241-.58-.487-.502-.67-.51-.174-.008-.373-.008-.572-.008-.199 0-.523.075-.796.374-.273.298-1.045 1.02-1.045 2.488s1.07 2.886 1.22 3.086c.15.199 2.1 3.208 5.093 4.49 1.831.785 2.493.856 3.468.72 1.05-.148 2.378-.97 2.713-1.91.336-.94.336-1.745.236-1.91-.099-.165-.373-.264-.67-.413z"/></svg>
                                     Avisar Aprobación (WhatsApp)
@@ -524,7 +527,7 @@ export default function AdminOrderPaymentPage() {
                             <button 
                                 onClick={deleteOrder}
                                 disabled={updating}
-                                className="w-full bg-red-950/20 hover:bg-red-600 hover:text-white text-red-500 border border-red-900/40 py-4 rounded-xl font-black uppercase tracking-widest text-[9px] transition-all flex items-center justify-center gap-2"
+                                className="w-full bg-[#050505] hover:bg-red-600 hover:text-white text-zinc-500 border border-zinc-800 hover:border-red-600 py-4 rounded-xl font-black uppercase tracking-widest text-[9px] transition-all flex items-center justify-center gap-2"
                             >
                                 🗑️ Eliminar Orden Definitivamente
                             </button>
@@ -537,7 +540,7 @@ export default function AdminOrderPaymentPage() {
                             Comprobante Adjunto
                         </h3>
                         
-                        <div className="bg-black/60 rounded-2xl border border-zinc-800 flex items-center justify-center overflow-hidden relative min-h-[250px] md:min-h-[400px] shadow-inner group">
+                        <div className="bg-[#050505] rounded-2xl border border-zinc-800 flex items-center justify-center overflow-hidden relative min-h-[250px] md:min-h-[400px] shadow-inner group">
                             {order.receipt_url ? (
                                 <>
                                     <img 
@@ -549,7 +552,7 @@ export default function AdminOrderPaymentPage() {
                                         href={getReceiptUrl(order.receipt_url)!} 
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="absolute bottom-4 bg-black/80 backdrop-blur-md border border-white/20 text-white text-[10px] md:text-xs font-black uppercase tracking-widest px-6 py-3 rounded-xl hover:bg-white hover:text-black transition-all shadow-lg"
+                                        className="absolute bottom-4 bg-[#0a0a0c]/90 backdrop-blur-md border border-zinc-700 text-amber-500 text-[10px] md:text-xs font-black uppercase tracking-widest px-6 py-3 rounded-xl hover:bg-amber-500 hover:text-black transition-all shadow-lg"
                                     >
                                         🔍 Abrir en grande
                                     </a>
@@ -578,17 +581,17 @@ export default function AdminOrderPaymentPage() {
                 <div className="space-y-6 md:space-y-8">
                     
                     {/* 📋 FICHA ESTRUCTURAL */}
-                    <div className="bg-[#0a0a0c] border border-blue-900/30 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-xl relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 rounded-full blur-[60px] pointer-events-none"></div>
-                        <h3 className="text-blue-400 text-[10px] md:text-xs font-black uppercase tracking-widest mb-6 md:mb-8 flex items-center gap-3 border-b border-blue-900/50 pb-4 relative z-10">
-                            <span className="text-xl md:text-2xl bg-blue-500/10 p-2 rounded-xl border border-blue-500/20">📋</span> 
+                    <div className="bg-[#0a0a0c] border border-zinc-800/80 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-40 h-40 bg-amber-500/5 rounded-full blur-[60px] pointer-events-none"></div>
+                        <h3 className="text-amber-500 text-[10px] md:text-xs font-black uppercase tracking-widest mb-6 md:mb-8 flex items-center gap-3 border-b border-zinc-800/80 pb-4 relative z-10">
+                            <span className="text-xl md:text-2xl bg-amber-500/10 p-2 rounded-xl border border-amber-500/20">📋</span> 
                             Ficha Estructural
                         </h3>
                         
                         {order.is_onboarded ? (
                             <div className="space-y-6 md:space-y-8 relative z-10">
                                 
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-black/40 p-5 rounded-2xl border border-zinc-800/80 shadow-inner">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-[#050505] p-5 rounded-2xl border border-zinc-800/80 shadow-inner">
                                     <div>
                                         <p className="text-[9px] text-zinc-500 font-black tracking-widest uppercase mb-1">Edad</p>
                                         <p className="font-black text-white md:text-lg">{order.age || '-'} a</p>
@@ -608,32 +611,32 @@ export default function AdminOrderPaymentPage() {
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div className="bg-black/40 p-4 rounded-xl border border-zinc-800/80">
+                                    <div className="bg-[#050505] p-4 rounded-xl border border-zinc-800/80 shadow-inner">
                                         <p className="text-[9px] text-zinc-500 font-black tracking-widest uppercase mb-1">Objetivo</p>
                                         <p className="font-black text-white capitalize text-sm">{order.goal || '-'}</p>
                                     </div>
-                                    <div className="bg-black/40 p-4 rounded-xl border border-zinc-800/80">
+                                    <div className="bg-[#050505] p-4 rounded-xl border border-zinc-800/80 shadow-inner">
                                         <p className="text-[9px] text-zinc-500 font-black tracking-widest uppercase mb-1">Nivel</p>
                                         <p className="font-black text-white capitalize text-sm">{order.experience || '-'}</p>
                                     </div>
-                                    <div className="bg-black/40 p-4 rounded-xl border border-zinc-800/80">
+                                    <div className="bg-[#050505] p-4 rounded-xl border border-zinc-800/80 shadow-inner">
                                         <p className="text-[9px] text-zinc-500 font-black tracking-widest uppercase mb-1">Equipamiento</p>
                                         <p className="font-black text-white capitalize text-sm">{order.equipment?.replace('_', ' ') || '-'}</p>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <p className="text-[9px] md:text-[10px] text-red-400 font-black tracking-widest uppercase mb-3 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Lesiones Previas</p>
-                                    <div className="bg-red-950/20 border border-red-900/30 p-5 rounded-2xl shadow-inner">
-                                        <p className="text-xs md:text-sm text-red-100 font-medium leading-relaxed">
+                                    <p className="text-[9px] md:text-[10px] text-red-500 font-black tracking-widest uppercase mb-3 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Lesiones Previas</p>
+                                    <div className="bg-[#050505] border border-zinc-800 p-5 rounded-2xl shadow-inner">
+                                        <p className="text-xs md:text-sm text-zinc-400 font-medium leading-relaxed">
                                             {order.medical_history || 'Ninguna molestia declarada en el alta.'}
                                         </p>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <p className="text-[9px] md:text-[10px] text-emerald-500 font-black tracking-widest uppercase mb-3">RMs Base (Kilogramos)</p>
-                                    <div className="grid grid-cols-5 gap-2 md:gap-3 text-center bg-black/60 p-4 md:p-5 rounded-2xl border border-zinc-800 shadow-inner">
+                                    <p className="text-[9px] md:text-[10px] text-amber-500 font-black tracking-widest uppercase mb-3">RMs Base (Kilogramos)</p>
+                                    <div className="grid grid-cols-5 gap-2 md:gap-3 text-center bg-[#050505] p-4 md:p-5 rounded-2xl border border-zinc-800 shadow-inner">
                                         <div><p className="text-[8px] md:text-[9px] text-zinc-500 uppercase font-black tracking-widest">SQ</p><p className="font-mono font-black text-white mt-1 text-sm md:text-base">{order.rm_squat || '0'}</p></div>
                                         <div><p className="text-[8px] md:text-[9px] text-zinc-500 uppercase font-black tracking-widest">BP</p><p className="font-mono font-black text-white mt-1 text-sm md:text-base">{order.rm_bench || '0'}</p></div>
                                         <div><p className="text-[8px] md:text-[9px] text-zinc-500 uppercase font-black tracking-widest">DL</p><p className="font-mono font-black text-white mt-1 text-sm md:text-base">{order.rm_deadlift || '0'}</p></div>
@@ -643,15 +646,15 @@ export default function AdminOrderPaymentPage() {
                                 </div>
                                 
                                 {/* 🔥 BOTÓN MÁGICO DEL AUTOPILOT DE RUTINAS (PURA GENERACIÓN) 🔥 */}
-                                <div className="pt-6 border-t border-blue-900/50">
+                                <div className="pt-6 border-t border-zinc-800/80">
                                     <button 
                                         onClick={handleGenerateAutopilot}
                                         disabled={autopilotLoading}
-                                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white py-5 rounded-2xl font-black text-xs md:text-sm uppercase tracking-[0.2em] transition-all shadow-[0_0_30px_rgba(79,70,229,0.4)] disabled:opacity-50 flex items-center justify-center gap-3 active:scale-95"
+                                        className="w-full bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-black py-5 rounded-2xl font-black text-xs md:text-sm uppercase tracking-[0.2em] transition-all shadow-[0_0_30px_rgba(245,158,11,0.4)] disabled:opacity-50 flex items-center justify-center gap-3 active:scale-95 border border-amber-200"
                                     >
                                         {autopilotLoading ? (
                                             <span className="flex items-center gap-2">
-                                                <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+                                                <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></span>
                                                 GENERANDO EN BASE DE DATOS...
                                             </span>
                                         ) : (
@@ -667,7 +670,7 @@ export default function AdminOrderPaymentPage() {
 
                             </div>
                         ) : (
-                            <div className="text-center py-16 bg-black/30 rounded-3xl border border-dashed border-zinc-800 mt-4">
+                            <div className="text-center py-16 bg-[#050505] rounded-3xl border border-dashed border-zinc-800 mt-4 shadow-inner">
                                 <span className="text-4xl md:text-5xl mb-4 block drop-shadow-md">⏳</span>
                                 <p className="text-zinc-400 text-xs md:text-sm font-black uppercase tracking-widest">Auditoría Pendiente</p>
                                 <p className="text-zinc-600 text-[10px] mt-2 font-bold max-w-xs mx-auto">El atleta no completó su Ficha Clínica en el Dashboard.</p>
@@ -676,16 +679,16 @@ export default function AdminOrderPaymentPage() {
                     </div>
 
                     {/* 🔥 VISOR DE LO QUE LLEGÓ AL BUZÓN IA (SÓLO LECTURA) 🔥 */}
-                    <div className="bg-[#0a0a0c] border border-blue-900/30 p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] shadow-xl">
-                        <h3 className="text-blue-400 text-[10px] md:text-xs font-black uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-blue-900/50 pb-4">
+                    <div className="bg-[#0a0a0c] border border-zinc-800/80 p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] shadow-xl">
+                        <h3 className="text-zinc-300 text-[10px] md:text-xs font-black uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-zinc-800/80 pb-4">
                             <span>📥</span> Estado del Buzón IA
                         </h3>
-                        <p className="text-[10px] text-zinc-400 mb-4 font-medium">
+                        <p className="text-[10px] text-zinc-500 mb-4 font-medium">
                             Aquí puedes verificar lo que la IA acaba de enviar a la Gestión de Atletas.
                         </p>
-                        <div className="bg-black/60 border border-zinc-800/80 rounded-2xl p-4 h-64 overflow-y-auto custom-scrollbar shadow-inner">
+                        <div className="bg-[#050505] border border-zinc-800 rounded-2xl p-4 h-64 overflow-y-auto custom-scrollbar shadow-inner">
                             {order?.ai_draft_text ? (
-                                <pre className="text-[10px] md:text-xs text-zinc-300 font-mono whitespace-pre-wrap">
+                                <pre className="text-[10px] md:text-xs text-zinc-400 font-mono whitespace-pre-wrap">
                                     {order.ai_draft_text}
                                 </pre>
                             ) : (
@@ -699,20 +702,20 @@ export default function AdminOrderPaymentPage() {
                 </div>
 
                 {/* COLUMNA DERECHA: ESTACIÓN DE AUDITORÍA IA (VIDEOS) */}
-                <div className="bg-[#0a0a0c] border border-blue-900/30 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-xl relative overflow-hidden h-fit">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-[80px] pointer-events-none"></div>
-                    <h3 className="text-blue-400 text-[10px] md:text-xs font-black uppercase tracking-widest mb-8 flex items-center gap-3 border-b border-blue-900/50 pb-4 relative z-10">
-                        <span className="text-xl md:text-2xl bg-blue-500/10 p-2 rounded-xl border border-blue-500/20">📹</span> 
+                <div className="bg-[#0a0a0c] border border-zinc-800/80 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-xl relative overflow-hidden h-fit">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-[80px] pointer-events-none"></div>
+                    <h3 className="text-amber-500 text-[10px] md:text-xs font-black uppercase tracking-widest mb-8 flex items-center gap-3 border-b border-zinc-800/80 pb-4 relative z-10">
+                        <span className="text-xl md:text-2xl bg-amber-500/10 p-2 rounded-xl border border-amber-500/20 shadow-inner">📹</span> 
                         Copiloto IA: Auditoría Visual
                     </h3>
 
                     <div className="space-y-12 md:space-y-16 relative z-10 h-auto md:max-h-[1600px] overflow-y-auto custom-scrollbar pr-2 md:pr-4 pb-10">
                         {mainLifts.map(lift => (
-                            <div key={lift.id} className="bg-black/40 border border-zinc-800/80 rounded-[2rem] p-5 md:p-8 shadow-inner">
+                            <div key={lift.id} className="bg-[#050505] border border-zinc-800/80 rounded-[2rem] p-5 md:p-8 shadow-inner">
                                 <div className="flex justify-between items-center mb-6 border-b border-zinc-800/50 pb-4">
                                     <h4 className="text-base md:text-xl font-black italic text-white uppercase tracking-tight">{lift.label}</h4>
                                     {order[`video_${lift.id}`] ? (
-                                        <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg text-[8px] md:text-[9px] font-black uppercase tracking-widest shadow-sm">
+                                        <span className="bg-amber-500/10 text-amber-500 border border-amber-500/30 px-3 py-1.5 rounded-lg text-[8px] md:text-[9px] font-black uppercase tracking-widest shadow-sm">
                                             Video Listo
                                         </span>
                                     ) : (
@@ -733,45 +736,45 @@ export default function AdminOrderPaymentPage() {
                                 )}
 
                                 {/* ✅ COPILOTO IA WORKSTATION - SIEMPRE VISIBLE ✅ */}
-                                <div className="flex flex-col gap-3 bg-blue-950/10 p-5 rounded-2xl border border-blue-900/20 mb-6 shadow-inner focus-within:border-blue-500/50 transition-colors">
+                                <div className="flex flex-col gap-3 bg-[#0a0a0c] p-5 rounded-2xl border border-zinc-800 mb-6 shadow-inner focus-within:border-amber-500/50 transition-colors">
                                     <div className="flex items-center justify-between mb-1">
-                                        <label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-blue-500 flex items-center gap-2">
+                                        <label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-300 flex items-center gap-2">
                                             <span className="text-sm">✍️</span> 1. Apuntes Crudos (Para la IA)
                                         </label>
                                     </div>
-                                    <p className="text-[10px] text-zinc-400 font-medium mb-1">
+                                    <p className="text-[10px] text-zinc-500 font-medium mb-1">
                                         Escribí palabras sueltas. Ej: "bajar más lento, codos abiertos". La IA redactará el texto plano, sin negritas ni formatos raros.
                                     </p>
                                     <textarea 
                                         value={draftNotes[lift.id] || ""}
                                         onChange={(e) => setDraftNotes({...draftNotes, [lift.id]: e.target.value})}
                                         placeholder="Tus notas rápidas..."
-                                        className="w-full bg-black/60 border border-zinc-700/80 rounded-xl p-3 text-xs md:text-sm text-zinc-200 outline-none resize-none h-20 focus:border-blue-500 transition-colors shadow-inner"
+                                        className="w-full bg-[#050505] border border-zinc-700/80 rounded-xl p-3 text-xs md:text-sm text-zinc-300 outline-none resize-none h-20 focus:border-amber-500 transition-colors shadow-inner"
                                     />
                                     <button 
                                         onClick={() => handleGenerateFeedback(lift.id, lift.label)}
                                         disabled={aiLoading[lift.id]}
-                                        className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 md:py-4 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-[0.2em] transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] disabled:opacity-50 flex items-center justify-center gap-2 active:scale-95 mt-2"
+                                        className="w-full bg-zinc-800 hover:bg-amber-500 hover:text-black text-white py-3 md:py-4 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-[0.2em] transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2 active:scale-95 mt-2 border border-zinc-700 hover:border-amber-500"
                                     >
                                         {aiLoading[lift.id] ? 'PROCESANDO CON IA...' : '✨ 2. GENERAR DIAGNÓSTICO PROFESIONAL'}
                                     </button>
                                 </div>
 
                                 {/* TEXTAREA DE FEEDBACK FINAL */}
-                                <div className="mt-2 bg-black/40 p-5 rounded-2xl border border-zinc-800/80">
-                                    <label className="text-[9px] font-black uppercase tracking-widest text-emerald-500 mb-3 flex items-center gap-2">
+                                <div className="mt-2 bg-[#0a0a0c] p-5 rounded-2xl border border-zinc-800">
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-amber-500 mb-3 flex items-center gap-2">
                                         <span className="text-sm">📨</span> 3. Devolución Final (Revisar y Enviar)
                                     </label>
                                     <textarea 
                                         value={order[`feedback_${lift.id}`] || ""}
                                         onChange={(e) => setOrder({...order, [`feedback_${lift.id}`]: e.target.value})}
                                         placeholder="El análisis detallado y profesional aparecerá aquí para que lo revise antes de guardarlo..."
-                                        className="w-full bg-emerald-950/10 border border-emerald-500/30 rounded-xl p-4 text-xs md:text-sm text-emerald-100 outline-none focus:border-emerald-500 transition-colors resize-none h-32 md:h-40 custom-scrollbar shadow-inner"
+                                        className="w-full bg-[#050505] border border-zinc-800 rounded-xl p-4 text-xs md:text-sm text-amber-50/90 outline-none focus:border-amber-500 transition-colors resize-none h-32 md:h-40 custom-scrollbar shadow-inner"
                                     />
                                     <button 
                                         onClick={() => handleSaveFeedback(lift.id)}
                                         disabled={updating}
-                                        className="mt-4 bg-zinc-800 hover:bg-emerald-500 hover:text-black text-white px-6 py-4 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all w-full active:scale-95 border border-zinc-700 hover:border-emerald-400"
+                                        className="mt-4 bg-amber-500 text-black px-6 py-4 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all w-full active:scale-95 shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:bg-amber-400"
                                     >
                                         GUARDAR Y ENVIAR AL ATLETA 🚀
                                     </button>
@@ -789,8 +792,8 @@ export default function AdminOrderPaymentPage() {
       <style dangerouslySetInnerHTML={{__html: `
         .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(79, 70, 229, 0.4); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(79, 70, 229, 0.8); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(245, 158, 11, 0.4); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(245, 158, 11, 0.8); }
       `}} />
     </div>
   );
