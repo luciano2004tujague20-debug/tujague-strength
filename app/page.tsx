@@ -29,7 +29,7 @@ function RevealOnScroll({ children, delay = 0, className = "" }: { children: Rea
   return (
     <div 
       ref={ref} 
-      className={`transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'} ${className}`}
+      className={`transition-all duration-700 ease-out will-change-transform transform-gpu ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} ${className}`}
       style={{ transitionDelay: `${delay}ms` }}
     >
       {children}
@@ -130,6 +130,25 @@ const PRICING_MATRIX: PricingMatrix = {
   ],
 
   static: [
+   {
+      id: "calculadora-volumen-basura",
+      title: "The Junk Volume Killer",
+      subtitle: "SOFTWARE + 3 BONUS • ACCESO INMEDIATO",
+      price: 45000,
+      description:
+        "El 80% de tu rutina es volumen inútil. Descubrí en 60 segundos cuánto tiempo estás desperdiciando y qué series eliminar para destrabar tu fuerza.",
+      features: [
+        "🧠 Software: Score de Eficiencia Neural", 
+        "📊 Diagnóstico Clínico Automático", 
+        "🎁 Bonus 1: Guía 5 Errores del Volumen", 
+        "🎁 Bonus 2: Checklist Fallo Real (RIR)", 
+        "🎁 Bonus 3: Rutina BII Optimizada Base",
+        "✗ Sin soporte 1 a 1 del Coach"
+      ],
+      highlight: true,
+      idealFor: "Atletas estancados con rutinas de alto volumen",
+      actionLabel: "🔥 Analizar Mi Rutina",
+    },
     {
       id: "static-fuerza",
       title: "Fuerza Base",
@@ -234,7 +253,7 @@ export default function Home() {
   const botEndRef = useRef<HTMLDivElement>(null);
 
   const [quizStep, setQuizStep] = useState(0);
-  const [quizAnswers, setQuizAnswers] = useState({ limitante: "", dias: "", nivel: "" });
+  const [quizAnswers, setQuizAnswers] = useState({ dolor: "", soporte: "", dias: "" });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisText, setAnalysisText] = useState("");
   const [recommendedPlan, setRecommendedPlan] = useState<PricingPlan | null>(null);
@@ -311,19 +330,27 @@ export default function Home() {
     setTimeout(() => { setIsAnalyzing(false); setQuizStep(4); }, 3200);
   };
 
-  const handleQuizAnswer = (field: string, value: string) => {
+const handleQuizAnswer = (field: string, value: string) => {
       const newAnswers = { ...quizAnswers, [field]: value };
       setQuizAnswers(newAnswers);
       
       if (quizStep === 3) {
-          let planToRecommend = PRICING_MATRIX.monthly[0]; 
-          if (newAnswers.dias === "alto" || newAnswers.dias === "medio") {
-              if (newAnswers.nivel === "elite") {
-                  planToRecommend = PRICING_MATRIX.monthly[2]; 
+          let planToRecommend; 
+          
+          if (newAnswers.soporte === "solo") {
+              if (newAnswers.dolor === "hipertrofia") {
+                  planToRecommend = PRICING_MATRIX.static.find(p => p.id === "static-hipertrofia") || PRICING_MATRIX.static[0];
               } else {
+                  planToRecommend = PRICING_MATRIX.static.find(p => p.id === "static-fuerza") || PRICING_MATRIX.static[0];
+              }
+          } else {
+              if (newAnswers.dias === "alto") {
                   planToRecommend = PRICING_MATRIX.monthly[1]; 
+              } else {
+                  planToRecommend = PRICING_MATRIX.monthly[0]; 
               }
           }
+
           setRecommendedPlan(planToRecommend);
           startAnalysis(); 
       } else {
@@ -331,14 +358,17 @@ export default function Home() {
       }
   };
 
-  const getDiagnosticText = () => {
+const getDiagnosticText = () => {
     let diag = "";
-    if (quizAnswers.dias === "bajo") diag += "Al entrenar solo 2-3 días, tu perfil exige un protocolo BII (Breve, Intenso, Infrecuente) de altísima tensión mecánica. Una rutina genérica te dejará en subentrenamiento total. ";
-    if (quizAnswers.dias === "medio") diag += "Tu disponibilidad de 4 días es óptima, pero requiere una periodización exacta (Top Sets + Backoffs) para no quemar tu SNC a mitad de semana. ";
-    if (quizAnswers.dias === "alto") diag += "¡ALERTA ROJA! Entrenar 5-6 días te pone en riesgo crítico de sobreentrenamiento y fatiga del SNC. Necesitas una gestión del volumen quirúrgica. ";
-    if (quizAnswers.limitante === "lesiones") diag += "Además, al presentar molestias articulares, debemos eliminar los 'ejercicios basura' y transicionar inmediatamente a variantes de alta estabilidad externa y control excéntrico. ";
-    if (quizAnswers.limitante === "estancamiento") diag += "Tu estancamiento actual es prueba de que has agotado tus adaptaciones de novato; necesitas programar fases de sobrecarga y descargas (Deloads) programadas de forma inteligente. ";
-    diag += "\n\nCONCLUSIÓN CLÍNICA: La única vía segura y eficiente para tu biología actual es el Coaching BII-Vintage. Necesitas que evalúe tus videos, controle tu fatiga y ajuste tus cargas semana a semana.";
+    if (quizAnswers.dolor === "estancamiento") diag += "Tus números están congelados porque tu SNC se adaptó al estímulo basura. Estás acumulando fatiga sin generar tensión mecánica real. ";
+    if (quizAnswers.dolor === "lesiones") diag += "ALERTA CLÍNICA: Seguir cargando peso sobre una estructura inflamada garantiza una rotura inminente. Necesitamos limpiar tu técnica urgentemente. ";
+    if (quizAnswers.dolor === "hipertrofia") diag += "La hipertrofia BII requiere acercarse al fallo muscular absoluto (RIR 0) con excéntricas controladas, no hacer 4x12 al azar. ";
+
+    if (quizAnswers.soporte === "solo") {
+        diag += "\n\nDado que preferís autogestionarte, aplicar un programa genérico de internet será tu ruina. Tu única opción segura es adquirir los Planos Crudos de la Bóveda Estática: estructuras exactas sin el costo del coaching VIP.";
+    } else {
+        diag += "\n\nTU DIAGNÓSTICO: Tu caso exige intervención directa. Entrenar por tu cuenta ya demostró no funcionar. Necesitás ingresar al Coaching VIP para que yo mismo audite tus videos y mi IA gestione tu recuperación. Es la única forma de progresar sin romperte.";
+    }
     return diag;
   };
 
@@ -384,14 +414,14 @@ export default function Home() {
           src="/hero.png" 
           alt="Background"
           fill
-          className="object-cover opacity-10 mix-blend-overlay"
+          className="object-cover opacity-10 mix-blend-overlay hidden md:block transform-gpu"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#000000]/90 via-[#000000]/95 to-[#000000] z-10"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#000000]/90 via-[#000000]/95 to-[#000000] z-10 transform-gpu"></div>
       </div>
       
       {/* ─── NAVBAR FLOTANTE ─── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#000000]/80 backdrop-blur-2xl border-b border-white/5 transition-all duration-300">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#000000]/95 md:bg-[#000000]/80 md:backdrop-blur-2xl border-b border-white/5 transition-all duration-300 transform-gpu">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
           <Link href="/" className="text-lg sm:text-xl md:text-2xl font-black italic tracking-tighter hover:opacity-80 transition-opacity flex items-center gap-2">
             TUJAGUE <span className="text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md">STRENGTH</span>
@@ -414,7 +444,7 @@ export default function Home() {
       <a 
         href={whatsappUrl} 
         target="_blank" 
-        className="fixed bottom-24 md:bottom-6 right-4 md:right-6 z-[100] bg-amber-500 p-4 rounded-full shadow-[0_0_30px_rgba(245,158,11,0.5)] hover:scale-110 transition-transform active:scale-95 group border border-amber-400"
+        className="fixed bottom-24 md:bottom-6 right-4 md:right-6 z-[100] bg-amber-500 p-4 rounded-full shadow-[0_0_30px_rgba(245,158,11,0.5)] hover:scale-110 transition-transform active:scale-95 group border border-amber-400 transform-gpu"
       >
         <span className="absolute -top-12 right-0 bg-[#0a0a0c] border border-zinc-800 text-white text-[10px] font-bold px-3 py-2 rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
           Hablá con Luciano
@@ -422,7 +452,7 @@ export default function Home() {
         <svg className="w-6 h-6 sm:w-7 sm:h-7 text-black" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.588-5.946 0-6.556 5.332-11.888 11.888-11.888 3.176 0 6.161 1.237 8.404 3.48s3.48 5.228 3.48 8.404c0 6.556-5.332 11.888-11.888 11.888-2.097 0-4.142-.547-5.946-1.588L0 .057zm12.026-2.137c1.892 0 3.738-.503 5.339-1.455l.382-.227 3.97 1.041-1.059-3.869.25-.397c1.046-1.666 1.599-3.593 1.599-5.606 0-5.833-4.744-10.577-10.577-10.577-2.827 0-5.483 1.1-7.481 3.098s-3.098 4.654-3.098 7.481c0 2.013.553 3.94 1.599 5.606l.25.397-1.059 3.869 4.074-1.069.382.227c1.6.952 3.447 1.455 5.339 1.455z"/></svg>
       </a>
 
-      <div className="fixed bottom-24 md:bottom-6 left-4 md:left-6 z-[100]">
+      <div className="fixed bottom-24 md:bottom-6 left-4 md:left-6 z-[100] transform-gpu">
          {!isBotOpen ? (
             <button 
                onClick={() => setIsBotOpen(true)}
@@ -437,9 +467,9 @@ export default function Home() {
                </svg>
             </button>
          ) : (
-            <div className="bg-[#0a0a0c]/95 border border-zinc-800 w-[90vw] max-w-[380px] h-[500px] max-h-[75vh] rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 backdrop-blur-xl">
+            <div className="bg-[#0a0a0c]/95 border border-zinc-800 w-[90vw] max-w-[380px] h-[500px] max-h-[75vh] rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 backdrop-blur-xl transform-gpu">
                <div className="bg-zinc-900/80 border-b border-zinc-800 p-4 flex justify-between items-center relative overflow-hidden">
-                  <div className="absolute inset-0 bg-amber-500/10 blur-2xl"></div>
+                  <div className="absolute inset-0 bg-amber-500/10 blur-2xl transform-gpu"></div>
                   <div className="flex items-center gap-3 relative z-10">
                      <span className="text-2xl drop-shadow-md">🤖</span>
                      <div>
@@ -491,7 +521,7 @@ export default function Home() {
          )}
       </div>
 
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#000000]/95 backdrop-blur-xl border-t border-white/10 p-4 z-[100] shadow-[0_-10px_30px_rgba(0,0,0,0.8)] pb-8">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#000000]/95 backdrop-blur-xl border-t border-white/10 p-4 z-[100] shadow-[0_-10px_30px_rgba(0,0,0,0.8)] pb-8 transform-gpu">
          <button 
             onClick={scrollToPricing}
             className="w-full bg-amber-500 text-black py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-[0_0_25px_rgba(245,158,11,0.4)] active:scale-95 transition-transform flex items-center justify-center gap-2"
@@ -504,9 +534,8 @@ export default function Home() {
       {/* 1. HERO SECTION (LA PROMESA PRINCIPAL)                    */}
       {/* ========================================================= */}
       <RevealOnScroll delay={100}>
-         <header className="relative z-10 pt-40 pb-20 sm:pt-48 sm:pb-32 md:pt-56 md:pb-40 text-center px-4 sm:px-6 overflow-hidden">
-           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] md:w-[1000px] md:h-[1000px] bg-amber-500/10 rounded-full blur-[100px] md:blur-[180px] pointer-events-none animate-pulse duration-10000"></div>
-
+         <header className="relative z-10 pt-40 pb-20 sm:pt-48 sm:pb-32 md:pt-56 md:pb-40 text-center px-4 sm:px-6 overflow-hidden transform-gpu">
+<div className="hidden md:block absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle,rgba(245,158,11,0.1)_0%,transparent_50%)] pointer-events-none transform-gpu"></div>
            <span className="inline-flex items-center gap-2 mb-6 sm:mb-8 px-4 sm:px-6 py-2 sm:py-2.5 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-400 text-[9px] sm:text-[11px] font-black tracking-[0.25em] backdrop-blur-md shadow-[0_0_20px_rgba(245,158,11,0.15)]">
              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-400 animate-pulse"></span>
              EL MÉTODO BII-VINTAGE
@@ -526,10 +555,10 @@ export default function Home() {
                      href="/aplicar"
                      className="relative inline-flex items-center justify-center px-8 sm:px-12 py-5 sm:py-6 rounded-2xl sm:rounded-3xl bg-amber-500 text-black font-black tracking-[0.15em] sm:tracking-widest text-xs sm:text-sm hover:bg-amber-400 hover:scale-[1.02] hover:shadow-[0_0_50px_rgba(245,158,11,0.5)] transition-all overflow-hidden group w-full"
                    >
-                     <span className="relative z-10">APLICAR PARA EL EQUIPO</span>
+ <span className="relative z-10">INICIAR EVALUACIÓN CLÍNICA</span>
                      <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
                    </Link>
-                   <p className="text-amber-500/70 font-bold text-[9px] sm:text-[10px] uppercase tracking-[0.2em] mt-3 sm:mt-4">Te toma 2 min • Respuesta en 24hs</p>
+                   <p className="text-amber-500/70 font-bold text-[9px] sm:text-[10px] uppercase tracking-[0.2em] mt-3 sm:mt-4">Dictamen de la IA en tiempo real</p>
                </div>
                
                <div className="w-full sm:w-auto text-center">
@@ -560,8 +589,8 @@ export default function Home() {
       {/* ========================================================= */}
       {/* 2. MURO DE LA FAMA (PRUEBA SOCIAL INMEDIATA - LIVE TICKER)*/}
       {/* ========================================================= */}
-      <section className="relative z-10 py-24 sm:py-32 bg-[#000000] border-b border-white/5 overflow-hidden">
-         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[500px] sm:h-[800px] bg-amber-500/5 blur-[150px] sm:blur-[200px] pointer-events-none"></div>
+      <section className="relative z-10 py-24 sm:py-32 bg-[#000000] border-b border-white/5 overflow-hidden transform-gpu">
+         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-[radial-gradient(circle,rgba(245,158,11,0.05)_0%,transparent_60%)] pointer-events-none transform-gpu"></div>
          <RevealOnScroll>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
                <div className="text-center mb-12 sm:mb-20">
@@ -628,11 +657,11 @@ export default function Home() {
       {/* ========================================================= */}
       {/* 3. EL ENTRENADOR Y SUS MARCAS (ESTILO REVISTA EDITORIAL)  */}
       {/* ========================================================= */}
-      <section className="relative z-10 py-24 sm:py-32 px-4 sm:px-6 border-b border-white/5 overflow-hidden bg-[#020202]">
+      <section className="relative z-10 py-24 sm:py-32 px-4 sm:px-6 border-b border-white/5 overflow-hidden bg-[#020202] transform-gpu">
         <RevealOnScroll>
            <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-center gap-12 sm:gap-16 md:gap-24">
              <div className="relative group w-[280px] h-[380px] sm:w-[350px] sm:h-[450px] lg:w-[400px] lg:h-[500px] flex-shrink-0">
-                <div className="absolute -inset-4 sm:-inset-6 bg-amber-500/20 blur-[60px] sm:blur-[100px] rounded-full opacity-50 group-hover:opacity-80 transition-opacity duration-700"></div>
+                <div className="absolute -inset-10 sm:-inset-16 bg-[radial-gradient(circle,rgba(245,158,11,0.2)_0%,transparent_60%)] opacity-50 group-hover:opacity-80 transition-opacity duration-700 transform-gpu"></div>
                 <div className="relative w-full h-full rounded-[2.5rem] sm:rounded-[3rem] overflow-hidden border border-zinc-800 shadow-2xl bg-zinc-900">
                    <Image src="/hero.png" alt="Luciano Tujague" fill className="object-cover opacity-80 group-hover:opacity-100 transition-all duration-1000 group-hover:scale-110" />
                    {/* Overlay Glassmorphism Estilo Revista */}
@@ -704,10 +733,10 @@ export default function Home() {
       </section>
 
       {/* ========================================================= */}
-      {/* 5. TUJAGUE AI SYSTEM (AZUL TECNOLÓGICO)                     */}
+      {/* 5. TUJAGUE AI SYSTEM (AZUL TECNOLÓGICO)                   */}
       {/* ========================================================= */}
-      <section className="relative z-10 py-24 sm:py-32 bg-[#020202] border-b border-white/5 overflow-hidden">
-         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[600px] sm:h-[800px] bg-blue-500/10 blur-[150px] sm:blur-[200px] pointer-events-none"></div>
+      <section className="relative z-10 py-24 sm:py-32 bg-[#020202] border-b border-white/5 overflow-hidden transform-gpu">
+         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-[radial-gradient(circle,rgba(59,130,246,0.1)_0%,transparent_50%)] pointer-events-none transform-gpu"></div>
          <RevealOnScroll>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10 flex flex-col lg:flex-row items-center gap-12 sm:gap-20">
                
@@ -783,12 +812,12 @@ export default function Home() {
       {/* ========================================================= */}
       {/* 6. TRIAGE CLÍNICO (TEST TIPO APP iOS)                       */}
       {/* ========================================================= */}
-      <section className="relative z-20 py-24 sm:py-32 px-4 sm:px-6 bg-[#000000] border-b border-white/5 overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[600px] bg-amber-500/5 blur-[150px] pointer-events-none"></div>
+      <section className="relative z-20 py-24 sm:py-32 px-4 sm:px-6 bg-[#000000] border-b border-white/5 overflow-hidden transform-gpu">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-[radial-gradient(circle,rgba(245,158,11,0.05)_0%,transparent_60%)] pointer-events-none transform-gpu"></div>
         <RevealOnScroll>
            <div className="max-w-4xl mx-auto text-center relative z-10">
               <span className="bg-amber-500/10 text-amber-400 border border-amber-500/30 px-5 py-2 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] mb-6 sm:mb-8 inline-block animate-pulse shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-                  Evaluación Estructural
+                 Evaluación Estructural
               </span>
               <h2 className="text-4xl sm:text-6xl md:text-7xl font-black italic tracking-tighter text-white mb-6 drop-shadow-lg">
                  SISTEMA DE <span className="text-amber-500 block sm:inline">TRIAGE</span>
@@ -824,16 +853,16 @@ export default function Home() {
                               <div key={num} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${quizStep >= num ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-zinc-800'}`}></div>
                            ))}
                         </div>
-                        <h3 className="text-xl sm:text-2xl font-black text-white italic uppercase tracking-tight mb-8">1. ¿Cuál es tu limitante principal?</h3>
+<h3 className="text-xl sm:text-2xl font-black text-white italic uppercase tracking-tight mb-8">1. ¿Cuál es tu síntoma principal?</h3>
                         <div className="space-y-3">
                             {[
-                                { label: "Estancamiento Crónico", desc: "No logro subir mis marcas en básicos ni mi masa muscular.", value: "estancamiento" },
-                                { label: "Dolor Articular", desc: "Me duelen las rodillas, lumbares u hombros al entrenar.", value: "lesiones" },
-                                { label: "Falta de Tiempo", desc: "Entreno sin estructura porque vivo ocupado.", value: "tiempo" }
+                                { label: "Estancamiento Crónico", desc: "No logro subir mis marcas, siento que acumulo fatiga.", value: "estancamiento" },
+                                { label: "Dolores y Molestias", desc: "Me duelen las articulaciones al cargar pesado.", value: "lesiones" },
+                                { label: "Falta de Estímulo", desc: "Quiero hipertrofia y mutar visualmente, no sé cómo aislar el músculo.", value: "hipertrofia" }
                             ].map((opt, idx) => (
                                 <button 
                                    key={idx}
-                                   onClick={() => handleQuizAnswer('limitante', opt.value)}
+                                   onClick={() => handleQuizAnswer('dolor', opt.value)}
                                    className="w-full text-left bg-[#050505] border border-zinc-800 hover:border-amber-500 p-5 rounded-2xl transition-all group hover:bg-zinc-900 shadow-sm hover:-translate-y-1 hover:shadow-[0_10px_20px_rgba(245,158,11,0.1)]"
                                 >
                                     <p className="text-amber-500 font-black uppercase tracking-widest text-[10px] mb-1 group-hover:text-amber-400">{opt.label}</p>
@@ -852,16 +881,15 @@ export default function Home() {
                               <div key={num} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${quizStep >= num ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-zinc-800'}`}></div>
                            ))}
                         </div>
-                        <h3 className="text-xl sm:text-2xl font-black text-white italic uppercase tracking-tight mb-8">2. ¿Cuál es tu tolerancia al esfuerzo?</h3>
+<h3 className="text-xl sm:text-2xl font-black text-white italic uppercase tracking-tight mb-8">2. ¿Qué nivel de soporte buscás?</h3>
                         <div className="space-y-3">
                             {[
-                                { label: "Principiante", desc: "Me guardo repeticiones. Aún no conozco mi fallo muscular real.", value: "novato" },
-                                { label: "Intermedio", desc: "Entreno duro, pero a veces mi técnica se rompe bajo carga.", value: "intermedio" },
-                                { label: "Avanzado", desc: "Llego al fallo muscular absoluto (RIR 0) con técnica estricta.", value: "elite" }
+                                { label: "🚨 URGENTE: Necesito Coaching VIP", desc: "Quiero que auditen mi técnica en video y controlen mi fatiga para no romperme.", value: "vip" },
+                                { label: "🛑 INTERMEDIO: Solo dame los planos", desc: "Entreno por mi cuenta. Solo quiero las estructuras BII-Vintage a seguir.", value: "solo" }
                             ].map((opt, idx) => (
                                 <button 
                                    key={idx}
-                                   onClick={() => handleQuizAnswer('nivel', opt.value)}
+                                   onClick={() => handleQuizAnswer('soporte', opt.value)}
                                    className="w-full text-left bg-[#050505] border border-zinc-800 hover:border-amber-500 p-5 rounded-2xl transition-all group hover:bg-zinc-900 shadow-sm hover:-translate-y-1 hover:shadow-[0_10px_20px_rgba(245,158,11,0.1)]"
                                 >
                                     <p className="text-amber-500 font-black uppercase tracking-widest text-[10px] mb-1 group-hover:text-amber-400">{opt.label}</p>
@@ -935,8 +963,8 @@ export default function Home() {
                                 >
                                     APLICAR AL PLAN 🚀
                                 </button>
-                                <button 
-                                   onClick={() => { setQuizStep(0); setQuizAnswers({limitante: "", dias: "", nivel: ""}); }}
+<button 
+                                   onClick={() => { setQuizStep(0); setQuizAnswers({dolor: "", soporte: "", dias: ""}); }}
                                    className="w-full sm:w-auto bg-transparent border border-zinc-700 hover:border-zinc-500 text-zinc-400 px-6 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all"
                                 >
                                     Rehacer Test
@@ -961,10 +989,10 @@ export default function Home() {
       {/* ========================================================= */}
       {/* 8. LA BÓVEDA ESTÁTICA (DOWNSELL Y PRODUCTOS BARATOS)      */}
       {/* ========================================================= */}
-      <section id="boveda-estatica" className="relative z-10 py-24 sm:py-32 px-4 sm:px-6 bg-[#000000] border-t border-zinc-800/50 overflow-hidden">
-         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-zinc-900/20 blur-[100px] pointer-events-none"></div>
+      <section id="boveda-estatica" className="relative z-10 py-24 sm:py-32 px-4 sm:px-6 bg-[#000000] border-t border-zinc-800/50 overflow-hidden transform-gpu">
+         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-[radial-gradient(circle,rgba(39,39,42,0.3)_0%,transparent_60%)] pointer-events-none transform-gpu"></div>
          <RevealOnScroll>
-            <div className="max-w-6xl mx-auto relative z-10">
+            <div className="max-w-7xl mx-auto relative z-10">
                <div className="text-center mb-16 sm:mb-20">
                   <span className="bg-zinc-900 border border-zinc-700 text-zinc-400 px-4 py-1.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] mb-4 inline-block">
                       Material Autodidacta
@@ -977,50 +1005,55 @@ export default function Home() {
                   </p>
                </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10 max-w-5xl mx-auto">
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 max-w-6xl mx-auto">
                   {PRICING_MATRIX.static.map((plan) => (
                      <div 
                         key={plan.id} 
                         onClick={() => handleSelectPlan(plan)}
-                        className={`p-8 sm:p-10 rounded-[2rem] sm:rounded-[3rem] cursor-pointer group transition-all duration-300 border bg-[#0a0a0c] flex flex-col ${
+                        className={`p-6 sm:p-8 rounded-[1.5rem] sm:rounded-[2rem] cursor-pointer group transition-all duration-300 border bg-[#0a0a0c] flex flex-col ${
                            selectedPlan?.id === plan.id 
                            ? 'border-white scale-[1.02] shadow-[0_0_50px_rgba(255,255,255,0.1)] z-10' 
                            : 'border-zinc-800 hover:border-zinc-500 shadow-sm'
                         }`}
                      >
-                        <h3 className="text-2xl sm:text-3xl font-black italic mb-2 tracking-tighter text-zinc-300 uppercase">{plan.title}</h3>
-                        <p className="text-zinc-500 font-bold tracking-[0.2em] text-[9px] sm:text-[11px] mb-6 border-b border-zinc-800/80 pb-6 uppercase">{plan.subtitle}</p>
+                        <h3 className="text-xl sm:text-2xl font-black italic mb-1 tracking-tighter text-zinc-300 uppercase">{plan.title}</h3>
+                        <p className="text-zinc-500 font-bold tracking-[0.2em] text-[8px] sm:text-[10px] mb-4 border-b border-zinc-800/80 pb-4 uppercase">{plan.subtitle}</p>
                         
-                        <div className="text-4xl sm:text-5xl font-black mb-4 text-white tracking-tighter flex items-center">
-                           <span className="text-xl sm:text-2xl text-zinc-600 mr-2">$</span>
+                        <div className="text-3xl sm:text-4xl font-black mb-3 text-white tracking-tighter flex items-center">
+                           <span className="text-lg sm:text-xl text-zinc-600 mr-2">$</span>
                            {plan.price.toLocaleString('es-AR')} 
                         </div>
 
                         {/* Etiqueta especial solo para el producto de Brazos */}
                         {plan.id === 'especializacion-brazos-mutantes' ? (
-                           <div className="bg-[#050505] border border-amber-500/30 p-4 rounded-2xl mb-6">
-                              <p className="text-[8px] sm:text-[9px] font-black text-amber-500 uppercase tracking-[0.2em] mb-1">Módulo Complementario:</p>
-                              <p className="text-xs sm:text-sm text-zinc-300 font-bold">Sumale 15 mins a tu rutina y explotá tus brazos.</p>
+                           <div className="bg-[#050505] border border-amber-500/30 p-3 rounded-xl mb-4">
+                              <p className="text-[7px] sm:text-[8px] font-black text-amber-500 uppercase tracking-[0.2em] mb-1">Módulo Complementario:</p>
+                              <p className="text-[10px] sm:text-xs text-zinc-300 font-bold">Sumale 15 mins a tu rutina y explotá tus brazos.</p>
+                           </div>
+                        ) : plan.id === 'calculadora-volumen-basura' ? (
+                           <div className="bg-[#050505] border border-amber-500/30 p-3 rounded-xl mb-4">
+                              <p className="text-[7px] sm:text-[8px] font-black text-amber-500 uppercase tracking-[0.2em] mb-1">Software de Diagnóstico:</p>
+                              <p className="text-[10px] sm:text-xs text-zinc-300 font-bold">Auditoría automática BII-Vintage.</p>
                            </div>
                         ) : (
-                           <div className="bg-[#050505] border border-zinc-800 p-4 rounded-2xl mb-6">
-                              <p className="text-[8px] sm:text-[9px] font-black text-red-500 uppercase tracking-[0.2em] mb-1">⚠️ Restricción Clínica:</p>
-                              <p className="text-xs sm:text-sm text-zinc-400 font-bold">Solo para atletas experimentados que dominan el RPE.</p>
+                           <div className="bg-[#050505] border border-zinc-800 p-3 rounded-xl mb-4">
+                              <p className="text-[7px] sm:text-[8px] font-black text-red-500 uppercase tracking-[0.2em] mb-1">⚠️ Restricción Clínica:</p>
+                              <p className="text-[10px] sm:text-xs text-zinc-400 font-bold">Solo para atletas experimentados que dominan el RPE.</p>
                            </div>
                         )}
 
-                        <p className="text-zinc-500 mb-8 text-sm leading-relaxed flex-grow">{plan.description}</p>
+                        <p className="text-zinc-500 mb-6 text-xs sm:text-sm leading-relaxed flex-grow">{plan.description}</p>
                         
-                        <ul className="space-y-3 mb-8">
+                        <ul className="space-y-2 mb-6">
                            {plan.features.map((f, idx) => (
-                           <li key={idx} className={`flex items-start gap-3 text-sm font-medium ${f.includes('✗') ? 'text-zinc-600' : 'text-zinc-300'}`}>
+                           <li key={idx} className={`flex items-start gap-2 text-xs font-medium ${f.includes('✗') ? 'text-zinc-600' : 'text-zinc-300'}`}>
                               <span className="font-black mt-0.5">{f.includes('✗') ? '' : '✓'}</span>
                               <span>{f}</span>
                            </li>
                            ))}
                         </ul>
 
-                        <button className={`w-full py-4 sm:py-5 rounded-2xl font-black tracking-[0.2em] text-[10px] transition-all duration-300 uppercase border ${
+                        <button className={`w-full py-3 sm:py-4 rounded-xl font-black tracking-[0.2em] text-[9px] transition-all duration-300 uppercase border ${
                            selectedPlan?.id === plan.id 
                            ? 'bg-white text-black border-white shadow-[0_0_30px_rgba(255,255,255,0.3)]' 
                            : 'bg-[#050505] text-zinc-400 group-hover:bg-zinc-900 border-zinc-700 group-hover:border-zinc-500'
@@ -1048,7 +1081,7 @@ export default function Home() {
              
              {selectedPlan ? (
                <div className="bg-[#0a0a0c] border border-zinc-800/80 rounded-[2.5rem] sm:rounded-[4rem] shadow-[0_0_100px_rgba(0,0,0,0.8)] relative overflow-hidden pb-12 lg:pb-0 backdrop-blur-2xl">
-                 <div className={`absolute top-0 right-0 w-80 h-80 sm:w-96 sm:h-96 rounded-full blur-[100px] pointer-events-none -mr-20 -mt-20 ${selectedPlan.id.startsWith('static') || selectedPlan.id.startsWith('especializacion') ? 'bg-white/5' : 'bg-amber-500/10'}`}></div>
+                 <div className={`absolute top-0 right-0 w-[500px] h-[500px] pointer-events-none -mr-40 -mt-40 transform-gpu ${selectedPlan?.id.startsWith('static') || selectedPlan?.id.startsWith('especializacion') || selectedPlan?.id.startsWith('calculadora') ? 'bg-[radial-gradient(circle,rgba(255,255,255,0.05)_0%,transparent_60%)]' : 'bg-[radial-gradient(circle,rgba(245,158,11,0.1)_0%,transparent_60%)]'}`}></div>
                  
                  <div className="p-4 sm:p-6 bg-[#050505] border-b border-zinc-800 flex justify-between items-center relative z-20">
                     <button 
@@ -1068,7 +1101,7 @@ export default function Home() {
                  {/* Pasamos addVideoReview como false forzosamente si es un plan estático */}
                  <CheckoutClient 
                     selectedPlan={selectedPlan} 
-                    extraVideo={(selectedPlan.id.startsWith('static') || selectedPlan.id.startsWith('especializacion')) ? false : addVideoReview} 
+                    extraVideo={(selectedPlan.id.startsWith('static') || selectedPlan.id.startsWith('especializacion') || selectedPlan.id.startsWith('calculadora')) ? false : addVideoReview} 
                     extraPrice={extraVideoPrice}
                  />
                </div>

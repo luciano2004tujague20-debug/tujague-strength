@@ -63,10 +63,11 @@ export default function CheckoutClient({
   const abandonIdRef = useRef<string | null>(null);
 
   // 🔥 CANDADO DE SEGURIDAD ACTUALIZADO PARA INCLUIR DEFINICIÓN Y BRAZOS 🔥
-  const isStaticPlan = 
+const isStaticPlan = 
     selectedPlan.id.startsWith("static") || 
     selectedPlan.id === "mesociclo-definicion-4-semanas" ||
-    selectedPlan.id === "especializacion-brazos-mutantes"; // <--- ESTO ACTIVA LA VENTA
+    selectedPlan.id === "especializacion-brazos-mutantes" ||
+    selectedPlan.id === "calculadora-volumen-basura"; // <--- JUNK VOLUME KILLER ACTIVO
   
   const finalExtraVideo = isStaticPlan ? false : extraVideo;
 
@@ -198,18 +199,29 @@ export default function CheckoutClient({
     try {
       const cleanEmail = formData.email.trim().toLowerCase();
 
-      // 1. Creación o inicio de sesión en Supabase Auth
+// 1. Creación o inicio de sesión en Supabase Auth
+      // Preparamos los datos de la ficha clínica para inyectarlos en el perfil
+      const userData = {
+        full_name: formData.name.trim(),
+        phone: formData.phone,
+        instagram: formData.instagram,
+        ...(isStaticPlan ? {} : {
+          experience: formData.experience,
+          goal: formData.goal,
+          injuries: formData.injuries,
+          equipment: formData.equipment,
+          onboarding_completed: true // 🚀 MAGIA: Le avisa al dashboard que no vuelva a preguntar
+        })
+      };
+
       const { error: authError } = await supabase.auth.signUp({
         email: cleanEmail,
         password: formData.password,
-        options: {
-          data: {
-            full_name: formData.name.trim(), // Importante guardar el nombre para el PDF
-          }
-        }
+        options: { data: userData }
       });
 
       if (authError && authError.message.toLowerCase().includes("already registered")) {
+        // Si ya tenía cuenta, iniciamos sesión
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email: cleanEmail,
           password: formData.password,
@@ -220,6 +232,12 @@ export default function CheckoutClient({
           setLoading(false);
           return;
         }
+        
+        // Como ya tenía cuenta, actualizamos su perfil con la nueva ficha clínica
+        if (!isStaticPlan) {
+            await supabase.auth.updateUser({ data: userData });
+        }
+
       } else if (authError) {
         throw new Error("No pudimos crear tu cuenta de acceso: " + authError.message);
       }
@@ -244,6 +262,7 @@ export default function CheckoutClient({
         if (selectedPlan.id === "static-hipertrofia") productSlug = "mesociclo-hipertrofia-4-semanas";
         if (selectedPlan.id === "mesociclo-definicion-4-semanas") productSlug = "mesociclo-definicion-4-semanas";
         if (selectedPlan.id === "especializacion-brazos-mutantes") productSlug = "especializacion-brazos-mutantes"; // <--- ESTO CONECTA CON LA BASE DE DATOS
+        if (selectedPlan.id === "calculadora-volumen-basura") productSlug = "calculadora-volumen-basura";
 
         const { data: dbProduct, error: productError } = await supabase
           .from("commerce_products")
@@ -419,7 +438,7 @@ export default function CheckoutClient({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className={labelClass}>
                   WhatsApp (Soporte) <span className="text-emerald-500">*</span>
@@ -450,7 +469,7 @@ export default function CheckoutClient({
             </div>
 
             <div
-              className={`p-4 border rounded-xl mt-4 text-center ${
+              className={`p-4 border rounded-xl mt-6 text-center ${
                 isStaticPlan
                   ? "bg-zinc-950 border-zinc-800"
                   : "bg-emerald-500/10 border-emerald-500/20"
@@ -462,8 +481,8 @@ export default function CheckoutClient({
                 }`}
               >
                 {isStaticPlan
-                  ? "Obtendrás acceso automático al Dashboard al confirmar el pago."
-                  : "Al completar el pago accederás a la auditoría clínica profunda."}
+                  ? "Obtendrás acceso automático al material al confirmar el pago."
+                  : "Al completar el pago accederás a tu panel para realizar la auditoría clínica."}
               </p>
             </div>
           </div>

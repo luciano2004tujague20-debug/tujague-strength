@@ -105,11 +105,17 @@ export default function PricingV2({ onSelectPlan, defaultTab = "monthly" }: Pric
 
   const currentPlans = useMemo(() => PRICING_MATRIX[activeTab], [activeTab]);
 
-  // Recomendación automática: highlight o del medio
+// Recomendación automática (TRAMPA MARKETING: Forzar Plan Pro Performance)
   const handleRecommendPlan = () => {
-    const plans = PRICING_MATRIX[activeTab];
-    const recommended = plans.find((p) => p.highlight) || plans[Math.floor(plans.length / 2)] || plans[0];
-    if (recommended) onSelectPlan(recommended);
+    // Apuntamos directo al plan VIP del medio (Pro Performance)
+    const recommended = PRICING_MATRIX.monthly[1]; 
+    
+    // Forzamos el cambio de pestaña para que el usuario vea qué le estamos vendiendo
+    setActiveTab("monthly"); 
+    
+    if (recommended) {
+      onSelectPlan(recommended);
+    }
   };
 
   const scrollToGrid = () => {

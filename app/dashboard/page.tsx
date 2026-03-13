@@ -116,16 +116,19 @@ const [isDownloadingMeso, setIsDownloadingMeso] = useState(false);
   // 1. Restauramos accessLevel para que el menú no se rompa
   const { productType, trainingFrequency, accessLevel } = resolvePlan(order?.plan_id, order?.plan_title);
 
-  // 2. Identificamos con precisión quirúrgica a los planes estáticos
+// 2. Identificamos con precisión quirúrgica a los planes estáticos
   const safePlanId = (order?.plan_id || "").toLowerCase();
   const safePlanTitle = (order?.plan_title || "").toLowerCase();
 
   const isStaticPlan = safePlanId.includes('static') || 
-                       safePlanId.includes('definicion') || 
-                       safePlanId.includes('cut') || 
-                       safePlanId.includes('mesociclo-') ||
-                       safePlanTitle.includes('fuerza base') ||
-                       safePlanTitle.includes('mutación');
+                         safePlanId.includes('definicion') || 
+                         safePlanId.includes('cut') || 
+                         safePlanId.includes('mesociclo-') ||
+                         safePlanId.includes('calculadora') ||
+                         safePlanId.includes('especializacion') ||
+                         safePlanId.includes('brazos') ||
+                         safePlanTitle.includes('fuerza base') ||
+                         safePlanTitle.includes('mutación');
 
   // 3. Restauramos isStatic para los botones de las pestañas
   const isStatic = isStaticPlan; 
@@ -265,10 +268,25 @@ const fetchDashboardData = async () => {
             hit_failure: currentOrder.checkin_hit_failure !== false
         });
         
-        setIsOnboarded(currentOrder.is_onboarded === true);
-
-        const planId = currentOrder.plan_id || "";
+const planId = currentOrder.plan_id || "";
         const planTitle = (currentOrder.plan_title || "").toLowerCase();
+        
+// 🔥 TRUCO: Si es un plan estático, dejamos pasar directo al usuario sin pedir ficha
+        const isStaticCheck = planId.includes('static') || 
+                              planId.includes('definicion') || 
+                              planId.includes('cut') || 
+                              planId.includes('mesociclo-') || 
+                              planId.includes('calculadora') || 
+                              planId.includes('especializacion') || 
+                              planId.includes('brazos') || 
+                              planTitle.includes('fuerza base') || 
+                              planTitle.includes('mutación');
+        
+        if (isStaticCheck) {
+            setIsOnboarded(true);
+        } else {
+            setIsOnboarded(currentOrder.is_onboarded === true);
+        }
         
         const isMonthly = planId.includes('mensual') || planTitle.includes('mesociclo') || planTitle.includes('performance') || planTitle.includes('élite') || planTitle.includes('elite');
 
@@ -1051,9 +1069,9 @@ const handleDownloadSecureMeso = async () => {
     return (
       <div className="min-h-screen bg-[#050505] text-white flex flex-col items-center justify-center p-6 text-center selection:bg-emerald-500 selection:text-black relative overflow-hidden">
         
-        {/* Luces de fondo épicas */}
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none -mr-20 -mt-20"></div>
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none -ml-20 -mb-20"></div>
+      {/* Luces de fondo épicas */}
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[radial-gradient(circle,rgba(16,185,129,0.1)_0%,transparent_60%)] pointer-events-none -mr-20 -mt-20 transform-gpu"></div>
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[radial-gradient(circle,rgba(16,185,129,0.05)_0%,transparent_60%)] pointer-events-none -ml-20 -mb-20 transform-gpu"></div>
 
         <div className="relative z-10 bg-[#0a0a0c] border border-zinc-800/80 p-10 md:p-16 rounded-[3rem] shadow-[0_0_80px_rgba(0,0,0,0.8)] max-w-3xl w-full backdrop-blur-xl">
            <span className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-6 inline-block shadow-inner">
@@ -1071,6 +1089,13 @@ const handleDownloadSecureMeso = async () => {
                </p>
                <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-12">
                  
+                 {myProducts.includes("calculadora-volumen-basura") && (
+                   <Link href="/dashboard/producto/calculadora-volumen-basura" className="w-full sm:w-auto bg-gradient-to-br from-amber-950/40 to-black border border-amber-500/50 hover:border-amber-400 text-white px-10 py-8 rounded-3xl transition-all duration-300 shadow-[0_0_40px_rgba(245,158,11,0.15)] hover:shadow-[0_0_60px_rgba(245,158,11,0.3)] hover:-translate-y-2 group flex flex-col items-center justify-center gap-3">
+                     <span className="text-5xl group-hover:scale-110 transition-transform drop-shadow-md mb-2 block">🧮</span>
+                     <span className="font-black text-sm md:text-base uppercase tracking-widest text-white text-center">Junk Volume<br/>Killer</span>
+                     <span className="text-[10px] text-amber-400 uppercase font-black tracking-[0.2em] mt-1 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20">Iniciar Software →</span>
+                   </Link>
+                 )}
                  {myProducts.includes("mesociclo-fuerza-4-semanas") && (
                    <Link href="/dashboard/producto/mesociclo-fuerza-4-semanas" className="w-full sm:w-auto bg-gradient-to-br from-emerald-950/40 to-black border border-emerald-500/50 hover:border-emerald-400 text-white px-10 py-8 rounded-3xl transition-all duration-300 shadow-[0_0_40px_rgba(16,185,129,0.15)] hover:shadow-[0_0_60px_rgba(16,185,129,0.3)] hover:-translate-y-2 group flex flex-col items-center justify-center gap-3">
                      <span className="text-5xl group-hover:scale-110 transition-transform drop-shadow-md mb-2 block">🦍</span>
@@ -1122,8 +1147,8 @@ const handleDownloadSecureMeso = async () => {
 
         <div className="max-w-5xl w-full bg-[#0a0a0c] border border-zinc-800/80 p-6 md:p-14 rounded-[2rem] md:rounded-[3rem] shadow-[0_0_80px_rgba(245,158,11,0.05)] relative overflow-hidden my-auto animate-in fade-in zoom-in duration-500">
             
-           <div className="absolute top-0 right-0 w-64 md:w-96 h-64 md:h-96 bg-amber-500/5 rounded-full blur-[100px] pointer-events-none -mr-10 md:-mr-20 -mt-10 md:-mt-20"></div>
-           <div className="absolute bottom-0 left-0 w-64 md:w-96 h-64 md:h-96 bg-amber-500/5 rounded-full blur-[100px] pointer-events-none -ml-10 md:-ml-20 -mb-10 md:-mb-20"></div>
+<div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[radial-gradient(circle,rgba(245,158,11,0.05)_0%,transparent_60%)] pointer-events-none -mr-20 -mt-20 transform-gpu"></div>
+           <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[radial-gradient(circle,rgba(245,158,11,0.05)_0%,transparent_60%)] pointer-events-none -ml-20 -mb-20 transform-gpu"></div>
 
            <div className="text-center mb-8 md:mb-12 relative z-10 border-b border-zinc-800/50 pb-8">
                <span className="bg-amber-500/10 text-amber-500 border border-amber-500/20 px-4 py-1.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-4 inline-block shadow-inner">
@@ -1342,9 +1367,9 @@ const handleDownloadSecureMeso = async () => {
         </div>
       </header>
 
-      {order.referral_code && (
+       {order.referral_code && (
           <div className="mb-10 bg-gradient-to-br from-zinc-900/80 to-black border border-emerald-900/30 rounded-[2.5rem] p-6 md:p-10 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none"></div>
+              <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[radial-gradient(circle,rgba(16,185,129,0.05)_0%,transparent_60%)] pointer-events-none transform-gpu -translate-y-1/2 translate-x-1/4"></div>
               
               <div className="grid lg:grid-cols-12 gap-8 items-center relative z-10">
                   <div className="lg:col-span-6 space-y-4">
@@ -1685,27 +1710,49 @@ const handleDownloadSecureMeso = async () => {
         {activeTab === "rutina" && (
           <div className="relative pb-24 max-w-[100vw] overflow-x-hidden md:max-w-6xl mx-auto"> 
 
-            {/* 🔥 VISTA EXCLUSIVA PARA MESOCICLOS 🔥 */}
+{/* 🔥 VISTA EXCLUSIVA PARA PLANES ESTÁTICOS / CALCULADORA 🔥 */}
             {isStaticPlan ? (
                 <div className="bg-[#0a0a0c] border border-emerald-500/30 p-10 md:p-20 rounded-[3rem] text-center shadow-[0_0_80px_rgba(16,185,129,0.1)] relative overflow-hidden my-10 max-w-4xl mx-auto animate-in zoom-in duration-500">
                     <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none"></div>
-                    <h2 className="text-4xl md:text-6xl font-black italic text-white mb-6 tracking-tighter uppercase relative z-10">TU MESOCICLO ESTÁ <span className="text-emerald-500">LISTO</span></h2>
-                    <p className="text-zinc-400 font-medium text-sm md:text-lg max-w-2xl mx-auto mb-10 relative z-10">Has adquirido el programa pre-armado de 4 semanas. El documento PDF oficial contiene toda la planificación, metodologías y hojas de registro.</p>
                     
-                    {order?.status === 'paid' ? (
-<button 
-    onClick={handleDownloadSecureMeso}
-    disabled={isDownloadingMeso}
-    className="relative z-10 inline-flex items-center justify-center bg-emerald-500 hover:bg-emerald-400 text-black px-12 py-6 rounded-2xl font-black text-sm md:text-base uppercase tracking-widest transition-all shadow-[0_0_40px_rgba(16,185,129,0.4)] hover:scale-105 active:scale-95 disabled:opacity-50"
->
-    {isDownloadingMeso ? '🔐 ENCRIPTANDO DOCUMENTO...' : '📥 DESCARGAR PDF OFICIAL'}
-</button>
+                    {safePlanId.includes('calculadora') ? (
+                        <>
+                            <h2 className="text-4xl md:text-6xl font-black italic text-white mb-6 tracking-tighter uppercase relative z-10">JUNK VOLUME <span className="text-amber-500">KILLER</span></h2>
+                            <p className="text-zinc-400 font-medium text-sm md:text-lg max-w-2xl mx-auto mb-10 relative z-10">Tu software de diagnóstico está listo. Ingresá a la herramienta interactiva para auditar tu rutina y descargar el Material de Rescate.</p>
+                            
+                            {order?.status === 'paid' ? (
+                                <Link href="/dashboard/producto/calculadora-volumen-basura" className="relative z-10 inline-flex items-center justify-center bg-amber-500 hover:bg-amber-400 text-black px-12 py-6 rounded-2xl font-black text-sm md:text-base uppercase tracking-widest transition-all shadow-[0_0_40px_rgba(245,158,11,0.4)] hover:scale-105 active:scale-95">
+                                    🧮 INICIAR SOFTWARE DE DIAGNÓSTICO
+                                </Link>
+                            ) : (
+                                <div className="relative z-10 bg-amber-500/10 border border-amber-500/30 p-8 rounded-3xl mt-6">
+                                    <span className="text-4xl block mb-4 animate-bounce">⏳</span>
+                                    <h4 className="text-amber-500 font-black uppercase tracking-widest mb-2 animate-pulse">Validando Transferencia</h4>
+                                    <p className="text-amber-400/80 text-sm font-medium">El Coach está verificando tu pago. El acceso al software se habilitará en breve.</p>
+                                </div>
+                            )}
+                        </>
                     ) : (
-                        <div className="relative z-10 bg-amber-500/10 border border-amber-500/30 p-8 rounded-3xl mt-6">
-                            <span className="text-4xl block mb-4 animate-bounce">⏳</span>
-                            <h4 className="text-amber-500 font-black uppercase tracking-widest mb-2 animate-pulse">Validando Transferencia</h4>
-                            <p className="text-amber-400/80 text-sm font-medium">El Coach está verificando tu pago. Una vez que lo apruebe desde la base de datos, el botón de descarga se habilitará automáticamente aquí mismo.</p>
-                        </div>
+                        <>
+                            <h2 className="text-4xl md:text-6xl font-black italic text-white mb-6 tracking-tighter uppercase relative z-10">TU MESOCICLO ESTÁ <span className="text-emerald-500">LISTO</span></h2>
+                            <p className="text-zinc-400 font-medium text-sm md:text-lg max-w-2xl mx-auto mb-10 relative z-10">Has adquirido el programa pre-armado de 4 semanas. El documento PDF oficial contiene toda la planificación, metodologías y hojas de registro.</p>
+                            
+                            {order?.status === 'paid' ? (
+                                <button 
+                                    onClick={handleDownloadSecureMeso}
+                                    disabled={isDownloadingMeso}
+                                    className="relative z-10 inline-flex items-center justify-center bg-emerald-500 hover:bg-emerald-400 text-black px-12 py-6 rounded-2xl font-black text-sm md:text-base uppercase tracking-widest transition-all shadow-[0_0_40px_rgba(16,185,129,0.4)] hover:scale-105 active:scale-95 disabled:opacity-50"
+                                >
+                                    {isDownloadingMeso ? '🔐 ENCRIPTANDO DOCUMENTO...' : '📥 DESCARGAR PDF OFICIAL'}
+                                </button>
+                            ) : (
+                                <div className="relative z-10 bg-amber-500/10 border border-amber-500/30 p-8 rounded-3xl mt-6">
+                                    <span className="text-4xl block mb-4 animate-bounce">⏳</span>
+                                    <h4 className="text-amber-500 font-black uppercase tracking-widest mb-2 animate-pulse">Validando Transferencia</h4>
+                                    <p className="text-amber-400/80 text-sm font-medium">El Coach está verificando tu pago. Una vez que lo apruebe desde la base de datos, el botón de descarga se habilitará automáticamente aquí mismo.</p>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             ) : (
@@ -2376,9 +2423,9 @@ const handleDownloadSecureMeso = async () => {
 
             </div>
 
-            {/* MURO DE TROFEOS HARDCORE (Oro/Negro) */}
-            <div className="bg-[#0a0a0c] border border-amber-900/40 p-8 md:p-16 rounded-[2.5rem] md:rounded-[4rem] shadow-[0_0_80px_rgba(0,0,0,0.5)] relative overflow-hidden backdrop-blur-xl">
-               <div className="absolute top-0 left-0 w-full h-[500px] md:h-[800px] bg-amber-500/5 blur-[120px] md:blur-[180px] pointer-events-none -translate-y-1/2"></div>
+{/* MURO DE TROFEOS HARDCORE (Oro/Negro) */}
+            <div className="bg-[#0a0a0c] border border-amber-900/40 p-8 md:p-16 rounded-[2.5rem] md:rounded-[4rem] shadow-[0_0_80px_rgba(0,0,0,0.5)] relative overflow-hidden backdrop-blur-xl transform-gpu">
+               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[800px] bg-[radial-gradient(ellipse_at_center,rgba(245,158,11,0.05)_0%,transparent_70%)] pointer-events-none -translate-y-1/2 transform-gpu"></div>
                
                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 md:mb-20 gap-8 text-left relative z-10">
                    <div>
