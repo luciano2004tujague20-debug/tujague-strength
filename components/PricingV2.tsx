@@ -8,7 +8,8 @@ export type PricingPlan = {
   title: string;
   subtitle: string;
   price: number;
-  originalPrice?: number; // 🔥 NUEVO: Para el precio tachado
+  originalPrice?: number;
+  installments?: number; // 🔥 Cantidad de cuotas
   currency: "ARS" | "USD";
   description: string;
   features: string[];
@@ -18,9 +19,9 @@ export type PricingPlan = {
   tier: "static" | "elite_3m" | "elite_6m" | "elite_12m"; 
 };
 
-// ─── ESCALERA DE VALOR HIGH-TICKET ───
+// ─── ESCALERA DE VALOR HIGH-TICKET (PESIFICADA) ───
 const PLANS: PricingPlan[] = [
-  // --- NIVEL 1: BÓVEDA ESTÁTICA (Mantiene su lógica original) ---
+  // --- NIVEL 1: BÓVEDA ESTÁTICA ---
   {
     id: "static-fuerza",
     title: "Fuerza Base",
@@ -58,14 +59,15 @@ const PLANS: PricingPlan[] = [
     tier: "static",
   },
 
-  // --- NIVEL 2: MENTORÍA ÉLITE (El Core del Negocio) ---
+  // --- NIVEL 2: MENTORÍA ÉLITE (PRECIOS EN ARS + CUOTAS) ---
   {
     id: "elite-90-dias",
     title: "Élite 90 Días",
     subtitle: "ACCESO 3 MESES",
-    price: 250,
-    originalPrice: 450,
-    currency: "USD",
+    price: 249000,
+    originalPrice: 450000,
+    installments: 3,
+    currency: "ARS",
     description: "El punto de entrada. Asegurá tu lugar y accedé a toda mi tecnología de programación y auditoría técnica.",
     features: [
       "🧠 Programación dinámica x Fatiga",
@@ -82,9 +84,10 @@ const PLANS: PricingPlan[] = [
     id: "elite-180-dias",
     title: "Élite 180 Días",
     subtitle: "ACCESO 6 MESES",
-    price: 390,
-    originalPrice: 800,
-    currency: "USD",
+    price: 390000,
+    originalPrice: 800000,
+    installments: 3,
+    currency: "ARS",
     description: "Mi programa insignia. Tiempo suficiente para destrozar tus marcas genéticas, con línea directa a mi teléfono.",
     features: [
       "🧠 Programación dinámica x Fatiga",
@@ -93,7 +96,7 @@ const PLANS: PricingPlan[] = [
       "📱 Soporte directo por WhatsApp L-V",
       "⚡ 1 Clínica Biomecánica (Llamada Inicial)"
     ],
-    highlight: true, // Esto hace que la caja brille y resalte
+    highlight: true,
     idealFor: "El 80% de los Atletas (Máximo Valor)",
     actionLabel: "🔥 INICIAR 180 DÍAS",
     tier: "elite_6m",
@@ -102,9 +105,10 @@ const PLANS: PricingPlan[] = [
     id: "leyenda-365-dias",
     title: "Leyenda BII",
     subtitle: "ACCESO 1 AÑO",
-    price: 690,
-    originalPrice: 1500,
-    currency: "USD",
+    price: 690000,
+    originalPrice: 1500000,
+    installments: 3,
+    currency: "ARS",
     description: "Para los que buscan mutar por completo o competir. El nivel más alto de cercanía y detalle técnico posible.",
     features: [
       "Todo lo incluido en Élite 180 Días",
@@ -166,20 +170,44 @@ export default function PricingV2({ onSelectPlan }: PricingV2Props) {
                   <h3 className={`text-3xl font-black italic uppercase tracking-tight ${plan.highlight ? 'text-white' : 'text-white'}`}>{plan.title}</h3>
                 </div>
                 
-                {/* PRECIOS CON ANCLAJE (TACHADO) */}
+                {/* 🔥 ESTRATEGIA HIGH-TICKET: PRECIOS EN CUOTAS 🔥 */}
                 <div className="mb-8 text-center flex flex-col items-center border-b border-zinc-800/80 pb-8">
+                  
+                  {/* El Anclaje (El precio falso gigante y tachado) */}
                   {plan.originalPrice && (
-                     <div className="text-zinc-500 font-bold text-sm mb-1 flex items-center gap-2">
-                        <span>Valor Oficial:</span>
-                        <span className="line-through decoration-red-500/50 decoration-2">USD ${plan.originalPrice}</span>
+                     <div className="text-zinc-500 font-bold text-xs sm:text-sm mb-2 flex items-center gap-2 bg-red-500/10 px-3 py-1 rounded-full border border-red-500/20">
+                        <span>Valor de Lista:</span>
+                        <span className="line-through decoration-red-500 decoration-2 text-zinc-400">ARS ${plan.originalPrice.toLocaleString('es-AR')}</span>
                      </div>
                   )}
-                  <div className="flex items-start justify-center gap-1 mb-2">
-                    <span className={`text-2xl font-black mt-2 ${plan.highlight ? 'text-amber-500' : 'text-zinc-400'}`}>USD $</span>
-                    <span className={`text-6xl font-black italic tracking-tighter leading-none ${plan.highlight ? 'text-amber-500 drop-shadow-md' : 'text-white'}`}>{plan.price}</span>
+
+                  {/* El Precio Total Real (Más chico, como referencia) */}
+                  <div className="text-zinc-400 font-black tracking-widest text-[10px] uppercase mb-1">
+                    Total del Programa: ARS ${plan.price.toLocaleString('es-AR')}
                   </div>
-                  <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mt-2 bg-zinc-900 px-3 py-1 rounded-full">
-                    Pago Único • Multiplica x Tipo de Cambio para ARS
+
+                  {/* EL GOLPE VISUAL: La cuota gigante */}
+                  {plan.installments ? (
+                      <div className="flex flex-col items-center justify-center gap-1 mb-3">
+                        <span className={`text-xs sm:text-sm font-black uppercase tracking-[0.2em] ${plan.highlight ? 'text-amber-500' : 'text-zinc-400'}`}>
+                          Llevátelo en {plan.installments} cuotas de
+                        </span>
+                        <div className="flex items-start justify-center gap-1 mt-1">
+                          <span className={`text-2xl font-black mt-2 ${plan.highlight ? 'text-amber-500' : 'text-zinc-400'}`}>$</span>
+                          <span className={`text-6xl sm:text-7xl font-black italic tracking-tighter leading-none ${plan.highlight ? 'text-amber-500 drop-shadow-md' : 'text-white'}`}>
+                            {Math.round(plan.price / plan.installments).toLocaleString('es-AR')}
+                          </span>
+                        </div>
+                      </div>
+                  ) : (
+                      <div className="flex items-start justify-center gap-1 mb-2">
+                        <span className={`text-2xl font-black mt-2 ${plan.highlight ? 'text-amber-500' : 'text-zinc-400'}`}>$</span>
+                        <span className={`text-6xl sm:text-7xl font-black italic tracking-tighter leading-none ${plan.highlight ? 'text-amber-500 drop-shadow-md' : 'text-white'}`}>{plan.price.toLocaleString('es-AR')}</span>
+                      </div>
+                  )}
+
+                  <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mt-2 bg-zinc-900 px-3 py-1.5 rounded-full border border-zinc-800 text-center leading-relaxed">
+                    Cuotas disponibles pagando en ARS vía Mercado Pago
                   </p>
                 </div>
 
@@ -215,7 +243,7 @@ export default function PricingV2({ onSelectPlan }: PricingV2Props) {
         </div>
         
         {/* 🔥 BARRA DE CONFIANZA Y ESCASEZ 🔥 */}
-          <div className="mt-8 flex flex-col md:flex-row items-center justify-between bg-[#050505] border border-zinc-800/80 p-4 sm:p-5 rounded-2xl shadow-inner">
+        <div className="mt-8 flex flex-col md:flex-row items-center justify-between bg-[#050505] border border-zinc-800/80 p-4 sm:p-5 rounded-2xl shadow-inner">
              <div className="flex items-center gap-3 mb-4 md:mb-0">
                 <span className="relative flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
@@ -236,7 +264,7 @@ export default function PricingV2({ onSelectPlan }: PricingV2Props) {
           </div>
 
         {/* ─── BLOQUE 2: BÓVEDA ESTÁTICA (OFERTA LOW-TICKET) ─── */}
-        <div className="mb-20">
+        <div className="mb-20 mt-16">
           <div className="flex items-center gap-4 mb-8">
             <h3 className="text-2xl font-black italic text-zinc-500 uppercase tracking-tighter">Bóveda <span className="text-zinc-300">Estática</span></h3>
             <div className="h-px bg-zinc-800/80 flex-grow"></div>
@@ -250,7 +278,7 @@ export default function PricingV2({ onSelectPlan }: PricingV2Props) {
                   <p className="text-zinc-600 font-bold tracking-[0.2em] text-[9px] uppercase">{plan.subtitle}</p>
                 </div>
                 <div className="flex items-end gap-1 mb-6">
-                  <span className="text-xl font-black text-zinc-600 mb-1">{plan.currency === "USD" ? "USD $" : "ARS $"}</span>
+                  <span className="text-xl font-black text-zinc-600 mb-1">$</span>
                   <span className="text-4xl font-black italic text-zinc-200 tracking-tighter leading-none">{plan.price.toLocaleString("es-AR")}</span>
                 </div>
                 <div className="bg-black border border-zinc-800/80 p-3 rounded-xl mb-6">
