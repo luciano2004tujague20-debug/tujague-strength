@@ -75,18 +75,53 @@ export default function AdminAthletesPage() {
     }
   }
 
-  // 🔥 FUNCIÓN MEGÁFONO GLOBAL 🔥
-  const handleSendGlobalMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if(!window.confirm("ATENCIÓN: Esta alerta sonará en el celular de TODOS los atletas. ¿Proceder?")) return;
+  // 🔥 1. FUNCIÓN PIZARRÓN (Guarda en la base de datos / Campanita App)
+  const handleSendPizarronGlobal = async () => {
+    if(!globalTitle || !globalMessage) return alert("Faltan datos del mensaje.");
+    if(!window.confirm("¿Publicar este aviso en el Pizarrón Global de la App para todos?")) return;
     setSendingGlobal(true);
     try {
         const { error } = await supabase.from('notifications').insert([{ title: globalTitle, message: globalMessage, is_global: true, user_id: null }]);
         if (error) throw error;
-        alert("📢 ¡MEGÁFONO GLOBAL DISPARADO!");
+        alert("📢 ¡AVISO PUBLICADO EN LA APP!");
         setGlobalTitle(""); setGlobalMessage(""); setShowMegaphone(false);
     } catch (err: any) {
         alert("❌ Error: " + err.message);
+    } finally {
+        setSendingGlobal(false);
+    }
+  };
+
+  // 🔥 2. FUNCIÓN ALARMA (Dispara PUSH a todos los celulares)
+  const handleSendAlarmaGlobal = async () => {
+    if(!globalTitle || !globalMessage) return alert("Faltan datos del mensaje.");
+    if(!window.confirm("⚠️ PELIGRO: Esto hará vibrar las pantallas de TODOS tus atletas. ¿Proceder?")) return;
+    setSendingGlobal(true);
+    try {
+        const { data: athletesData, error } = await supabase.from('athlete_gamification').select('fcm_token').not('fcm_token', 'is', null);
+        if (error) throw error;
+
+        const tokensList = athletesData.map(a => a.fcm_token).filter((t, i, s) => t && s.indexOf(t) === i);
+        if (tokensList.length === 0) {
+            alert("❌ Abortado: Ningún atleta tiene notificaciones activas aún.");
+            setSendingGlobal(false); return;
+        }
+
+        const res = await fetch('/api/send-push-global', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tokens: tokensList, title: globalTitle, body: globalMessage }),
+        });
+
+        const result = await res.json();
+        if (res.ok) {
+            alert(`🌍 ¡ALARMA GLOBAL DISPARADA! \nImpactó en ${result.impactos} celulares.`);
+            setGlobalTitle(""); setGlobalMessage(""); setShowMegaphone(false);
+        } else {
+            alert("❌ Falló el bombardeo: " + result.error);
+        }
+    } catch (err: any) {
+        alert("❌ Error Crítico: " + err.message);
     } finally {
         setSendingGlobal(false);
     }
@@ -377,7 +412,7 @@ export default function AdminAthletesPage() {
                 <h2 className="text-3xl font-black italic uppercase text-black mb-2 tracking-tighter">Aviso <span className="text-red-500">Global</span></h2>
                 <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mb-8">Esta alerta le llegará a TODO tu plantel.</p>
                 
-                <form onSubmit={handleSendGlobalMessage} className="space-y-5 relative z-10">
+                <form onSubmit={(e) => e.preventDefault()} className="space-y-5 relative z-10">
                     <div>
                         <label className="text-[10px] font-black uppercase text-red-500 tracking-widest mb-2 flex ml-1 items-center gap-1"><span className="text-sm">📢</span> Título de la Alerta</label>
                         <input required type="text" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 text-black font-bold text-sm focus:border-red-500 focus:bg-white outline-none transition-all placeholder:text-gray-400" placeholder="Ej: ¡Nuevo Mesociclo Disponible!" value={globalTitle} onChange={e => setGlobalTitle(e.target.value)} />
@@ -387,9 +422,15 @@ export default function AdminAthletesPage() {
                         <textarea required className="w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 text-gray-800 font-medium text-sm focus:border-red-500 focus:bg-white outline-none transition-all placeholder:text-gray-400 h-32 resize-none custom-scrollbar" placeholder="Escribí el comunicado detallado acá..." value={globalMessage} onChange={e => setGlobalMessage(e.target.value)} />
                     </div>
 
-                    <button type="submit" disabled={sendingGlobal} className="w-full bg-black hover:bg-zinc-800 text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest shadow-md transition-all mt-6 disabled:opacity-50 active:scale-95 flex items-center justify-center gap-2">
-                        {sendingGlobal ? "TRANSMITIENDO..." : "🚀 DISPARAR SEÑAL A TODOS"}
-                    </button>
+                    <div className="flex flex-col gap-3 mt-6">
+                        <button type="button" onClick={handleSendPizarronGlobal} disabled={sendingGlobal} className="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 py-4 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest shadow-sm border border-gray-200 transition-all disabled:opacity-50 active:scale-95 flex items-center justify-center gap-2">
+                            {sendingGlobal ? "PROCESANDO..." : "📝 PUBLICAR AVISO (EN LA APP)"}
+                        </button>
+
+                        <button type="button" onClick={handleSendAlarmaGlobal} disabled={sendingGlobal} className="w-full bg-black hover:bg-red-600 text-white py-4 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest shadow-md transition-all disabled:opacity-50 active:scale-95 flex items-center justify-center gap-2">
+                            {sendingGlobal ? "TRANSMITIENDO..." : "🚀 DISPARAR SEÑAL PUSH A TODOS"}
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>

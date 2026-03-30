@@ -1,5 +1,9 @@
 "use client";
 
+import PushNotificationManager from '@/components/notifications/PushNotificationManager';
+import TabEvolucion from "@/components/dashboard/TabEvolucion";
+import AffiliateDashboard from "@/components/dashboard/afiliados/AffiliateDashboard"; // 🔥 ESTA ES LA LÍNEA NUEVA
+import AthleteNutritionDashboard from "@/components/dashboard/nutrition/AthleteNutritionDashboard";
 import AthleteMacroPlanner from '@/components/AthleteMacroPlanner';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts'; // 🔥 Línea 3 unificada y limpia
 import React from 'react';
@@ -16,6 +20,10 @@ export default function DashboardAtleta() {
   const supabase = createClient();
   
   const [activeTab, setActiveTab] = useState("rutina");
+  // 🔥 NUEVOS ESTADOS RELACIONALES (SaaS BII-Vintage) 🔥
+  const [activeDbRoutine, setActiveDbRoutine] = useState<any>(null); // Va a guardar la rutina que descarguemos de Supabase
+  const [setInputs, setSetInputs] = useState<Record<string, { weight: string, reps: string }>>({}); // Va a guardar los KG y Reps que el atleta escriba
+  const [savingSetId, setSavingSetId] = useState<string | null>(null); // Es para que el botón diga "Guardando..." mientras carga
   const [showAssistant, setShowAssistant] = useState(false); // 🔥 NUEVA LLAVE
   const [showNotifications, setShowNotifications] = useState(false); // 🔥 LLAVE DE LA CAMPANA
   const [dbNotifications, setDbNotifications] = useState<any[]>([]); // 🔥 GUARDA LOS MENSAJES DE SUPABASE
@@ -391,7 +399,7 @@ export default function DashboardAtleta() {
           setViewingBiiProgram(active.program_data); // Esta es la que se ve en la agenda
       }
 
-      // 🔥 BUSCAR NOTIFICACIONES DEL COACH (GLOBALES O PRIVADAS) 🔥
+// 🔥 BUSCAR NOTIFICACIONES DEL COACH (GLOBALES O PRIVADAS) 🔥
       const { data: fetchNotifs } = await supabase
         .from('notifications')
         .select('*')
@@ -401,7 +409,88 @@ export default function DashboardAtleta() {
       if (fetchNotifs) {
           setDbNotifications(fetchNotifs);
       }
-      
+
+      // -------------------------------------------------------------------------
+      // 🔥 MAGIA RELACIONAL: TRAEMOS LA RUTINA CON SUS DÍAS Y EJERCICIOS 🔥
+      // -------------------------------------------------------------------------
+      if (user.id) {
+          const { data: dbRoutineData, error: dbRoutineErr } = await supabase
+            .from('routines')
+            .select(`
+              *,
+              workouts (
+                *,
+                workout_exercises (*)
+              )
+            `)
+            .eq('user_id', user.id)
+            .eq('is_active', true)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (dbRoutineData && dbRoutineData.workouts) {
+              // Ordenamos los días por número y los ejercicios por su orden de aparición
+              dbRoutineData.workouts.sort((a: any, b: any) => a.day_number - b.day_number);
+              dbRoutineData.workouts.forEach((w: any) => {
+                  if (w.workout_exercises) {
+                      w.workout_exercises.sort((a: any, b: any) => a.order_index - b.order_index);
+                  }
+              });
+              // Guardamos la rutina estructurada en la memoria que creamos en el Paso 1
+              setActiveDbRoutine(dbRoutineData);
+          }
+          // 🔥 MOTOR DE EVOLUCIÓN AUTOMÁTICA (ALGORITMO DE BRZYCKI) 🔥
+          const { data: sweatData } = await supabase
+              .from('logged_sets')
+              .select(`
+                  weight_kg,
+                  reps_achieved,
+                  workout_exercises ( exercise_name )
+              `)
+              .eq('user_id', user.id);
+
+          if (sweatData && sweatData.length > 0) {
+// Empezamos con los valores manuales viejos, por si en algún ejercicio no hay datos nuevos
+              let maxSquat = Number(order?.rm_squat || 0);
+              let maxBench = Number(order?.rm_bench || 0);
+              let maxDeadlift = Number(order?.rm_deadlift || 0);
+              let maxMilitary = Number(order?.rm_military || 0);
+              let maxDips = Number(order?.rm_dips || 0);
+
+              sweatData.forEach((set: any) => {
+                  const exName = set.workout_exercises?.exercise_name?.toLowerCase() || '';
+                  const weight = Number(set.weight_kg);
+                  const reps = Number(set.reps_achieved);
+                  
+                  // Fórmula de Brzycki para estimar 1RM
+                  const e1RM = reps === 1 ? weight : Math.round(weight * (36 / (37 - reps)));
+
+                  if (exName.includes('sentadilla') || exName.includes('squat')) {
+                      if (e1RM > maxSquat) maxSquat = e1RM;
+                  } else if (exName.includes('banca') || exName.includes('bench')) {
+                      if (e1RM > maxBench) maxBench = e1RM;
+                  } else if (exName.includes('muerto') || exName.includes('deadlift')) {
+                      if (e1RM > maxDeadlift) maxDeadlift = e1RM;
+                  } else if (exName.includes('militar') || exName.includes('ohp')) {
+                      if (e1RM > maxMilitary) maxMilitary = e1RM;
+                  } else if (exName.includes('fondo') || exName.includes('dip')) {
+                      if (e1RM > maxDips) maxDips = e1RM;
+                  }
+              });
+
+              // Sobreescribimos la memoria de la pantalla con los RMs reales auto-calculados
+              setRms({
+                  squat: maxSquat > 0 ? maxSquat.toString() : "",
+                  bench: maxBench > 0 ? maxBench.toString() : "",
+                  deadlift: maxDeadlift > 0 ? maxDeadlift.toString() : "",
+                  military: maxMilitary > 0 ? maxMilitary.toString() : "",
+                  dips: maxDips > 0 ? maxDips.toString() : ""
+              });
+          }
+      }
+      // -------------------------------------------------------------------------
+
       setRoutineLoading(false);
       setLoading(false);
     }; 
@@ -416,6 +505,28 @@ export default function DashboardAtleta() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
+  };
+
+  // 🔥 BOTÓN MÁGICO DE TESTEO (BORRAR DESPUÉS) 🔥
+  const handleInyectarRutinaSaaS = async () => {
+      if (!user?.id) return alert("Falta usuario");
+      
+      const { data: routine, error: rErr } = await supabase.from('routines').insert({
+          user_id: user.id, name: "Protocolo Heavy Duty (SaaS)", macrocycle: "Prueba", mesocycle: "Semana 1", is_active: true
+      }).select().single();
+      if (rErr) return alert("Error: " + rErr.message);
+
+      const { data: workout, error: wErr } = await supabase.from('workouts').insert({
+          routine_id: routine.id, day_number: 1, name: "Día 1 - Push", focus: "Pecho y Hombro", is_rest_day: false
+      }).select().single();
+      if (wErr) return alert("Error Día: " + wErr.message);
+
+      await supabase.from('workout_exercises').insert([
+          { workout_id: workout.id, exercise_name: "Press Banca", sets_target: "3", reps_target: "5", rpe_target: "8", tempo: "3-1-X-1", rest_time: "3 min", order_index: 1 },
+          { workout_id: workout.id, exercise_name: "Press Militar", sets_target: "3", reps_target: "8", rpe_target: "7", tempo: "3-0-X-1", rest_time: "2 min", order_index: 2 }
+      ]);
+
+      alert("✅ RUTINA RELACIONAL INYECTADA CON ÉXITO. ¡Actualizá la página (F5)!");
   };
 
   const handleSaveOnboarding = async (e: React.FormEvent) => {
@@ -635,6 +746,34 @@ export default function DashboardAtleta() {
     }
   };
 
+  // -------------------------------------------------------------------------
+  // 🔥 PASO 3: FUNCIÓN PARA REGISTRAR EL SUDOR EN LA BÓVEDA (SaaS) 🔥
+  // -------------------------------------------------------------------------
+  const handleLogSet = async (exerciseId: string) => {
+      const inputs = setInputs[exerciseId];
+      if (!inputs || !inputs.weight || !inputs.reps) return alert("Por favor, ingresá los KG y las Repeticiones logradas.");
+      
+      setSavingSetId(exerciseId);
+      try {
+          const { error } = await supabase.from('logged_sets').insert({
+              user_id: user.id,
+              workout_exercise_id: exerciseId,
+              weight_kg: Number(inputs.weight),
+              reps_achieved: Number(inputs.reps)
+          });
+          if (error) throw error;
+          
+          alert("✅ ¡Serie registrada con éxito! El Coach IA ya tiene los datos.");
+          
+          // Limpiamos los casilleros de este ejercicio para que pueda anotar la siguiente serie
+          setSetInputs(prev => ({ ...prev, [exerciseId]: { weight: '', reps: '' } }));
+      } catch (error: any) {
+          alert("Error guardando serie: " + error.message);
+      } finally {
+          setSavingSetId(null);
+      }
+  };
+
   const handleRenewPlan = async () => {
     setLoadingRenewal(true);
     try {
@@ -843,65 +982,85 @@ const downloadPDF = async () => {
   };
 
   const handleBioMessage = async (e: React.FormEvent) => {
-     e.preventDefault();
-     if (!bioInput.trim()) return;
+      e.preventDefault();
+      const input = (e.target as HTMLFormElement).elements.namedItem('chatInput') as HTMLInputElement;
+      const text = input.value;
+      if (!text.trim()) return;
 
-     const newHistory = [...bioHistory, { role: "user", content: bioInput }];
-     setBioHistory(newHistory);
-     setBioInput("");
-     setIsTyping(true);
+      const newHistory = [...bioHistory, { role: "user", content: text }];
+      // Añadimos un mensaje vacío del asistente que se va a ir llenando de letras
+      setBioHistory([...newHistory, { role: "assistant", content: "" }]); 
+      input.value = ""; 
+      setIsTyping(true);
 
-     try {
-        const res = await fetch("/api/assistant", {
-           method: "POST",
-           headers: { "Content-Type": "application/json" },
-           body: JSON.stringify({ messages: newHistory })
-        });
+      try {
+         const res = await fetch("/api/assistant", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ messages: newHistory })
+         });
+         
+         if (!res.ok) throw new Error();
 
-        const data = await res.json();
-        
-        if (data.reply) {
-           setBioHistory([...newHistory, { role: "assistant", content: data.reply }]);
-        } else {
-           setBioHistory([...newHistory, { role: "assistant", content: "Error de conexión central." }]);
-        }
-     } catch (error) {
-        setBioHistory([...newHistory, { role: "assistant", content: "El sistema central se encuentra inactivo momentáneamente." }]);
-     } finally {
-        setIsTyping(false);
-     }
+         // 🔥 MAGIA: ATAJAMOS EL STREAMING Y CREAMOS EL EFECTO MÁQUINA DE ESCRIBIR 🔥
+         setIsTyping(false); // Apagamos los puntitos rebotando porque ya empieza a escribir
+         const reader = res.body?.getReader();
+         const decoder = new TextDecoder();
+         let aiResponse = "";
+
+         while (true) {
+             const { done, value } = await reader!.read();
+             if (done) break;
+             aiResponse += decoder.decode(value, { stream: true });
+             
+             // Actualizamos el historial en tiempo real con las letras nuevas
+             setBioHistory([...newHistory, { role: "assistant", content: aiResponse }]);
+         }
+      } catch (error) {
+         setBioHistory([...newHistory, { role: "assistant", content: "El sistema central se encuentra inactivo momentáneamente." }]);
+         setIsTyping(false);
+      }
   };
 
   const handleChefMessage = async (e: React.FormEvent) => {
-     e.preventDefault();
-     if (!chefInput.trim()) return;
+      e.preventDefault();
+      const input = (e.target as HTMLFormElement).elements.namedItem('chatInput') as HTMLInputElement;
+      const text = input.value;
+      if (!text.trim()) return;
 
-     const newHistory = [...chefHistory, { role: "user", content: chefInput }];
-     setChefHistory(newHistory);
-     setChefInput("");
-     setIsTyping(true);
+      const newHistory = [...chefHistory, { role: "user", content: text }];
+      setChefHistory([...newHistory, { role: "assistant", content: "" }]);
+      input.value = "";
+      setIsTyping(true);
 
-     try {
-        const res = await fetch("/api/assistant/chef", {
-           method: "POST",
-           headers: { "Content-Type": "application/json" },
-           body: JSON.stringify({ messages: newHistory })
-        });
+      try {
+         const res = await fetch("/api/assistant/chef", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ messages: newHistory })
+         });
+         
+         if (!res.ok) throw new Error();
 
-        const data = await res.json();
-        
-        if (data.reply) {
-           setChefHistory([...newHistory, { role: "assistant", content: data.reply }]);
-        } else {
-           setChefHistory([...newHistory, { role: "assistant", content: "Error en la consulta nutricional." }]);
-        }
-     } catch (error) {
-        setChefHistory([...newHistory, { role: "assistant", content: "Error de conexión con los servidores culinarios." }]);
-     } finally {
-        setIsTyping(false);
-     }
+         setIsTyping(false);
+         const reader = res.body?.getReader();
+         const decoder = new TextDecoder();
+         let aiResponse = "";
+
+         while (true) {
+             const { done, value } = await reader!.read();
+             if (done) break;
+             aiResponse += decoder.decode(value, { stream: true });
+             
+             setChefHistory([...newHistory, { role: "assistant", content: aiResponse }]);
+         }
+      } catch (error) {
+         setChefHistory([...newHistory, { role: "assistant", content: "Error de conexión con los servidores culinarios." }]);
+         setIsTyping(false);
+      }
   };
 
+  // 🔥 ACÁ ESTÁ LA CALCULADORA QUE FALTABA (Intacta) 🔥
   const handleCalculateMacros = () => {
       const weight = Number(checkin.weight);
       if (!weight || weight < 30) return alert("Por favor, registre su peso corporal válido en el Check-in (Pestaña 'Control SNC') antes de calcular los macros.");
@@ -934,53 +1093,57 @@ const downloadPDF = async () => {
   };
 
   const handleQuickChefRequest = async (e: React.FormEvent) => {
-     e.preventDefault();
-     if (!chefIngredients.trim()) return alert("Por favor, detalle los ingredientes de su inventario.");
-     
-     setIsTyping(true);
-     
-     let targetCals = order?.macro_calories || (calculatedMacros ? calculatedMacros.cals : "No definido");
-     let targetProt = order?.macro_protein || (calculatedMacros ? calculatedMacros.prot + "g" : "Alto en proteína");
-     let targetCarbs = order?.macro_carbs || (calculatedMacros ? calculatedMacros.carbs + "g" : "Moderado");
-     let targetFats = order?.macro_fats || (calculatedMacros ? calculatedMacros.fats + "g" : "Moderado");
-     let targetWater = order?.macro_water || (calculatedMacros ? calculatedMacros.water + " L" : "3 Litros");
+      e.preventDefault();
+      const input = (e.target as HTMLFormElement).elements.namedItem('chatInput') as HTMLInputElement;
+      const text = input.value;
+      if (!text.trim()) return alert("Por favor, detalle los ingredientes de su inventario.");
+      
+      setIsTyping(true);
+      
+      let targetCals = order?.macro_calories || (calculatedMacros ? calculatedMacros.cals : "No definido");
+      let targetProt = order?.macro_protein || (calculatedMacros ? calculatedMacros.prot + "g" : "Alto en proteína");
+      let targetCarbs = order?.macro_carbs || (calculatedMacros ? calculatedMacros.carbs + "g" : "Moderado");
+      let targetFats = order?.macro_fats || (calculatedMacros ? calculatedMacros.fats + "g" : "Moderado");
+      let targetWater = order?.macro_water || (calculatedMacros ? calculatedMacros.water + " L" : "3 Litros");
 
-     const macroContext = `OBJETIVO ESTRICTO DE MACRONUTRIENTES DIARIOS: Calorías: ${targetCals}, Proteína: ${targetProt}, Carbohidratos: ${targetCarbs}, Grasas: ${targetFats}. Hidratación Mínima: ${targetWater}.`;
+      const macroContext = `OBJETIVO ESTRICTO DE MACRONUTRIENTES DIARIOS: Calorías: ${targetCals}, Proteína: ${targetProt}, Carbohidratos: ${targetCarbs}, Grasas: ${targetFats}. Hidratación Mínima: ${targetWater}.`;
 
-     const promptFinal = `Actúa como un Nutricionista Deportivo de Élite de la academia Tujague Strength.
-     Ingredientes disponibles en mi cocina: ${chefIngredients}.
-     
-     ${macroContext}
-     
-     REGLAS DE FORMATO Y ESTRUCTURA (OBLIGATORIO):
-     1. Diseña exactamente 4 comidas (Desayuno, Almuerzo, Merienda Pre-Entreno, Cena).
-     2. Muestra los GRAMOS EXACTOS de cada alimento al lado del ingrediente para que la suma total del día cuadre matemáticamente con los macros exigidos.
-     3. Usa saltos de línea (\n) para separar las comidas. NO escribas párrafos largos.
-     4. Utiliza viñetas y emojis para hacerlo visual y atractivo.
-     5. No des introducciones largas ni explicaciones robóticas. Ve directo al menú.`;
+      const promptFinal = `Actúa como un Nutricionista Deportivo de Élite de la academia Tujague Strength.
+      Ingredientes disponibles en mi cocina: ${text}.\n\n${macroContext}\n\n
+      REGLAS: Diseña 4 comidas (Desayuno, Almuerzo, Pre-Entreno, Cena). Muestra GRAMOS EXACTOS. Usa saltos de línea y viñetas sin asteriscos.`;
 
-     const newHistory = [...chefHistory, { role: "user", content: promptFinal }];
-     const displayHistory = [...chefHistory, { role: "user", content: `🥩 Generar menú de hoy con: ${chefIngredients}` }];
-     
-     setChefHistory(displayHistory);
-     setShowChefForm(false);
-     setChefIngredients(""); 
+      const newHistory = [...chefHistory, { role: "user", content: promptFinal }];
+      const displayHistory = [...chefHistory, { role: "user", content: `🥩 Generar menú de hoy con: ${text}` }];
+      
+      setChefHistory([...displayHistory, { role: "assistant", content: "" }]);
+      setShowChefForm(false);
+      input.value = ""; 
 
-     try {
-         const res = await fetch('/api/assistant/chef', {
-             method: 'POST', 
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ messages: newHistory })
-         });
-         const data = await res.json();
-         if (data.reply) {
-            setChefHistory([...displayHistory, { role: "assistant", content: data.reply }]);
-         }
-     } catch (error) { 
-         alert("Error en la conexión con el módulo culinario."); 
-     } finally { 
-         setIsTyping(false); 
-     }
+      try {
+          const res = await fetch('/api/assistant/chef', {
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ messages: newHistory })
+          });
+          
+          if (!res.ok) throw new Error();
+
+          setIsTyping(false);
+          const reader = res.body?.getReader();
+          const decoder = new TextDecoder();
+          let aiResponse = "";
+
+          while (true) {
+             const { done, value } = await reader!.read();
+             if (done) break;
+             aiResponse += decoder.decode(value, { stream: true });
+             
+             setChefHistory([...displayHistory, { role: "assistant", content: aiResponse }]);
+          }
+      } catch (error) { 
+          alert("Error en la conexión con el módulo culinario."); 
+          setIsTyping(false); 
+      }
   };
 
   const handlePanicRequest = async (e: React.FormEvent) => {
@@ -1624,92 +1787,10 @@ const downloadPDF = async () => {
         </div>
       </header>
 
-       {order.referral_code && (
-          <div className="mb-10 bg-gradient-to-br from-zinc-900/80 to-black border border-emerald-900/30 rounded-[2.5rem] p-6 md:p-10 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[radial-gradient(circle,rgba(16,185,129,0.05)_0%,transparent_60%)] pointer-events-none transform-gpu -translate-y-1/2 translate-x-1/4"></div>
-              
-              <div className="grid lg:grid-cols-12 gap-8 items-center relative z-10">
-                  <div className="lg:col-span-6 space-y-4">
-                      <div className="flex items-center gap-3 mb-2">
-                          <span className="text-2xl md:text-3xl">🤝</span>
-                          <div>
-                              <h3 className="text-xl md:text-2xl font-black italic text-white uppercase tracking-tighter">Programa de <span className="text-emerald-500">Afiliados</span></h3>
-                              <p className="text-[10px] md:text-xs text-emerald-400 font-bold uppercase tracking-widest mt-0.5">El sistema financia tu esfuerzo.</p>
-                          </div>
-                      </div>
-
-                      <p className="text-zinc-300 text-sm font-medium leading-relaxed bg-black/40 p-4 rounded-xl border border-zinc-800/80 mb-4">
-                          Si un prospecto usa tu código, él recibe un <strong className="text-emerald-500">15% de bonificación</strong> en su ingreso, y el sistema inyecta el <strong className="text-emerald-500">20% del valor</strong> directo en tu Billetera Virtual. Traé 5 personas y tu mentoría te sale $0.
-                      </p>
-                      
-                      <div className="bg-black/60 border border-zinc-800 p-5 rounded-2xl mt-4">
-                          <p className="text-[9px] md:text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-3">Tu Código Privado de Invasión</p>
-                          <div className="flex items-center gap-3">
-                              <p className="flex-1 text-2xl md:text-3xl font-mono font-black text-white tracking-widest bg-zinc-900 px-4 py-3 rounded-xl border border-zinc-700 text-center select-all">
-                                  {order.referral_code}
-                              </p>
-                              <button 
-                                  onClick={() => {navigator.clipboard.writeText(order.referral_code); alert("✅ Código copiado al portapapeles");}}
-                                  className="w-14 md:w-16 h-[60px] md:h-[64px] bg-emerald-500/10 hover:bg-emerald-500 hover:text-black text-emerald-500 border border-emerald-500/30 rounded-xl flex items-center justify-center transition-all shrink-0"
-                                  title="Copiar Código"
-                              >
-                                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                              </button>
-                          </div>
-                          
-<a 
-                              href={`https://wa.me/?text=${encodeURIComponent(`¡Fiera! Estoy entrenando con la app de Tujague Strength y las marcas suben solas. Sumate al equipo usando mi código VIP: *${order.referral_code}* al momento del pago y te hacen un 15% de descuento en tu inscripción. Entrá acá: ${process.env.NEXT_PUBLIC_SITE_URL || 'https://tujague.com'}`)}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="mt-4 w-full bg-[#25D366] hover:bg-[#20bd5a] text-black py-3 md:py-4 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(37,211,102,0.3)] active:scale-95"
-                          >
-                              <svg className="w-4 h-4 md:w-5 md:h-5 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 .001 5.383.001 12.029c0 2.124.553 4.195 1.603 6.012L.002 24l6.108-1.601c1.745.952 3.738 1.454 5.92 1.454 6.645 0 12.028-5.383 12.028-12.029C24.059 5.383 18.677 0 12.031 0zm0 20.31c-1.801 0-3.56-.484-5.11-1.401l-.367-.217-3.793.995.998-3.7-.238-.378c-.99-1.583-1.514-3.418-1.514-5.313 0-5.46 4.444-9.905 9.904-9.905 5.46 0 9.906 4.445 9.906 9.905s-4.445 9.905-9.906 9.905zm5.438-7.44c-.298-.15-1.765-.87-2.038-.97-.273-.1-.473-.15-.67.15-.199.298-.771.97-.946 1.17-.174.199-.348.225-.646.075-2.025-.97-3.488-2.613-4.048-3.585-.175-.298-.019-.46.13-.609.135-.135.298-.348.448-.523.15-.175.199-.298.298-.498.1-.199.05-.373-.025-.523-.075-.15-.67-1.611-.918-2.206-.241-.58-.487-.502-.67-.51-.174-.008-.373-.008-.572-.008-.199 0-.523.075-.796.374-.273.298-1.045 1.02-1.045 2.488s1.07 2.886 1.22 3.086c.15.199 2.1 3.208 5.093 4.49 1.831.785 2.493.856 3.468.72 1.05-.148 2.378-.97 2.713-1.91.336-.94.336-1.745.236-1.91-.099-.165-.373-.264-.67-.413z"/></svg>
-                              <span className="hidden sm:inline">Bombardear Contactos por WhatsApp</span><span className="sm:hidden">Invitar por WhatsApp</span>
-                          </a>
-                      </div>
-                  </div>
-
-                  <div className="lg:col-span-6 border-t lg:border-t-0 lg:border-l border-zinc-800 pt-8 lg:pt-0 lg:pl-10">
-                      <div className="flex flex-col sm:flex-row justify-between items-start mb-8 gap-4">
-                          <div>
-                              <p className="text-[10px] md:text-xs font-black uppercase tracking-widest text-emerald-50 mb-1">Caja Fuerte Virtual</p>
-                              <p className="text-4xl md:text-6xl font-black italic tracking-tighter text-white">${balance.toLocaleString()}</p>
-                          </div>
-                          <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-2xl text-center shadow-inner w-full sm:w-auto">
-                              <p className="text-3xl mb-1">🏆</p>
-                              <p className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">Socio Estratégico</p>
-                          </div>
-                      </div>
-
-                      <div className="bg-black/50 p-6 md:p-8 rounded-[2rem] border border-zinc-800 shadow-lg">
-                          <div className="flex justify-between items-end mb-4">
-                              <p className="text-xs md:text-sm font-bold text-zinc-400">Progreso hacia tu Mes Financiado</p>
-                              <p className="text-sm md:text-base font-black uppercase tracking-widest text-emerald-400">{Math.floor(affiliateProgress)}%</p>
-                          </div>
-                          
-                          <div className="w-full bg-zinc-900 rounded-full h-4 mb-6 border border-zinc-800 relative overflow-hidden">
-                              <div 
-                                  className={`h-full rounded-full transition-all duration-1000 ease-out relative ${isFreeMonthSecured ? 'bg-emerald-500' : 'bg-gradient-to-r from-emerald-800 to-emerald-500'}`}
-                                  style={{ width: `${affiliateProgress}%` }}
-                              >
-                                  {isFreeMonthSecured && <div className="absolute inset-0 bg-white/30 w-full animate-[shimmer_2s_infinite]"></div>}
-                              </div>
-                          </div>
-
-                          {isFreeMonthSecured ? (
-                              <p className="text-xs md:text-sm text-emerald-400 font-bold bg-emerald-500/10 p-4 rounded-xl border border-emerald-500/20 text-center shadow-inner">
-                                  🎉 ¡Felicidades, Atleta! El sistema tiene fondos suficientes para que tu próxima Mentoría cueste exactamente $0.
-                              </p>
-                          ) : (
-                              <p className="text-[10px] md:text-xs text-zinc-500 font-bold uppercase tracking-widest text-center">
-                                  Faltan <span className="text-white">${(precioPlanAtleta - balance).toLocaleString()}</span> de saldo para financiar la renovación.
-                              </p>
-                          )}
-                      </div>
-                  </div>
-              </div>
-          </div>
-      )}
+{/* 🔥 ACÁ INYECTAMOS LA TRAMPA PARA RECOLECTAR EL TOKEN 🔥 */}
+      <div className="mt-6">
+        <PushNotificationManager />
+      </div>
 
       {/* USO DE BILLETERA EN ALERTA DE RENOVACIÓN */}
       {daysLeft !== null && daysLeft <= 3 && !isStaticPlan && (
@@ -1732,7 +1813,7 @@ const downloadPDF = async () => {
          </div>
       )}
 
-{/* 🔥 FASE 1: BOTTOM NAVIGATION BAR ESTILO APP NATIVA 🔥 */}
+      {/* 🔥 FASE 1: BOTTOM NAVIGATION BAR ESTILO APP NATIVA 🔥 */}
       <div className="fixed bottom-0 left-0 right-0 z-[60] bg-white border-t border-zinc-200 pb-5 pt-2 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] md:relative md:bg-transparent md:border-none md:shadow-none md:pb-10 md:pt-0">
         <div className="flex justify-around items-center h-[60px] px-2 max-w-md mx-auto md:max-w-full md:justify-start md:gap-6">
           
@@ -1768,6 +1849,22 @@ const downloadPDF = async () => {
               <path strokeLinecap="round" strokeLinejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
             </svg>
             <span className={`text-[10px] tracking-wide ${activeTab === 'rm' ? 'text-black font-bold' : 'text-zinc-400 font-medium'}`}>Evolución</span>
+          </button>
+
+          {/* 🔥 NUEVO BOTÓN: NUTRICIÓN 🔥 */}
+          <button onClick={() => setActiveTab("nutricion")} className="flex flex-col items-center justify-center w-16 gap-1 transition-all active:scale-95 relative">
+            <svg className={`w-6 h-6 transition-colors ${activeTab === 'nutricion' ? 'text-black' : 'text-zinc-400'}`} fill={activeTab === 'nutricion' ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={activeTab === 'nutricion' ? 0 : 2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" />
+            </svg>
+            <span className={`text-[10px] tracking-wide ${activeTab === 'nutricion' ? 'text-black font-bold' : 'text-zinc-400 font-medium'}`}>Nutrición</span>
+          </button>
+
+          {/* 🔥 5. NUEVO BOTÓN: AFILIADOS 🔥 */}
+          <button onClick={() => setActiveTab("afiliados")} className="flex flex-col items-center justify-center w-16 gap-1 transition-all active:scale-95 relative">
+            <svg className={`w-6 h-6 transition-colors ${activeTab === 'afiliados' ? 'text-black' : 'text-zinc-400'}`} fill={activeTab === 'afiliados' ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={activeTab === 'afiliados' ? 0 : 2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <span className={`text-[10px] tracking-wide ${activeTab === 'afiliados' ? 'text-black font-bold' : 'text-zinc-400 font-medium'}`}>Afiliados</span>
           </button>
 
         </div>
@@ -1859,23 +1956,30 @@ const downloadPDF = async () => {
                            <div ref={chatEndRef} />
                         </div>
 
-                        <div className="p-4 bg-white border-t border-gray-100 shrink-0 pb-8">
+<div className="p-4 bg-white border-t border-gray-100 shrink-0 pb-8">
                             {aiMode === 'chef' && chefHistory.length <= 1 ? (
                                 <form onSubmit={handleQuickChefRequest} className="flex gap-2 relative">
-                                   <input type="text" className="flex-1 bg-gray-100 rounded-xl px-5 py-4 text-sm text-black font-medium outline-none focus:ring-2 focus:ring-orange-500/20 transition-all placeholder:text-gray-400" placeholder="Ingredientes (Ej: pollo, arroz)..." value={chefIngredients} onChange={(e) => setChefIngredients(e.target.value)} disabled={isTyping} />
-                                   <button type="submit" disabled={isTyping || !chefIngredients.trim()} className="bg-orange-500 text-white px-6 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest disabled:opacity-50 active:scale-95 transition-transform shadow-md">Menú</button>
+                                   <input 
+                                      name="chatInput" 
+                                      type="text" 
+                                      className="flex-1 bg-gray-100 rounded-xl px-5 py-4 text-sm text-black font-medium outline-none focus:ring-2 focus:ring-orange-500/20 transition-all placeholder:text-gray-400" 
+                                      placeholder="Ingredientes (Ej: pollo, arroz)..." 
+                                      disabled={isTyping} 
+                                   />
+                                   <button type="submit" disabled={isTyping} className="bg-orange-500 text-white px-6 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest disabled:opacity-50 active:scale-95 transition-transform shadow-md">
+                                      Menú
+                                   </button>
                                 </form>
                             ) : (
                                 <form onSubmit={aiMode === 'chef' ? handleChefMessage : handleBioMessage} className="flex gap-2 relative">
                                    <input 
+                                      name="chatInput"
                                       type="text" 
                                       className="flex-1 bg-gray-100 rounded-xl px-5 py-4 text-sm text-black font-medium outline-none focus:ring-2 focus:ring-black/5 transition-all placeholder:text-gray-400" 
                                       placeholder={aiMode === 'chef' ? "Consulta nutricional libre..." : "Consulta técnica..."} 
-                                      value={aiMode === 'chef' ? chefInput : bioInput} 
-                                      onChange={(e) => aiMode === 'chef' ? setChefInput(e.target.value) : setBioInput(e.target.value)} 
                                       disabled={isTyping} 
                                    />
-                                   <button type="submit" disabled={isTyping || (aiMode === 'chef' && !chefInput.trim()) || (aiMode === 'biomechanic' && !bioInput.trim())} className="bg-black text-white px-6 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest disabled:opacity-50 active:scale-95 transition-transform shadow-md">
+                                   <button type="submit" disabled={isTyping} className="bg-black text-white px-6 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest disabled:opacity-50 active:scale-95 transition-transform shadow-md">
                                       Enviar
                                    </button>
                                 </form>
@@ -1988,7 +2092,7 @@ const downloadPDF = async () => {
                     <div className="max-w-4xl mx-auto">
                         {(() => {
                             const combinedAnnualPlan = { ...(order?.annual_plan || {}) };
-                            if (viewingBiiProgram && viewingBiiProgram.week) {
+                           if (viewingBiiProgram && viewingBiiProgram.week) {
                                 const wNum = Number(viewingBiiProgram.week);
                                 const newWeekObj: any = { phase: viewingBiiProgram.mesocycle || 'Fase BII', focus: viewingBiiProgram.focus || '' };
                                 if (viewingBiiProgram.days) {
@@ -2049,136 +2153,160 @@ const downloadPDF = async () => {
                             </select>
                         </div>
 
-                        {/* 🔥 VISOR DE SEMANAS JSON 🔥 */}
-                        {!viewingBiiProgram ? (
-                            <div className="bg-white border border-gray-200 p-10 md:p-16 rounded-[3rem] text-center shadow-sm relative overflow-hidden max-w-4xl mx-auto">
-                               <span className="text-5xl block opacity-50 mb-4 animate-bounce">⏳</span>
-                               <h3 className="text-xl md:text-2xl font-black text-black uppercase tracking-widest mb-3">Estructurando Mesociclo</h3>
-                               <p className="text-gray-500 font-medium max-w-md mx-auto">El Coach está diseñando tu próxima etapa de entrenamiento. Tu hoja de ruta aparecerá aquí pronto.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-8 max-w-4xl mx-auto">
-                               
-                               {/* 🔥 BOTÓN AMARILLO: LÓGICA INTELIGENTE 🔥 */}
-                               {activeBiiProgram?.week === viewingBiiProgram.week ? (
-                                   <div className="bg-white border border-gray-100 p-8 rounded-[2rem] shadow-sm mb-12 animate-in slide-in-from-bottom duration-500">
-                                       <div className="flex flex-col items-start gap-4">
-                                           <div>
-                                               <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-amber-500 mb-1 flex items-center gap-1.5">
-                                                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Panel Activo - Semana en Curso
-                                               </p>
-                                               <h3 className="text-2xl md:text-3xl font-black italic text-black uppercase tracking-tight">Estructura del día <span className="text-amber-500">lista</span></h3>
+{/* 🔥 VISOR DE SEMANAS JSON 🔥 */}
+                            {!viewingBiiProgram ? (
+                                <div className="bg-white border border-gray-200 p-10 md:p-16 rounded-[3rem] text-center shadow-sm relative overflow-hidden max-w-4xl mx-auto">
+                                   <span className="text-5xl block opacity-50 mb-4 animate-bounce">⏳</span>
+                                   <h3 className="text-xl md:text-2xl font-black text-black uppercase tracking-widest mb-3">Estructurando Mesociclo</h3>
+                                   <p className="text-gray-500 font-medium max-w-md mx-auto">El Coach está diseñando tu próxima etapa de entrenamiento. Tu hoja de ruta aparecerá aquí pronto.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-8 max-w-4xl mx-auto">
+                                   
+                                   {/* 🔥 BOTÓN AMARILLO: LÓGICA INTELIGENTE 🔥 */}
+                                   {activeBiiProgram?.week === viewingBiiProgram.week ? (
+                                       <div className="bg-white border border-gray-100 p-8 rounded-[2rem] shadow-sm mb-12 animate-in slide-in-from-bottom duration-500">
+                                           <div className="flex flex-col items-start gap-4">
+                                               <div>
+                                                   <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-amber-500 mb-1 flex items-center gap-1.5">
+                                                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Panel Activo - Semana en Curso
+                                                   </p>
+                                                   <h3 className="text-2xl md:text-3xl font-black italic text-black uppercase tracking-tight">Estructura del día <span className="text-amber-500">lista</span></h3>
+                                               </div>
+                                               <Link 
+                                                   href="/entrenamiento"
+                                                   className="w-full flex justify-center bg-amber-500 hover:bg-amber-400 text-black px-12 py-5 rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest transition-all shadow-md hover:scale-105 active:scale-95 text-center items-center gap-3"
+                                               >
+                                                   ▶ INICIAR ENTRENAMIENTO
+                                               </Link>
                                            </div>
-                                           <Link 
-                                               href="/dashboard/entrenamiento" 
-                                               className="w-full flex justify-center bg-amber-500 hover:bg-amber-400 text-black px-12 py-5 rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest transition-all shadow-md hover:scale-105 active:scale-95 text-center items-center gap-3"
-                                           >
-                                               ▶ INICIAR ENTRENAMIENTO
-                                           </Link>
                                        </div>
-                                   </div>
-                               ) : (
-                                    <div className="bg-gray-50 border border-dashed border-gray-300 p-6 rounded-[2rem] mb-12 text-center flex flex-col items-center justify-center">
-                                         <span className="text-2xl mb-2 block opacity-70">📅</span>
-                                         <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest">Visualizando Semana {viewingBiiProgram.week}</p>
-                                         <p className="text-[10px] text-gray-400 font-medium mt-1">El botón de entrenamiento solo se activa en tu semana en curso (Semana {activeBiiProgram?.week || '-'}).</p>
-                                    </div>
-                               )}
+                                   ) : (
+                                        <div className="bg-gray-50 border border-dashed border-gray-300 p-6 rounded-[2rem] mb-12 text-center flex flex-col items-center justify-center">
+                                             <span className="text-2xl mb-2 block opacity-70">📅</span>
+                                             <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest">Visualizando Semana {viewingBiiProgram.week}</p>
+                                             <p className="text-[10px] text-gray-400 font-medium mt-1">El botón de entrenamiento solo se activa en tu semana en curso (Semana {activeBiiProgram?.week || '-'}).</p>
+                                        </div>
+                                   )}
 
-                               {/* LOS 7 DÍAS DE LA SEMANA ELEGIDA */}
-                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20 px-2">
-                                   {viewingBiiProgram.days && viewingBiiProgram.days.map((day: any, dIdx: number) => {
-                                       if (day.isRestDay || !day.exercises || day.exercises.length === 0) {
-                                           return (
-                                               <div key={dIdx} className="bg-gray-50 border border-dashed border-gray-200 rounded-[2rem] p-6 flex flex-col items-center justify-center text-center opacity-60 min-h-[150px]">
-                                                   <span className="text-3xl mb-2">💤</span>
-                                                   <h4 className="font-black text-gray-500 uppercase tracking-widest text-[10px]">Día {dIdx + 1} - Descanso</h4>
-                                                   <p className="text-[10px] text-gray-400 mt-1 font-medium">Recuperación programada.</p>
-                                               </div>
-                                           );
-                                       }
+                                   {/* 🔥 NUEVO VISOR INTERACTIVO RELACIONAL (Con Inputs) 🔥 */}
+                                   {activeDbRoutine ? (
+                                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20 px-2 mt-8 border-t border-gray-200 pt-8">
+                                           <div className="col-span-full mb-2">
+                                               <h3 className="text-2xl font-black italic text-black uppercase tracking-tighter">
+                                                   Panel de <span className="text-amber-500">Ejecución Diaria</span>
+                                               </h3>
+                                               <p className="text-gray-500 text-sm font-medium">Registrá tus pesos reales para alimentar el algoritmo de Evolución.</p>
+                                           </div>
 
-                                       return (
-                                           <div key={dIdx} className="bg-white border border-gray-200 rounded-[1.5rem] shadow-sm flex flex-col h-full overflow-hidden hover:border-amber-300 transition-colors group">
-                                               <div className="bg-gray-50 p-4 border-b border-gray-100 flex justify-between items-center">
-                                                   <div>
-                                                       <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest mb-0.5">Día {dIdx + 1}</p>
-                                                       <h4 className="font-black italic text-black uppercase tracking-tight text-sm">{day.title || 'Entrenamiento'}</h4>
-                                                   </div>
-                                                   <span className="w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center text-[10px] shadow-sm font-black text-gray-400 group-hover:text-amber-500 transition-colors">
-                                                       {dIdx + 1}
-                                                   </span>
-                                               </div>
-                                               
-                                               <div className="p-4 flex-1 space-y-3">
-                                                   {day.exercises.map((ex: any, eIdx: number) => (
-                                                       <div key={eIdx} className="border-b border-gray-50 pb-3 last:border-0 last:pb-0">
-                                                           <p className="font-black text-gray-800 text-[11px] mb-1.5 leading-tight uppercase tracking-tight">
-                                                               <span className="text-amber-500 mr-1">{eIdx + 1}.</span> {ex.name}
-                                                           </p>
-                                                           <div className="flex flex-wrap gap-1.5">
-                                                               <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-black text-[8px] uppercase tracking-widest">{Array.isArray(ex.sets) ? ex.sets.length : ex.sets} SERIES</span>
-                                                               <span className="bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded font-black text-[8px] uppercase tracking-widest border border-amber-100">RPE {ex.rpe}</span>
-                                                               {ex.rest && <span className="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-black text-[8px] uppercase tracking-widest border border-blue-100">{ex.rest}</span>}
-                                                           </div>
-                                                           {ex.notes && (
-                                                               <p className="text-[9px] text-gray-500 italic mt-1.5 bg-gray-50 p-1.5 rounded-lg border-l-2 border-gray-300">
-                                                                   "{ex.notes}"
-                                                               </p>
-                                                           )}
+                                           {activeDbRoutine.workouts?.map((workout: any) => {
+                                               if (workout.is_rest_day || !workout.workout_exercises || workout.workout_exercises.length === 0) {
+                                                   return (
+                                                       <div key={workout.id} className="bg-gray-50 border border-dashed border-gray-200 rounded-[2rem] p-6 flex flex-col items-center justify-center text-center opacity-60 min-h-[150px]">
+                                                           <span className="text-3xl mb-2">💤</span>
+                                                           <h4 className="font-black text-gray-500 uppercase tracking-widest text-[10px]">Día {workout.day_number} - Descanso</h4>
                                                        </div>
-                                                   ))}
-                                               </div>
-                                           </div>
-                                       );
-                                   })}
-                               </div>
-                            </div>
-                        )}
-                    </div>
+                                                   );
+                                               }
 
-                    {/* MODAL BOTON DE PANICO */}
-                    {showPanicModal && (
-                       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-                           <div className="bg-[#0a0a0c] border border-red-900/50 p-8 md:p-10 rounded-[2.5rem] w-full max-w-lg shadow-[0_0_80px_rgba(239,68,68,0.25)] relative overflow-hidden animate-in zoom-in duration-300">
-                               <div className="absolute top-0 left-0 w-full h-2 bg-red-600"></div>
-                               <button onClick={() => setShowPanicModal(false)} className="absolute top-6 right-6 text-zinc-500 hover:text-white font-bold text-xl">✕</button>
-                               
-                               <h3 className="text-2xl md:text-3xl font-black italic text-red-500 uppercase tracking-tighter mb-2 flex items-center gap-3">🚨 Botón de Pánico</h3>
-                               <p className="text-zinc-400 text-xs md:text-sm mb-8 font-medium leading-relaxed">Informe de inmediato la alteración logística o fisiológica para que la IA recalibre la sesión respetando el patrón motor.</p>
-                               
-                               {!panicResponse ? (
-                                   <form onSubmit={handlePanicRequest} className="space-y-5 relative z-10">
-                                       <div>
-                                           <label className="text-[10px] md:text-xs font-black text-red-400 uppercase tracking-widest mb-2 block">Ejercicio a sustituir</label>
-                                           <input type="text" required value={panicExercise} onChange={e=>setPanicExercise(e.target.value)} placeholder="Ej: Prensa a 45 grados" className="w-full bg-black border border-zinc-800 p-4 md:p-5 rounded-xl text-sm md:text-base text-white outline-none focus:border-red-500 transition-colors" />
+                                               return (
+                                                   <div key={workout.id} className="bg-white border border-gray-200 rounded-[1.5rem] shadow-sm flex flex-col h-full overflow-hidden hover:border-amber-300 transition-colors group">
+                                                       <div className="bg-gray-50 p-4 border-b border-gray-100 flex justify-between items-center">
+                                                           <div>
+                                                               <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest mb-0.5">Día {workout.day_number}</p>
+                                                               <h4 className="font-black italic text-black uppercase tracking-tight text-sm">{workout.name}</h4>
+                                                           </div>
+                                                       </div>
+                                                       
+                                                       <div className="p-4 flex-1 space-y-4">
+                                                           {workout.workout_exercises.map((ex: any) => (
+                                                               <div key={ex.id} className="border-b border-gray-50 pb-4 last:border-0 last:pb-0">
+                                                                   <p className="font-black text-gray-800 text-[11px] mb-2 leading-tight uppercase tracking-tight">
+                                                                       <span className="text-amber-500 mr-1">{ex.order_index}.</span> {ex.exercise_name}
+                                                                   </p>
+                                                                   <div className="flex flex-wrap gap-1.5 mb-3">
+                                                                       <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-black text-[8px] uppercase tracking-widest">{ex.sets_target} SERIES DE {ex.reps_target}</span>
+                                                                       <span className="bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded font-black text-[8px] uppercase tracking-widest border border-amber-100">RPE {ex.rpe_target}</span>
+                                                                       {ex.tempo && <span className="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-black text-[8px] uppercase tracking-widest border border-blue-100">Tempo: {ex.tempo}</span>}
+                                                                   </div>
+                                                                   
+                                                                   {/* 🔥 ZONA DE INPUTS (El Sudor) 🔥 */}
+                                                                   <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 flex flex-col gap-2">
+                                                                       <div className="flex gap-2">
+                                                                           <input 
+                                                                               type="number" 
+                                                                               placeholder="KG" 
+                                                                               value={setInputs[ex.id]?.weight || ''}
+                                                                               onChange={(e) => setSetInputs(prev => ({...prev, [ex.id]: { ...prev[ex.id], weight: e.target.value } }))}
+                                                                               className="w-1/2 bg-white border border-gray-200 p-2 rounded-lg text-xs font-bold text-center outline-none focus:border-amber-500"
+                                                                           />
+                                                                           <input 
+                                                                               type="number" 
+                                                                               placeholder="Reps" 
+                                                                               value={setInputs[ex.id]?.reps || ''}
+                                                                               onChange={(e) => setSetInputs(prev => ({...prev, [ex.id]: { ...prev[ex.id], reps: e.target.value } }))}
+                                                                               className="w-1/2 bg-white border border-gray-200 p-2 rounded-lg text-xs font-bold text-center outline-none focus:border-amber-500"
+                                                                           />
+                                                                       </div>
+                                                                       <button 
+                                                                           onClick={() => handleLogSet(ex.id)}
+                                                                           disabled={savingSetId === ex.id}
+                                                                           className="w-full bg-black text-white text-[9px] font-black uppercase tracking-widest py-2 rounded-lg disabled:opacity-50 active:scale-95 transition-transform"
+                                                                       >
+                                                                           {savingSetId === ex.id ? 'GUARDANDO...' : 'GUARDAR SERIE'}
+                                                                       </button>
+                                                                   </div>
+                                                               </div>
+                                                           ))}
+                                                       </div>
+                                                   </div>
+                                               );
+                                           })}
                                        </div>
-                                       <div>
-                                           <label className="text-[10px] md:text-xs font-black text-red-400 uppercase tracking-widest mb-2 block">Motivo clínico o logístico</label>
-                                           <input type="text" required value={panicProblem} onChange={e=>setPanicProblem(e.target.value)} placeholder="Ej: Presento molestia aguda en el tendón rotuliano..." className="w-full bg-black border border-zinc-800 p-4 md:p-5 rounded-xl text-sm md:text-base text-white outline-none focus:border-red-500 transition-colors" />
+                                   ) : (
+                                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20 px-2">
+                                           {viewingBiiProgram.days && viewingBiiProgram.days.map((day: any, dIdx: number) => {
+                                               if (day.isRestDay || !day.exercises || day.exercises.length === 0) {
+                                                   return (
+                                                       <div key={dIdx} className="bg-gray-50 border border-dashed border-gray-200 rounded-[2rem] p-6 flex flex-col items-center justify-center text-center opacity-60 min-h-[150px]">
+                                                           <span className="text-3xl mb-2">💤</span>
+                                                           <h4 className="font-black text-gray-500 uppercase tracking-widest text-[10px]">Día {dIdx + 1} - Descanso</h4>
+                                                       </div>
+                                                   );
+                                               }
+                                               return (
+                                                   <div key={dIdx} className="bg-white border border-gray-200 rounded-[1.5rem] shadow-sm flex flex-col h-full overflow-hidden hover:border-amber-300 transition-colors group">
+                                                       <div className="bg-gray-50 p-4 border-b border-gray-100 flex justify-between items-center">
+                                                           <div>
+                                                               <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest mb-0.5">Día {dIdx + 1}</p>
+                                                               <h4 className="font-black italic text-black uppercase tracking-tight text-sm">{day.title || 'Entrenamiento'}</h4>
+                                                           </div>
+                                                       </div>
+                                                       <div className="p-4 flex-1 space-y-3">
+                                                           {day.exercises.map((ex: any, eIdx: number) => (
+                                                               <div key={eIdx} className="border-b border-gray-50 pb-3 last:border-0 last:pb-0">
+                                                                   <p className="font-black text-gray-800 text-[11px] mb-1.5 leading-tight uppercase tracking-tight">
+                                                                       <span className="text-amber-500 mr-1">{eIdx + 1}.</span> {ex.name}
+                                                                   </p>
+                                                               </div>
+                                                           ))}
+                                                       </div>
+                                                   </div>
+                                               );
+                                           })}
                                        </div>
-                                       <button type="submit" disabled={panicLoading} className="w-full bg-red-600 hover:bg-red-500 text-white py-5 rounded-2xl font-black text-xs md:text-sm uppercase tracking-[0.2em] transition-all shadow-[0_0_30px_rgba(239,68,68,0.4)] mt-4 disabled:opacity-50 active:scale-95">
-                                           {panicLoading ? 'PROCESANDO ESTRUCTURA...' : 'SOLICITAR REEMPLAZO 🔄'}
-                                       </button>
-                                   </form>
-                               ) : (
-                                   <div className="space-y-6 animate-in zoom-in duration-300">
-                                       <div className="bg-red-950/20 border border-red-500/30 p-6 rounded-2xl shadow-inner">
-                                           <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-3 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Determinación del Sistema</p>
-                                           <p className="text-red-50 text-sm md:text-base font-medium leading-relaxed whitespace-pre-wrap">{panicResponse}</p>
-                                       </div>
-                                       <button onClick={() => {setShowPanicModal(false); setPanicResponse(""); setPanicExercise(""); setPanicProblem("");}} className="w-full bg-zinc-800 hover:bg-zinc-700 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">Comprendido. Retomando entrenamiento.</button>
-                                   </div>
-                               )}
-                           </div>
-                       </div>
-                    )}
-                </div>
+                                   )}
+
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+              </div>
             )}
-          </div>
-        )}
 
 {/* ─── PESTAÑA BOVEDA TÉCNICA ─── */}
+
   {activeTab === "boveda" && (
     <>
       {!isElitePlan ? (
@@ -2209,7 +2337,7 @@ const downloadPDF = async () => {
                 </div>
               </div>
               <button onClick={handleDownloadKit} className="relative z-10 bg-amber-500 hover:bg-amber-600 text-white px-8 py-5 rounded-xl font-black text-xs md:text-sm uppercase tracking-widest shadow-md transition-all active:scale-95 whitespace-nowrap w-full md:w-auto">
-                  📥 DESCARGAR KIT
+                 📥 DESCARGAR KIT
               </button>
             </div>
           )}
@@ -2471,103 +2599,8 @@ const downloadPDF = async () => {
                         </div>
                      </div>
 
-                     {/* ─── ACÁ ABAJO RESTAURAMOS TUS RM Y LOGROS ─── */}
-                     <div className="mt-16 pt-10 border-t border-gray-200">
-                        <h2 className="text-3xl md:text-4xl font-black italic text-center mb-10 text-black tracking-tighter">
-                          CALIBRACIÓN <span className="text-amber-500 block sm:inline">1RM</span>
-                        </h2>
-{/* 🔥 GRÁFICO DE PERFIL DE FUERZA (RM) - VERSIÓN FINAL CORREGIDA 🔥 */}
-                        <div className="bg-white border border-gray-100 rounded-[2rem] p-6 md:p-8 shadow-sm mb-10 text-left relative overflow-hidden">
-                           
-                           {/* HEADER ALINEADO */}
-                           <div className="flex justify-between items-start mb-8 pb-6 border-b border-gray-100">
-                               <div>
-                                   <h3 className="text-xl font-black text-black tracking-tight leading-tight">
-                                        Perfil de Fuerza <br />
-                                        <span className="text-gray-400 font-medium">Absoluta (1RM)</span>
-                                   </h3>
-                                   <p className="text-[10px] uppercase tracking-widest text-gray-400 font-black mt-2">
-                                      Auditoría Biomecánica
-                                   </p>
-                               </div>
-                               <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 border border-gray-100 text-gray-300">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
-                               </div>
-                           </div>
-                           
-                           <div className="h-[280px] w-full">
-                             <ResponsiveContainer width="100%" height="100%">
-                               <BarChart 
-                                 data={[
-                                   { name: 'Sentadilla', peso: Number(rms.squat) || 0 },
-                                   { name: 'Banca', peso: Number(rms.bench) || 0 },
-                                   { name: 'P. Muerto', peso: Number(rms.deadlift) || 0 },
-                                   { name: 'Fondos', peso: Number(rms.dips) || 0 },
-                                   { name: 'Militar', peso: Number(rms.military) || 0 }
-                                 ]} 
-                                 margin={{ top: 25, right: 10, left: -15, bottom: 5 }}
-                               >
-                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                 <XAxis 
-                                    dataKey="name" 
-                                    stroke="#9ca3af" 
-                                    fontSize={10} 
-                                    fontWeight="bold" 
-                                    tickLine={false} 
-                                    axisLine={false} 
-                                    dy={10} 
-                                 />
-                                 <YAxis 
-                                    domain={[0, 'auto']} 
-                                    stroke="#9ca3af" 
-                                    fontSize={10} 
-                                    tickLine={false} 
-                                    axisLine={false} 
-                                    tickFormatter={(val) => val > 0 ? `${val}kg` : ""} 
-                                 />
-                                 <Tooltip 
-                                    cursor={{ fill: '#f3f4f6', opacity: 0.4 }}
-                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                                    isAnimationActive={false}
-                                 />
-                                 <Bar dataKey="peso" fill="#f59e0b" radius={[6, 6, 0, 0]} barSize={40} isAnimationActive={false}>
-                                    <LabelList dataKey="peso" position="top" content={renderCustomBarLabel} />
-                                 </Bar>
-                               </BarChart>
-                             </ResponsiveContainer>
-                           </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6 mb-10 relative z-10">
-                           {['squat', 'bench', 'deadlift', 'dips', 'military'].map(lift => {
-                               const liftName = lift === 'squat' ? 'Sentadilla' : lift === 'bench' ? 'Press Banca' : lift === 'deadlift' ? 'Peso Muerto' : lift === 'dips' ? 'Fondos' : 'Militar';
-                               return (
-                                  <div key={lift} className="bg-white p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-gray-200 text-center relative focus-within:border-amber-500/50 transition-all shadow-sm group">
-                                      <p className="text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-widest mb-4 md:mb-6 group-hover:text-amber-500 transition-colors">{liftName}</p>
-                                      <div className="relative inline-block w-full">
-                                         <input 
-                                            type="number"
-                                            inputMode="numeric"
-                                            value={rms[lift as keyof typeof rms] || ""} 
-                                            onChange={e => setRms(prev => ({...prev, [lift]: e.target.value}))}
-                                            className="bg-transparent text-center text-4xl md:text-5xl lg:text-6xl font-black text-black w-full outline-none focus:text-amber-500 transition-colors placeholder:text-gray-200"
-                                            placeholder="0"
-                                         />
-                                         <span className="absolute top-1/2 -translate-y-1/2 right-0 md:-right-2 text-gray-300 text-[10px] md:text-sm font-black">KG</span>
-                                      </div>
-                                  </div>
-                               );
-                           })}
-                        </div>
-  
-                        <button 
-                          onClick={saveRMs}
-                          disabled={savingRm}
-                          className="w-full bg-amber-500 hover:bg-amber-400 text-white py-6 md:py-8 rounded-[2rem] font-black text-xs md:text-sm uppercase tracking-[0.2em] transition-all disabled:opacity-50 shadow-md active:scale-95"
-                        >
-                          {savingRm ? 'SINCRONIZANDO...' : 'CONFIRMAR NUEVAS MÉTRICAS ⚡'}
-                        </button>
-                     </div>
+{/* ─── ACÁ ABAJO RESTAURAMOS TUS RM Y LOGROS ─── */}
+                    <TabEvolucion rms={rms} />
 
                      {/* ─── ANÁLISIS DE LA IA (RMS) ─── */}
                      <div className="bg-blue-50 border border-blue-100 p-8 md:p-12 rounded-[2rem] relative overflow-hidden mt-10 shadow-sm">
@@ -2922,7 +2955,27 @@ const downloadPDF = async () => {
            </>
         )}
 
-      </div>
+{/* ─── PESTAÑA NUTRICIÓN (NUEVA) ─── */}
+        {activeTab === "nutricion" && (
+           <div className="animate-in fade-in duration-500">
+               <AthleteNutritionDashboard userId={user?.id} />
+           </div>
+        )}
+
+{/* ─── PESTAÑA AFILIADOS (NUEVA) ─── */}
+        {activeTab === "afiliados" && (
+           <AffiliateDashboard 
+              userName={order?.customer_name?.split(" ")[0] || "Atleta"}
+              isAffiliate={isElitePlan} 
+              referralCode={order?.referral_code}
+              walletBalance={Number(order?.wallet_balance || 0)}
+              amountArs={Number(order?.amount_ars) > 0 ? Number(order?.amount_ars) : 50000}
+              discountPct={order?.affiliate_discount || 15} 
+              commissionPct={order?.affiliate_commission || 20}
+           />
+        )}
+
+        </div>
 
       <style dangerouslySetInnerHTML={{__html: `
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }

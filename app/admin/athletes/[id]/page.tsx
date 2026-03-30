@@ -11,6 +11,7 @@ import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 
 import RoutineBuilder from "../../../../components/admin/RoutineBuilder";
+import AdminNutritionPanel from "@/components/admin/AdminNutritionPanel";
 
 
 
@@ -124,7 +125,7 @@ export default function TrainerDashboard() {
 
   // 🚀 MENÚ LATERAL: Agregamos megafono a tu lista de pestañas intacta
 
-  const [activeTab, setActiveTab] = useState<'constructor' | 'datos' | 'videos' | 'megafono'>('constructor');
+  const [activeTab, setActiveTab] = useState<'constructor' | 'datos' | 'videos' | 'megafono' | 'nutricion'>('constructor');
 
   
 
@@ -1306,46 +1307,70 @@ export default function TrainerDashboard() {
 
 
 
-  // 🚀 MEGÁFONO PRIVADO: FUNCION 🚀
-
-  const handleSendPrivateMessage = async (e: React.FormEvent) => {
-
-      e.preventDefault();
-
+// 📩 ARMA 1: EL BUZÓN (Solo va a la Campanita de la App)
+  const handleSendBuzon = async () => {
       if (!order?.user_id) return alert("El atleta no tiene un ID de usuario vinculado.");
-
+      if (!msgTitle || !msgBody) return alert("Faltan datos del mensaje.");
       setSendingMsg(true);
-
       try {
-
           const { error } = await supabase.from('notifications').insert([{ 
-
               user_id: order.user_id, 
-
               is_global: false, 
-
               title: msgTitle, 
-
               message: msgBody 
-
           }]);
-
           if (error) throw error;
-
-          alert("✅ Mensaje enviado al dashboard de " + order.customer_name);
-
+          alert("📩 Mensaje guardado silenciosamente en el Buzón de " + order.customer_name);
           setMsgTitle(""); setMsgBody(""); fetchData();
-
       } catch (err:any) {
-
           alert("❌ Error: " + err.message);
-
       } finally {
-
           setSendingMsg(false);
-
       }
+  };
 
+// 🔔 ARMA 2: EL TIMBRE (Versión Oficial Definitiva)
+  const handleSendTimbre = async () => {
+      if (!order?.user_id) return alert("El atleta no tiene un ID de usuario vinculado.");
+      if (!msgTitle || !msgBody) return alert("Faltan datos del mensaje.");
+      setSendingMsg(true);
+      
+      try {
+          // Buscamos el token EXACTO del atleta actual
+          const { data: athleteData } = await supabase
+            .from('athlete_gamification')
+            .select('fcm_token')
+            .eq('user_id', order.user_id)
+            .single();
+
+          if (!athleteData?.fcm_token) {
+              alert("❌ Error: El atleta aún no activó las notificaciones en su celular/PC.");
+              setSendingMsg(false);
+              return;
+          }
+
+          // Disparamos el misil a la pantalla
+          const res = await fetch('/api/send-push', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  token: athleteData.fcm_token,
+                  title: msgTitle,
+                  body: msgBody,
+              }),
+          });
+          
+          if (res.ok) {
+              alert("🔔 ¡TIMBRE DISPARADO! El servidor confirmó el envío.");
+              setMsgTitle(""); setMsgBody("");
+          } else {
+              alert("❌ Falló el disparo en el servidor.");
+          }
+      } catch (err:any) {
+          alert("❌ Error Crítico: " + err.message);
+      } finally {
+          setSendingMsg(false);
+      }
   };
 
 
@@ -1506,6 +1531,10 @@ if (!order) return (
                     <span className="text-lg">🤖</span> Clínica Biomecánica
                 </button>
 
+                <button onClick={() => setActiveTab('nutricion')} className={`w-full text-left px-5 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs transition-all flex items-center gap-3 ${activeTab === 'nutricion' ? 'bg-rose-600 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-500 hover:border-rose-300 hover:text-rose-600'}`}>
+                    <span className="text-lg">🥩</span> Nutrición Clínica
+                </button>
+
                 <button onClick={() => setActiveTab('megafono')} className={`w-full text-left px-5 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs transition-all flex items-center gap-3 mt-4 ${activeTab === 'megafono' ? 'bg-blue-600 text-white shadow-md' : 'bg-blue-50 border border-blue-100 text-blue-600 hover:border-blue-300 hover:bg-blue-100'}`}>
                     <span className="text-lg">💬</span> Megáfono Privado
                 </button>
@@ -1565,33 +1594,7 @@ if (!order) return (
                             </div>
                         </div>
 
-                        {/* MACROS */}
-                        <div className="bg-white border border-gray-200 p-8 md:p-12 rounded-[2.5rem] shadow-sm relative overflow-hidden">
-                            <h3 className="text-2xl font-black italic uppercase text-black mb-6 border-b border-gray-100 pb-4 relative z-10">Directrices de <span className="text-amber-500">Rendimiento</span></h3>
-                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6 relative z-10">
-                                <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 focus-within:border-amber-300 transition-colors shadow-inner">
-                                    <p className="text-[9px] md:text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Calorías</p>
-                                    <input type="text" className="bg-transparent text-xl md:text-2xl font-black text-black w-full outline-none placeholder:text-gray-300 transition-colors focus:text-amber-500" value={macros.calories} placeholder="Ej: 2800" onChange={(e) => setMacros({...macros, calories: e.target.value})} />
-                                </div>
-                                <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 focus-within:border-amber-300 transition-colors shadow-inner">
-                                    <p className="text-[9px] md:text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Proteínas</p>
-                                    <input type="text" className="bg-transparent text-xl md:text-2xl font-black text-black w-full outline-none placeholder:text-gray-300 transition-colors focus:text-amber-500" value={macros.protein} placeholder="Ej: 160g" onChange={(e) => setMacros({...macros, protein: e.target.value})} />
-                                </div>
-                                <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 focus-within:border-amber-300 transition-colors shadow-inner">
-                                    <p className="text-[9px] md:text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Carbos</p>
-                                    <input type="text" className="bg-transparent text-xl md:text-2xl font-black text-black w-full outline-none placeholder:text-gray-300 transition-colors focus:text-amber-500" value={macros.carbs} placeholder="Ej: 300g" onChange={(e) => setMacros({...macros, carbs: e.target.value})} />
-                                </div>
-                                <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 focus-within:border-amber-300 transition-colors shadow-inner">
-                                    <p className="text-[9px] md:text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Grasas</p>
-                                    <input type="text" className="bg-transparent text-xl md:text-2xl font-black text-black w-full outline-none placeholder:text-gray-300 transition-colors focus:text-amber-500" value={macros.fats} placeholder="Ej: 70g" onChange={(e) => setMacros({...macros, fats: e.target.value})} />
-                                </div>
-                                <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 focus-within:border-blue-300 transition-colors col-span-2 md:col-span-1 shadow-inner">
-                                    <p className="text-[9px] md:text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Hidratación</p>
-                                    <input type="text" className="bg-transparent text-xl md:text-2xl font-black text-blue-600 w-full outline-none placeholder:text-gray-300 transition-colors focus:text-blue-500" value={macros.water} placeholder="Ej: 3.5L" onChange={(e) => setMacros({...macros, water: e.target.value})} />
-                                </div>
-                            </div>
-                        </div>
-
+    
                         {/* MARCAS HISTORICAS */}
                         <div className="bg-white border border-gray-200 p-8 md:p-12 rounded-[2.5rem] shadow-sm">
                             <h3 className="text-2xl font-black italic uppercase mb-8 border-b border-gray-100 pb-6 text-black">Marcas Históricas <span className="text-amber-500">(1RM)</span></h3>
@@ -1784,6 +1787,20 @@ if (!order) return (
                     </div>
                 )}
 
+{/* ─── PESTAÑA: NUTRICIÓN CLÍNICA (NUEVO MÓDULO) ─── */}
+                {activeTab === 'nutricion' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {order?.user_id || order?.id || orderId ? (
+                            <AdminNutritionPanel userId={order.user_id || order.id || orderId} />
+                        ) : (
+                            <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-300 text-gray-400 font-bold uppercase tracking-widest text-xs shadow-inner">
+                                <span className="text-4xl mb-4 block opacity-50">⚠️</span>
+                                Error: No se detectó un ID de atleta válido.
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {/* ─── PESTAÑA: MEGÁFONO PRIVADO (NUEVA) ─── */}
                 {activeTab === 'megafono' && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl mx-auto space-y-6">
@@ -1792,7 +1809,7 @@ if (!order) return (
                             <h3 className="text-2xl font-black italic uppercase text-black mb-2 tracking-tighter">Mensajería <span className="text-blue-500">Directa</span></h3>
                             <p className="text-gray-500 text-xs mb-8 uppercase font-bold tracking-widest">Impacta el panel de {order.customer_name} de forma privada.</p>
                             
-                            <form onSubmit={handleSendPrivateMessage} className="space-y-6">
+<form onSubmit={(e) => e.preventDefault()} className="space-y-6">
                                 <div>
                                     <label className="text-[10px] font-black uppercase text-blue-500 tracking-widest mb-2 block ml-1">Título del Mensaje</label>
                                     <input type="text" required value={msgTitle} onChange={(e) => setMsgTitle(e.target.value)} placeholder="Ej: Revisión de Técnica..." className="w-full bg-gray-50 border border-gray-200 p-5 rounded-2xl text-sm font-black text-black outline-none focus:border-blue-400 focus:bg-white transition-all placeholder:text-gray-400" />
@@ -1801,9 +1818,16 @@ if (!order) return (
                                     <label className="text-[10px] font-black uppercase text-blue-500 tracking-widest mb-2 block ml-1">Cuerpo del Comunicado</label>
                                     <textarea required value={msgBody} onChange={(e) => setMsgBody(e.target.value)} placeholder="Escribí tu indicación detallada..." className="w-full bg-gray-50 border border-gray-200 p-5 rounded-2xl text-sm font-medium text-gray-800 outline-none h-40 resize-none focus:border-blue-400 focus:bg-white transition-all custom-scrollbar placeholder:text-gray-400" />
                                 </div>
-                                <button type="submit" disabled={sendingMsg} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-6 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-md active:scale-95 disabled:opacity-50">
-                                    {sendingMsg ? 'TRANSMITIENDO...' : 'DISPARAR COMUNICADO PRIVADO 🚀'}
-                                </button>
+                                
+                                <div className="flex flex-col md:flex-row gap-4 pt-4">
+                                    <button type="button" onClick={handleSendBuzon} disabled={sendingMsg} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-[0.15em] transition-all shadow-md active:scale-95 disabled:opacity-50">
+                                        {sendingMsg ? 'GUARDANDO...' : '📩 ENVIAR AL BUZÓN (APP)'}
+                                    </button>
+                                    
+                                    <button type="button" onClick={handleSendTimbre} disabled={sendingMsg} className="flex-1 bg-red-600 hover:bg-red-500 text-white py-5 rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-[0.15em] transition-all shadow-md active:scale-95 disabled:opacity-50">
+                                        {sendingMsg ? 'DISPARANDO...' : '🔔 TOCAR TIMBRE (PUSH)'}
+                                    </button>
+                                </div>
                             </form>
                         </div>
 

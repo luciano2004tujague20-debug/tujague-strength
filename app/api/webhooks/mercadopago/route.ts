@@ -415,14 +415,20 @@ if (orderData && orderData.plan_id && !orderData.expires_at) {
 
   let daysToAdd = 0;
 
-  const sprintIds = ['semanal-3-4', 'semanal-5-6', 'semanal-7'];
-  const monthlyIds = [
-    'mensual-3-4', 'mensual-5-6', 'mensual-7',
-    'mesociclo_base', 'pro_performance', 'elite_total', 'mesociclo_mensual'
-  ];
-
-  if (sprintIds.includes(planId)) daysToAdd = 7;
-  else if (monthlyIds.includes(planId)) daysToAdd = 30;
+  // 🔥 LÓGICA INTELIGENTE PARA PLANES HIGH-TICKET (3, 6 Y 12 MESES) 🔥
+  if (planId.includes('90') || planId.includes('3-meses') || planId.includes('12-semanas')) {
+      daysToAdd = 90;
+  } else if (planId.includes('180') || planId.includes('6-meses')) {
+      daysToAdd = 180;
+  } else if (planId.includes('365') || planId.includes('1-ano') || planId.includes('leyenda') || planId.includes('12-meses')) {
+      daysToAdd = 365;
+  } else if (planId.includes('semanal')) {
+      daysToAdd = 7;
+  } else if (planId.includes('4-semanas')) {
+      daysToAdd = 30; // Para el cut de 4 semanas
+  } else if (!planId.includes('static')) {
+      daysToAdd = 30; // Fallback mensual
+  }
 
   console.log('⏱️ daysToAdd:', daysToAdd, 'for planId:', planId);
 
@@ -446,35 +452,89 @@ if (orderData && orderData.plan_id && !orderData.expires_at) {
 }
 // 🔥 FIN CÁLCULO CADUCIDAD 🔥
 
-            // 🔥 INYECCIÓN DE RUTINA ESTÁTICA AQUÍ 🔥
-            // Si el plan que acaba de pagar es estático, le inyectamos la rutina
-            if (orderData && orderData.plan_id === 'static-fuerza') {
-                 await supabaseAdmin.from('orders').update({
-                     macrocycle: templateFuerza.macrocycle, mesocycle: templateFuerza.mesocycle, microcycle: templateFuerza.microcycle,
-                     annual_plan: templateFuerza.annual_plan,
-                     routine_d1: templateFuerza.annual_plan[1].d1, routine_d2: templateFuerza.annual_plan[1].d2,
-                     routine_d3: templateFuerza.annual_plan[1].d3, routine_d4: templateFuerza.annual_plan[1].d4,
-                     routine_d5: templateFuerza.annual_plan[1].d5, routine_d6: templateFuerza.annual_plan[1].d6, routine_d7: templateFuerza.annual_plan[1].d7,
-                 }).eq('order_id', external_reference);
-                 console.log("🤖 Inyectando plantilla automática de Fuerza Base.");
-            } else if (orderData && orderData.plan_id === 'static-hipertrofia') {
-                 await supabaseAdmin.from('orders').update({
-                     macrocycle: templateHipertrofia.macrocycle, mesocycle: templateHipertrofia.mesocycle, microcycle: templateHipertrofia.microcycle,
-                     annual_plan: templateHipertrofia.annual_plan,
-                     routine_d1: templateHipertrofia.annual_plan[1].d1, routine_d2: templateHipertrofia.annual_plan[1].d2,
-                     routine_d3: templateHipertrofia.annual_plan[1].d3, routine_d4: templateHipertrofia.annual_plan[1].d4,
-                     routine_d5: templateHipertrofia.annual_plan[1].d5, routine_d6: templateHipertrofia.annual_plan[1].d6, routine_d7: templateHipertrofia.annual_plan[1].d7,
-                 }).eq('order_id', external_reference);
-                 console.log("🤖 Inyectando plantilla automática de Hipertrofia.");
-            } else if (orderData && orderData.plan_id === 'mesociclo-definicion-4-semanas') {
-                 await supabaseAdmin.from('orders').update({
-                     macrocycle: templateDefinicion.macrocycle, mesocycle: templateDefinicion.mesocycle, microcycle: templateDefinicion.microcycle,
-                     annual_plan: templateDefinicion.annual_plan,
-                     routine_d1: templateDefinicion.annual_plan[1].d1, routine_d2: templateDefinicion.annual_plan[1].d2,
-                     routine_d3: templateDefinicion.annual_plan[1].d3, routine_d4: templateDefinicion.annual_plan[1].d4,
-                     routine_d5: templateDefinicion.annual_plan[1].d5, routine_d6: templateDefinicion.annual_plan[1].d6, routine_d7: templateDefinicion.annual_plan[1].d7,
-                 }).eq('order_id', external_reference);
-                 console.log("🤖 Inyectando plantilla automática de Definición.");
+// 🔥 RECUPERAMOS EL ID DEL ATLETA (Evita el error de Scope) 🔥
+            const { data: latestOrder } = await supabaseAdmin
+                .from('orders')
+                .select('user_id')
+                .eq('id', orderData.id)
+                .single();
+                
+            const validUserId = latestOrder?.user_id;
+
+            // 🔥 NUEVO SISTEMA DE INYECCIÓN RELACIONAL (SaaS) 🔥
+            if (orderData && orderData.plan_id === 'static-fuerza' && validUserId) {
+                console.log("🤖 Iniciando inyección de rutina en base relacional...");
+
+                // 1. Creamos la Rutina Principal (Tabla: routines)
+                const { data: newRoutine, error: routineErr } = await supabaseAdmin
+                    .from('routines')
+                    .insert({
+                        user_id: validUserId, // 🔥 USAMOS validUserId ACÁ 🔥
+                        name: "Protocolo Fuerza Base",
+                        macrocycle: "Estructura BII-Vintage",
+                        mesocycle: "Fuerza Base (Heavy Duty Medible)",
+                        is_active: true
+                    })
+                    .select()
+                    .single();
+
+                if (routineErr || !newRoutine) {
+                    console.error("❌ Error creando la rutina base:", routineErr);
+                } else {
+                    // 2. Estructura de Días y Ejercicios (Ejemplo: Semana 1 estructurada)
+                    const semana1Fuerza = [
+                        {
+                            day_number: 1,
+                            name: "DÍA 1 (LOWER A)",
+                            focus: "Adaptación Neural",
+                            exercises: [
+                                { name: "Sentadilla", sets: "3", reps: "5", rpe: "8", tempo: "5-1-2-1", rest: "4-6 min" },
+                                { name: "Press Militar", sets: "3", reps: "6", rpe: "7", tempo: "4-0-2-1", rest: "2-3 min" }
+                            ]
+                        },
+                        {
+                            day_number: 2,
+                            name: "DÍA 2 (UPPER A)",
+                            focus: "Pausa en pecho",
+                            exercises: [
+                                { name: "Press Banca", sets: "3", reps: "5", rpe: "8", tempo: "5-1-2-1", rest: "3-5 min" },
+                                { name: "Fondos en Paralelas", sets: "3", reps: "6", rpe: "8", tempo: "4-1-2-1", rest: "2-3 min" }
+                            ]
+                        }
+                    ];
+
+                    // 3. Bucle Inyector (Guarda los días y luego sus ejercicios)
+                    for (const day of semana1Fuerza) {
+                        const { data: newWorkout } = await supabaseAdmin
+                            .from('workouts')
+                            .insert({
+                                routine_id: newRoutine.id,
+                                day_number: day.day_number,
+                                name: day.name,
+                                focus: day.focus
+                            })
+                            .select()
+                            .single();
+
+                        if (newWorkout) {
+                            // Preparamos los ejercicios para este día específico
+                            const exercisesToInsert = day.exercises.map((ex, index) => ({
+                                workout_id: newWorkout.id,
+                                exercise_name: ex.name,
+                                sets_target: ex.sets,
+                                reps_target: ex.reps,
+                                rpe_target: ex.rpe,
+                                tempo: ex.tempo,
+                                rest_time: ex.rest,
+                                order_index: index + 1
+                            }));
+
+                            // Inserción masiva de ejercicios en la tabla
+                            await supabaseAdmin.from('workout_exercises').insert(exercisesToInsert);
+                        }
+                    }
+                    console.log(`✅ Rutina de Fuerza inyectada perfectamente para el usuario ${validUserId}`);
+                }
             }
 
 

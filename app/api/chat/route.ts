@@ -53,7 +53,7 @@ export async function POST(req: Request) {
         ];
     } 
     // ------------------------------------------------------------------
-    // CASO 2: MODO ACCIÓN ESPECÍFICA (Botón de Pánico o Auditoría)
+    // CASO 2: MODO ACCIÓN ESPECÍFICA (Botón de Pánico, Fatiga o Auditoría)
     // ------------------------------------------------------------------
     else if (body.action) {
         const { action, data } = body;
@@ -77,7 +77,6 @@ export async function POST(req: Request) {
             Solicito un protocolo de sustitución biomecánica inmediata para no interrumpir la sesión.`;
             
         } else if (action === 'fatigue_analysis') {
-            // 🔥 AQUÍ ESTÁ EL MÓDULO QUE CONECTAMOS RECIÉN 🔥
             systemPrompt = `Eres el auditor de recuperación del sistema BII-Vintage a cargo de Luciano Tujague.
             El atleta está reportando sus marcadores de recuperación de hoy. Tu objetivo es evaluar su Sistema Nervioso Central (SNC) y su capacidad para entrenar hoy.
             
@@ -91,6 +90,29 @@ export async function POST(req: Request) {
             Nivel de estrés general (1-10): ${data.stress_level || 'Desconocido'}. 
             Sensación de pesadez o desgano: ${data.lethargy ? 'Sí' : 'No'}.
             Solicito una auditoría clínica de mi capacidad de entrenamiento para hoy.`;
+            
+        } else if (action === 'audit_volume') {
+            // 🔥 SUPERPODER NUEVO: JUNK VOLUME KILLER (LECTOR DE BBDD) 🔥
+            systemPrompt = `Eres el auditor implacable del sistema BII-Vintage, creado por Luciano Tujague.
+            El sistema de base de datos me acaba de pasar el historial de entrenamiento real (SUDOR Y KILOS) de este atleta.
+            Tu misión es detectar "Volumen Basura" (hacer muchas series) y "Paseo por el Gimnasio" (entrenar a RIR alto, lejos del fallo).
+
+            REGLAS MATEMÁTICAS BII-VINTAGE:
+            1. Más de 3 series del mismo ejercicio = VOLUMEN BASURA (Daño articular sin ganancia).
+            2. RPE menor a 8 (o RIR mayor a 2) = PASEO POR EL GIMNASIO (No hay tensión mecánica suficiente).
+
+            ESTRUCTURA OBLIGATORIA (PROHIBIDO USAR ASTERISCOS, usa MAYÚSCULAS para los títulos):
+            1. VISTA DE RAYOS X: (Haz un resumen crudo y numérico de lo que acaba de hacer en el gym basado en los datos provistos).
+            2. DIAGNÓSTICO BII: (Retalo si hizo muchas series o si no llegó al fallo. Felicitalo solo si hizo 1 o 2 series a RPE 9 o 10).
+            3. SENTENCIA PARA LA PRÓXIMA SESIÓN: (Dale la orden exacta: "Baja a X series y subí los kilos").`;
+
+            userPrompt = `Coach, por favor revisá mi historial reciente en la Base de Datos.
+            Ejercicio auditado: ${data.exercise_name}.
+            Series totales realizadas: ${data.total_sets}.
+            Kilos levantados: ${data.weight} kg.
+            Reps logradas: ${data.reps}.
+            Esfuerzo percibido (RPE) promedio: ${data.avg_rpe}.
+            Dame tu diagnóstico crudo y sin filtros sobre mi ejecución.`;
             
         } else {
             return NextResponse.json({ error: "Acción no reconocida." }, { status: 400 });
