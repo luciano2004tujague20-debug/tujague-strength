@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.tujaguestrength.app",
+    "sha256_cert_fingerprints": [
+      "EB:A3:D8:0A:9A:6F:01:C4:3B:DE:FE:A9:2C:36:04:51:65:29:E3:70:7A:13:8E:5B:FC:C3:1D:35:31:80:8D:21"
+    ]
+  }
+}]

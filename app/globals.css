@@ -49,41 +49,47 @@
   }
 }
 
-/* Fondo de grilla sutil animado */
+/* Fondo de grilla sutil animado (AJUSTADO PARA FONDO BLANCO) */
 .tech-grid {
   background-size: 50px 50px;
-  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-                    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  /* Cambiamos las líneas a un negro muy sutil para que contrasten sobre el blanco */
+  background-image: linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
   mask-image: radial-gradient(circle at 50% 50%, black 40%, transparent 100%);
 }
 
-/* --- ESTILOS EXCLUSIVOS PARA ADMIN (No afectan al cliente) --- */
+/* --- ESTILOS DE LOGIN Y ADMIN (Adaptados a Modo Claro) --- */
 
 /* Contenedor optimizado para el fondo 3D/Partículas */
 .admin-login-wrapper {
-  @apply min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-[#09090b];
-  /* Eliminamos la URL de la imagen para que el fondo sea fluido y rápido */
+  /* Eliminamos el bg-[#09090b] oscuro y aplicamos el fondo principal (blanco) */
+  @apply min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-background;
 }
 
 /* Capa de contraste sutil para el Admin */
 .admin-overlay {
-  @apply absolute inset-0 bg-black/30 backdrop-blur-[1px] z-0 pointer-events-none;
+  /* Cambiado a blanco translúcido */
+  @apply absolute inset-0 bg-white/30 backdrop-blur-[1px] z-0 pointer-events-none;
 }
 
 /* El formulario y tablas de vidrio (Glassmorphism) */
 .admin-glass-card {
-  @apply relative z-10 w-full max-w-[400px] p-10 rounded-[40px] border border-white/10 bg-white/5 backdrop-blur-2xl shadow-2xl;
+  /* Adaptamos los bordes y sombras para que destaquen en blanco */
+  @apply relative z-10 w-full max-w-[400px] p-10 rounded-[40px] border border-black/10 bg-white/50 backdrop-blur-2xl shadow-2xl;
 }
 
 /* Inputs de línea minimalistas */
 .admin-input-line {
-  @apply w-full bg-transparent border-b border-white/20 py-4 text-white placeholder-white/50 outline-none transition-all focus:border-emerald-500 mb-6;
+  /* Cambiamos el texto y el placeholder a negro para que se lean perfecto */
+  @apply w-full bg-transparent border-b border-black/20 py-4 text-black placeholder-black/50 outline-none transition-all focus:border-emerald-500 mb-6;
 }
 
 /* Botón Admin Premium */
 .admin-btn {
-  @apply w-full bg-white text-black font-black py-4 rounded-full hover:bg-emerald-400 transition-all uppercase tracking-widest text-sm shadow-xl mt-4 active:scale-95;
+  /* Invertimos el botón: ahora es negro con texto blanco para destacar sobre el fondo claro */
+  @apply w-full bg-black text-white font-black py-4 rounded-full hover:bg-emerald-500 transition-all uppercase tracking-widest text-sm shadow-xl mt-4 active:scale-95;
 }
+
 /* 🔥 BLOQUEO DE REBOTE NATIVO (APK & iOS) 🔥 */
 html, body {
   overscroll-behavior-y: none;

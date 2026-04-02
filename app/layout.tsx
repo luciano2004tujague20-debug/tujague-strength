@@ -52,7 +52,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className="scroll-smooth">
-      <body className="antialiased bg-[#F8F9FA]"> {/* Fondo inyectado directo al body */}
+      {/* Añadimos 'text-slate-900' para garantizar que las letras sean oscuras sobre tu fondo claro */}
+      <body className="antialiased bg-[#F8F9FA] text-slate-900"> 
         <div className="bg-noise" />
         {children}
       </body>

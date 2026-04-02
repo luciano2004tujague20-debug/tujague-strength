@@ -1,6 +1,8 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  // 1. ESTA ES LA LÍNEA MÁGICA: Bloquea el modo oscuro automático del celular.
+  darkMode: "class", 
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -9,21 +11,22 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#09090b", // Zinc 950 profundo
-        foreground: "#fafafa", // Zinc 50 casi blanco
+        // 2. INVERTIMOS LOS COLORES BASE A MODO CLARO
+        background: "#ffffff", // Blanco puro para el fondo general
+        foreground: "#09090b", // Texto oscuro para que se lea sobre el blanco
         primary: {
-          DEFAULT: "#10b981", // Emerald 500
-          foreground: "#022c22", // Emerald 950
+          DEFAULT: "#10b981", // Emerald 500 (¡Tu verde principal se mantiene intacto!)
+          foreground: "#ffffff", // El texto dentro de tus botones verdes será blanco
         },
         muted: {
-          DEFAULT: "#18181b", // Zinc 900
-          foreground: "#a1a1aa", // Zinc 400
+          DEFAULT: "#f4f4f5", // Un gris muy clarito para zonas secundarias
+          foreground: "#71717a", // Texto gris medio
         },
         card: {
-          DEFAULT: "rgba(24, 24, 27, 0.6)", // Zinc 900 con transparencia
-          foreground: "#fafafa",
+          DEFAULT: "#ffffff", // Fondo de las tarjetas en blanco
+          foreground: "#09090b", // Texto de las tarjetas oscuro
         },
-        border: "rgba(63, 63, 70, 0.4)", // Zinc 700 con transparencia
+        border: "#e4e4e7", // Líneas divisorias en gris clarito y sutil
       },
       borderRadius: {
         lg: "1rem",
