@@ -2,7 +2,7 @@
   "name": "Tujague Strength",
   "short_name": "Tujague",
   "description": "Dashboard Privado de Entrenamiento BII-Vintage",
-  "start_url": "/",
+  "start_url": "/login",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
