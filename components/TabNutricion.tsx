@@ -49,10 +49,11 @@ export default function TabNutricion({ isElitePlan, whatsappUpsellUrl, handleRes
               </div>
           </div>
       ) : (
-          /* SI ES ÉLITE, LE MOSTRAMOS EL DASHBOARD DE NUTRICIÓN NORMAL */
-          <div className="animate-in fade-in duration-500">
-              <AthleteNutritionDashboard userId={userId} />
-          </div>
+/* SI ES ÉLITE, LE MOSTRAMOS EL DASHBOARD DE NUTRICIÓN NORMAL */
+<div className="animate-in fade-in duration-500">
+  {/* Comprobamos que userId exista antes de mostrar el componente */}
+  {userId && <AthleteNutritionDashboard userId={userId} />}
+</div>
       )}
     </>
   );
